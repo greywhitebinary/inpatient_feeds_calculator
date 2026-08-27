@@ -1,0 +1,197 @@
+/* Shared clinical-workspace treatment derived from the approved wireframes. */
+/* Match BTF-Calc's readable 20 px base scale, then set each heading tier
+   explicitly so the EN page title does not dominate the clinical workspace. */
+html {
+    font-size: 125%;
+}
+
+.stApp [data-testid="stMainBlockContainer"],
+.stApp .block-container {
+    /* Match BTF-Calc: a readable working column that starts from the
+       shared left edge, rather than a narrow column centred in the viewport. */
+    max-width: 60rem;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    padding-top: 3.75rem;
+}
+
+/* Report tables may extend to the right on wide screens while retaining the
+   same left edge as the content above.  This is the BTF full-bleed pattern. */
+@media (min-width: 64rem) {
+    [class*="st-key-fullbleed"] {
+        width: calc(100vw - 8rem);
+        max-width: calc(100vw - 8rem);
+    }
+}
+
+.en-brand {
+    margin: 0 0 0.6rem;
+    color: #A4243A;
+    font-size: 1rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+}
+
+.stApp h1,
+[data-testid="stAppViewContainer"] h1,
+[data-testid="stHeadingWithActionElements"] h1 {
+    font-size: 1.5rem !important;
+    line-height: 1.25 !important;
+    overflow: visible !important;
+}
+
+.record-title {
+    display: flex;
+    align-items: center;
+    gap: 0.26rem;
+}
+
+.record-title img {
+    width: 2em;
+    height: 0.95em;
+    flex: 0 0 auto;
+}
+
+.record-title-food {
+    margin-right: 0.32rem;
+}
+
+.stApp h2,
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stHeadingWithActionElements"] h2 {
+    font-size: 1.15rem !important;
+}
+
+.stApp h3,
+[data-testid="stAppViewContainer"] h3,
+[data-testid="stHeadingWithActionElements"] h3 {
+    font-size: 1.05rem !important;
+}
+
+[role="tab"],
+button[role="tab"],
+button[data-testid="stTab"],
+button[data-baseweb="tab"] {
+    margin-right: 1rem;
+    padding: 0.45rem 0.6rem;
+}
+
+[role="tab"] p,
+button[role="tab"] p,
+button[data-testid="stTab"] p,
+button[data-baseweb="tab"] p {
+    font-size: 1.25rem !important;
+    font-weight: 700;
+}
+
+[role="tab"][aria-selected="true"] p,
+button[role="tab"][aria-selected="true"] p,
+button[data-testid="stTab"][aria-selected="true"] p,
+button[data-baseweb="tab"][aria-selected="true"] p {
+    color: #A4243A;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border-color: #DDD4D2;
+    border-radius: 8px;
+    background: var(--background-color);
+}
+
+[data-testid="stAlert"] {
+    border-left: 3px solid #A4243A;
+    background: var(--secondary-background-color);
+}
+
+.stButton > button,
+.stDownloadButton > button {
+    border-color: #A4243A;
+    color: #A4243A;
+    border-radius: 4px;
+    font-weight: 650;
+}
+
+[data-testid="stTextInputRootElement"],
+[data-testid="stNumberInputContainer"] {
+    border: 2px solid #A4243A !important;
+    border-radius: 5px;
+}
+
+/* The framework paints the number-input interior separately.  Keeping it
+   transparent preserves the same typed-field convention as BTF-Calc. */
+[data-testid="stNumberInputContainer"] > div,
+[data-testid="stNumberInputContainer"] > div > div,
+[data-testid="stNumberInputContainer"] [data-baseweb="base-input"] {
+    background: transparent !important;
+}
+
+[data-testid="stTextInputRootElement"] input,
+[data-testid="stNumberInputContainer"] input,
+[data-testid="stNumberInputContainer"] [data-baseweb="input"] {
+    background: transparent !important;
+}
+
+[class*="st-key-pagefooter"] p,
+[class*="st-key-pagefooter"] li {
+    font-size: 0.7rem;
+    line-height: 1.55;
+}
+
+/* Feed-card figures are clinical reference values, not decorative stats.
+   Give the label, unit, and number a stable rhythm and enough contrast. */
+.feed-profile [data-testid="stCaptionContainer"] p {
+    margin-bottom: 0.1rem;
+}
+
+.feed-profile small {
+    color: var(--secondary-text-color);
+    font-size: 0.72rem;
+}
+
+.feed-profile b {
+    display: inline-block;
+    min-width: 4.25rem;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+@media (prefers-color-scheme: dark) {
+    .en-brand,
+    button[role="tab"][aria-selected="true"] p,
+    button[data-testid="stTab"][aria-selected="true"] p,
+    button[data-baseweb="tab"][aria-selected="true"] p,
+    .stButton > button,
+    .stDownloadButton > button {
+        color: #E0708A;
+        border-color: #E0708A;
+    }
+
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border-color: #4C3940;
+    }
+}
+
+@media (max-width: 640px) {
+    .stApp h1.record-title {
+        font-size: 1.3rem !important;
+        gap: 0.16rem;
+    }
+
+    .record-title img {
+        width: 1.8em;
+        height: 0.9em;
+    }
+
+    [role="tab"] p,
+    button[role="tab"] p,
+    button[data-testid="stTab"] p,
+    button[data-baseweb="tab"] p {
+        font-size: 1rem !important;
+    }
+
+    [role="tab"],
+    button[role="tab"],
+    button[data-testid="stTab"],
+    button[data-baseweb="tab"] {
+        margin-right: 0.75rem;
+    }
+}

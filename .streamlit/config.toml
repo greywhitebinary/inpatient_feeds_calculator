@@ -1,0 +1,15 @@
+# Shared enteral-tool palette. Streamlit reads this file when the app starts.
+[theme]
+primaryColor = "#A4243A"
+linkColor = "#A4243A"
+backgroundColor = "#FCFAF9"
+secondaryBackgroundColor = "#F9E8EB"
+textColor = "#292526"
+font = "sans serif"
+
+[theme.dark]
+primaryColor = "#E0708A"
+linkColor = "#E0708A"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#3A2429"
+textColor = "#F5F5F5"

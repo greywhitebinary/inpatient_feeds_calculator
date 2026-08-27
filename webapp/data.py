@@ -1,0 +1,101 @@
+"""Formulary data loading, validation, and portable workbook helpers."""
+
+from __future__ import annotations
+
+from io import BytesIO
+from pathlib import Path
+
+import pandas as pd
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+FORMULA_PATH = PROJECT_ROOT / "formulary_working" / "canada_formulas_working.csv"
+MODULAR_PATH = PROJECT_ROOT / "formulary_working" / "modular_products_working.csv"
+
+FORMULA_REQUIRED_COLUMNS = {
+    "name", "brand", "kcal_per_mL", "protein_per_mL", "fat_per_mL",
+    "carbohydrate_per_mL", "fibre_per_mL", "sodium_per_mL", "potassium_per_mL",
+    "calcium_per_mL", "magnesium_per_mL", "phosphorus_per_mL", "free_water_per_mL",
+    "source", "verified",
+}
+MODULAR_REQUIRED_COLUMNS = {
+    "id", "product_type", "name", "brand", "dose_unit", "basis_amount",
+    "basis_description", "kcal_per_basis", "protein_g_per_basis",
+    "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
+    "free_water_ml_per_basis", "preparation_water_rule", "source", "verified",
+}
+
+FORMULA_NUMERIC_COLUMNS = {
+    "kcal_per_mL", "protein_per_mL", "fat_per_mL", "carbohydrate_per_mL",
+    "fibre_per_mL", "sodium_per_mL", "potassium_per_mL", "calcium_per_mL",
+    "magnesium_per_mL", "phosphorus_per_mL", "free_water_per_mL",
+}
+MODULAR_NUMERIC_COLUMNS = {
+    "basis_amount", "kcal_per_basis", "protein_g_per_basis",
+    "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
+    "free_water_ml_per_basis",
+}
+
+
+def load_master_formulas() -> pd.DataFrame:
+    return pd.read_csv(FORMULA_PATH, encoding="utf-8-sig").fillna(0)
+
+
+def load_master_modulars() -> pd.DataFrame:
+    return pd.read_csv(MODULAR_PATH, encoding="utf-8-sig").fillna(0)
+
+
+def validate_columns(frame: pd.DataFrame, required: set[str], label: str) -> None:
+    missing = sorted(required - set(frame.columns))
+    if missing:
+        raise ValueError(f"{label} is missing required columns: {', '.join(missing)}.")
+
+
+def validate_product_rows(frame: pd.DataFrame, numeric_columns: set[str], label: str) -> pd.DataFrame:
+    """Reject incomplete core profiles before a local formulary becomes active."""
+    cleaned = frame.copy()
+    text_columns = ("name", "brand", "source", "verified")
+    for column in text_columns:
+        if cleaned[column].astype(str).str.strip().replace("nan", "").eq("").any():
+            raise ValueError(f"{label} contains a blank {column.replace('_', ' ')}.")
+    duplicated = cleaned["name"].astype(str).str.strip().str.casefold().duplicated()
+    if duplicated.any():
+        raise ValueError(f"{label} contains duplicate product names.")
+    for column in numeric_columns:
+        converted = pd.to_numeric(cleaned[column], errors="coerce")
+        if converted.isna().any() or (converted < 0).any():
+            raise ValueError(f"{label} has a blank, non-numeric, or negative value in {column}.")
+        cleaned[column] = converted
+    return cleaned
+
+
+def validate_import(formulas: pd.DataFrame, modulars: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    validate_columns(formulas, FORMULA_REQUIRED_COLUMNS, "My Formulary worksheet")
+    validate_columns(modulars, MODULAR_REQUIRED_COLUMNS, "My Modulars worksheet")
+    formulas = validate_product_rows(formulas, FORMULA_NUMERIC_COLUMNS, "My Formulary worksheet")
+    modulars = validate_product_rows(modulars, MODULAR_NUMERIC_COLUMNS, "My Modulars worksheet")
+    if modulars["id"].astype(str).str.strip().replace("nan", "").eq("").any():
+        raise ValueError("My Modulars worksheet contains a blank id.")
+    if modulars["id"].astype(str).str.strip().str.casefold().duplicated().any():
+        raise ValueError("My Modulars worksheet contains duplicate ids.")
+    return formulas.fillna(0), modulars.fillna(0)
+
+
+def export_formulary_workbook(formulas: pd.DataFrame, modulars: pd.DataFrame) -> bytes:
+    """Create an Excel workbook containing product data only, never case inputs."""
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        formulas.to_excel(writer, sheet_name="My Formulary", index=False)
+        modulars.to_excel(writer, sheet_name="My Modulars", index=False)
+    return buffer.getvalue()
+
+
+def import_formulary_workbook(uploaded_file) -> tuple[pd.DataFrame, pd.DataFrame]:
+    workbook = pd.ExcelFile(uploaded_file)
+    required_sheets = {"My Formulary", "My Modulars"}
+    missing = required_sheets - set(workbook.sheet_names)
+    if missing:
+        raise ValueError("Workbook must contain sheets named: " + ", ".join(sorted(required_sheets)))
+    formulas = pd.read_excel(workbook, sheet_name="My Formulary")
+    modulars = pd.read_excel(workbook, sheet_name="My Modulars")
+    return validate_import(formulas, modulars)
