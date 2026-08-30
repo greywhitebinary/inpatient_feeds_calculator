@@ -98,7 +98,9 @@ round trips, and key Streamlit workflows.
 - `webapp/case_io.py` contains the saved-record workbook contract.
 - `webapp/data.py` contains formulary loading, validation, import, and export.
 - `formulary_working/` contains the working feed and modular data.
-- `formula_sources/` contains the manufacturer-guide source PDFs.
+- `formula_sources/SOURCES.md` records the manufacturer documents used to
+  review the public formulary data. The documents themselves are kept locally
+  under `reference_documents/canada/` and are not needed at application runtime.
 
 Keep patient records, downloaded workbooks, historical working spreadsheets,
 screenshots, and other private local material outside this repository. The

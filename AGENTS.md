@@ -38,3 +38,16 @@ under what conditions, why, and how it was evaluated.
 
 Do not remove connective language merely to make prose shorter or punchier.
 Use parallelism only when it serves a deliberate rhetorical purpose.
+
+## Local source documents and private data
+
+`reference_documents/` contains local-only manufacturer documents arranged by
+country. It is ignored by Git and must never be added, committed, or pushed.
+When updating public formulary CSVs, read the relevant local document, report
+each changed value with its document and page, and update the row-level source
+and verification metadata. See `formula_sources/SOURCES.md` for the public
+source register.
+
+`local_data/` is also ignored by Git. It may contain private alternative data
+sets, which must not be used by, copied into, or assumed to be available to the
+public deployment without the owner's explicit direction.

@@ -10,3 +10,8 @@ __pycache__/
 downloads/
 outputs/
 local_files/
+
+# Local reference material and private data. Publish only reviewed runtime
+# data and a source register.
+/reference_documents/
+/local_data/

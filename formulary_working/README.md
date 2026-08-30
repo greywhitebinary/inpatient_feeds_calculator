@@ -12,5 +12,7 @@ formulary before clinical use.
 
 `modular_products_working.csv` is maintained separately because modulars use a
 dose or serving basis rather than the per-millilitre basis used by formulas.
-Manufacturer documents supporting the maintained values are stored in
-`formula_sources/`.
+Manufacturer documents supporting the maintained values are stored locally in
+`reference_documents/canada/`. That folder is ignored by Git and is not needed
+to run the application. The public source register is
+`formula_sources/SOURCES.md`.
