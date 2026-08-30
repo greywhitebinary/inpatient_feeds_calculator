@@ -15,14 +15,16 @@ def render_case_record_actions() -> str:
         st.rerun()
     label_column, upload_column = st.columns([3, 1], vertical_alignment="bottom")
     with label_column:
-        label = st.text_input(
-            "Patient / record label",
-            key="case_record_label",
-            help=(
-                "Used in the page title and downloaded workbook. "
-                "Follow local privacy policy."
-            ),
-        )
+        compact_label_column, _label_spacer = st.columns([2, 1])
+        with compact_label_column:
+            label = st.text_input(
+                "Patient / record label",
+                key="case_record_label",
+                help=(
+                    "Used in the page title and downloaded workbook. "
+                    "Follow local privacy policy."
+                ),
+            )
     with upload_column:
         with st.popover("📂 Open a saved record", width="stretch"):
             uploaded = st.file_uploader("Open a saved record", type="xlsx", key="case_record_upload", label_visibility="collapsed")
