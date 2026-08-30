@@ -15,7 +15,7 @@ APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
 
 class AssessmentRenderTests(unittest.TestCase):
-    def test_header_uses_a_text_link_and_separates_identity_from_instructions(self):
+    def test_header_uses_a_text_link_and_separates_identity_from_workflow(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
         self.assertFalse(app.exception)
@@ -24,7 +24,9 @@ class AssessmentRenderTests(unittest.TestCase):
             "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]",
             captions,
         )
-        self.assertIn("project.  \nFirst time here?", captions)
+        self.assertIn("Uses Canadian formula and modular product information.", captions)
+        self.assertIn("Work left to right: set up My Formulary", captions)
+        self.assertNotIn("First time here?", captions)
         self.assertNotIn("substack logo", captions.lower())
 
     def test_footer_includes_platform_neutral_browser_zoom_guidance(self):
@@ -32,6 +34,18 @@ class AssessmentRenderTests(unittest.TestCase):
 
         self.assertFalse(app.exception)
         footer_text = "\n".join(item.value for item in app.caption)
+        expander_labels = {item.label for item in app.expander}
+        self.assertIn("About this calculator", expander_labels)
+        self.assertIn("Review calculations before clinical use.", footer_text)
+        self.assertIn(
+            "[BTFCalc](https://btfcalc.feedformflow.ca) — blenderized tube feeding calculator.",
+            footer_text,
+        )
+        self.assertNotIn("Under development", footer_text)
+        self.assertIn(
+            "Formula and modular values come from manufacturers’ Canadian product information.",
+            footer_text,
+        )
         self.assertIn("Display tip:", footer_text)
         self.assertIn("Ctrl +/−", footer_text)
         self.assertIn("⌘ +/−", footer_text)

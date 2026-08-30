@@ -66,17 +66,21 @@ def render_footer() -> None:
     st.divider()
     with st.container(key="pagefooter"):
         st.caption(
-            "- ⚠️ **Under development.** A calculator for dietitians and the teams supporting adult inpatient "
-            "enteral nutrition, and anyone is welcome to use it. It is built to inform clinical judgment, not "
-            "to replace it. Please use with caution and check numbers before acting on them.\n"
-            "- Using this tool creates no dietitian–client or other professional relationship, and it is no "
-            "substitute for professional medical advice, diagnosis, or treatment. For anything about a specific "
-            "person's care, consult their physician, registered dietitian, or other qualified health professional. "
-            "Do not delay seeking that advice because of anything calculated here.\n"
-            "- Commercial formula and modular values come from each manufacturer's published product information. "
-            "Verify values against the current local product label and institutional formulary before clinical use.\n"
+            "- ⚠️ **Review calculations before clinical use.**\n"
+            "- **Related tool:** [BTFCalc](https://btfcalc.feedformflow.ca) — blenderized tube feeding calculator.\n"
             "- **Display tip:** Adjust Zoom in your browser menu, or use `Ctrl +/−` on Windows and "
             "`⌘ +/−` on Mac. You can also pinch on touchscreens and trackpads.\n"
             "- Issues or feedback? Please [open an issue at GitHub](https://github.com/greywhitebinary/inpatient_feeds_calculator/issues), "
             "or [find me on LinkedIn](https://www.linkedin.com/in/hui-jun-gail-chew/)."
         )
+        with st.expander("About this calculator"):
+            st.caption(
+                "ENCalc is designed for dietitians and teams supporting adult inpatient enteral nutrition. "
+                "It supports, but does not replace, clinical judgement.\n\n"
+                "This tool does not create a dietitian–client or other professional relationship and is not a "
+                "substitute for professional medical advice, diagnosis, or treatment. For advice about an "
+                "individual's care, consult their physician, registered dietitian, or other qualified health "
+                "professional. Do not delay seeking that advice because of a result from this calculator.\n\n"
+                "Formula and modular values come from manufacturers’ Canadian product information. Verify them "
+                "against current local product labels and institutional formularies before clinical use."
+            )

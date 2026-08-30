@@ -28,8 +28,9 @@ def main() -> None:
     with st.container(key="pagenote"):
         st.caption(
             "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]"
-            "(https://feedformflow.substack.com/p/feed-form-flow) project.  \n"
-            "First time here? Load the example record. Work left to right: set up "
+            "(https://feedformflow.substack.com/p/feed-form-flow) project. "
+            "Uses Canadian formula and modular product information.  \n"
+            "Work left to right: set up "
             "My Formulary, complete the assessment, build an EN plan, and review the totals."
         )
     formulary_tab, assessment_tab, plan_tab, propofol_tab = st.tabs(

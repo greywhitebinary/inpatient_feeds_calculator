@@ -73,21 +73,21 @@ html {
     font-size: 1.05rem !important;
 }
 
-[role="tab"],
-button[role="tab"],
-button[data-testid="stTab"],
-button[data-baseweb="tab"] {
+[role="tab"] {
     margin-right: 1.25rem;
     padding-top: 0.4rem;
     padding-bottom: 0.4rem;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: var(--text-color) !important;
+    background-color: transparent !important;
 }
 
 [role="tab"] p,
-button[role="tab"] p,
-button[data-testid="stTab"] p,
-button[data-baseweb="tab"] p {
-    font-size: 1.25rem !important;
-    font-weight: 700;
+[role="tab"] div,
+[role="tab"] span {
+    font-size: inherit !important;
+    font-weight: inherit !important;
 }
 
 /* Low/high propofol choices are local subtabs, not page navigation. */
@@ -97,11 +97,11 @@ button[data-baseweb="tab"] p {
     font-size: 1.05rem !important;
 }
 
+[role="tab"][aria-selected="true"],
 [role="tab"][aria-selected="true"] p,
-button[role="tab"][aria-selected="true"] p,
-button[data-testid="stTab"][aria-selected="true"] p,
-button[data-baseweb="tab"][aria-selected="true"] p {
-    color: var(--primary-color, #A4243A);
+[role="tab"][aria-selected="true"] div,
+[role="tab"][aria-selected="true"] span {
+    color: var(--primary-color, #A4243A) !important;
 }
 
 /* Match BTF's convention: typed fields carry the maroon outline, while

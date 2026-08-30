@@ -8,6 +8,8 @@ read-only chart-note aid.
 The tool is not an autonomous clinical decision system. Clinicians must verify
 current product data, apply local policy, and use independent clinical judgment.
 
+### Try it: [encalc.feedformflow.ca](https://encalc.feedformflow.ca)
+
 ## Local case records
 
 The application has no account system, shared workspace, remote patient-record
