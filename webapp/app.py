@@ -27,8 +27,8 @@ def main() -> None:
     render_record_title(record_label)
     with st.container(key="pagenote"):
         st.caption(
-            "Adult Inpatient Enteral Nutrition Calculator: a [Feed. Form. Flow.]"
-            "(https://feedformflow.substack.com/p/feed-form-flow) project. "
+            "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]"
+            "(https://feedformflow.substack.com/p/feed-form-flow) project.  \n"
             "First time here? Load the example record. Work left to right: set up "
             "My Formulary, complete the assessment, build an EN plan, and review the totals."
         )

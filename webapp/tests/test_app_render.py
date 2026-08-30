@@ -15,6 +15,28 @@ APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
 
 class AssessmentRenderTests(unittest.TestCase):
+    def test_header_uses_a_text_link_and_separates_identity_from_instructions(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        captions = "\n".join(item.value for item in app.caption)
+        self.assertIn(
+            "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]",
+            captions,
+        )
+        self.assertIn("project.  \nFirst time here?", captions)
+        self.assertNotIn("substack logo", captions.lower())
+
+    def test_footer_includes_platform_neutral_browser_zoom_guidance(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        footer_text = "\n".join(item.value for item in app.caption)
+        self.assertIn("Display tip:", footer_text)
+        self.assertIn("Ctrl +/−", footer_text)
+        self.assertIn("⌘ +/−", footer_text)
+        self.assertIn("pinch on touchscreens and trackpads", footer_text)
+
     def test_saved_record_opens_without_mutating_an_instantiated_widget(self):
         formulas = load_master_formulas().iloc[[0]].copy()
         modulars = load_master_modulars().iloc[[0]].copy()

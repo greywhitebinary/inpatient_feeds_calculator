@@ -75,6 +75,8 @@ def render_footer() -> None:
             "Do not delay seeking that advice because of anything calculated here.\n"
             "- Commercial formula and modular values come from each manufacturer's published product information. "
             "Verify values against the current local product label and institutional formulary before clinical use.\n"
+            "- **Display tip:** Adjust Zoom in your browser menu, or use `Ctrl +/−` on Windows and "
+            "`⌘ +/−` on Mac. You can also pinch on touchscreens and trackpads.\n"
             "- Issues or feedback? Please [open an issue at GitHub](https://github.com/greywhitebinary/inpatient_feeds_calculator/issues), "
             "or [find me on LinkedIn](https://www.linkedin.com/in/hui-jun-gail-chew/)."
         )
