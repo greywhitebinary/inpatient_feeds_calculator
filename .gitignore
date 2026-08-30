@@ -5,3 +5,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.xlsx~
+.env
+.env.*
+downloads/
+outputs/
+local_files/

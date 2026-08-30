@@ -1,0 +1,475 @@
+"""Assessment workflow and authoritative EN-plan goals."""
+
+from __future__ import annotations
+
+import pandas as pd
+import streamlit as st
+
+from calculations import (
+    adjusted_body_weight_kg,
+    devine_ibw_kg,
+    hamwi_ibw_kg,
+    harris_benedict_kcal,
+    height_to_cm,
+    mifflin_st_jeor_kcal,
+    open_abdomen_protein_loss_g,
+    penn_state_2003b_kcal,
+    penn_state_2010_kcal,
+)
+from constants import KG_PER_LB, PLAN_GOALS
+from session_state import (
+    sync_height_from_cm_entry,
+    sync_height_from_feet_inches,
+    sync_height_unit_fields,
+    sync_weight_from_kg_entry,
+    sync_weight_from_lb,
+    sync_weight_unit_fields,
+)
+from ui_common import number, render_box_heading, render_report_table, render_worked_bounds
+
+def show_assessment() -> None:
+    st.caption("Blank means not entered; use 0 only when zero is intended.")
+    with st.container(border=True):
+        st.subheader("Measurements and weight history")
+        measurement_left, measurement_right = st.columns(2)
+        sex = measurement_left.selectbox("Sex used for equations", ["", "Female", "Male"], key="assessment_sex", format_func=lambda value: value or "Select…")
+        age = measurement_left.number_input("Age (years)", min_value=18, max_value=120, value=None, step=1, key="assessment_age", placeholder="Enter age")
+        height_unit = measurement_right.selectbox(
+            "Height measurement unit", ["cm", "ft/in"], key="assessment_height_unit",
+            format_func=lambda unit: "Centimetres (cm)" if unit == "cm" else "Feet and inches",
+            on_change=sync_height_unit_fields,
+        )
+        if height_unit == "cm":
+            if "assessment_height_cm_entry" not in st.session_state:
+                st.session_state.assessment_height_cm_entry = st.session_state.get(
+                    "assessment_height_cm"
+                )
+            height_cm = measurement_right.number_input(
+                "Height (cm)", min_value=50, max_value=250, value=None, step=1,
+                key="assessment_height_cm_entry", placeholder="Enter height",
+                on_change=sync_height_from_cm_entry,
+            )
+        else:
+            feet_column, inches_column = measurement_right.columns(2)
+            height_feet = feet_column.number_input(
+                "Height (ft)", min_value=3, max_value=8, value=None, step=1,
+                key="assessment_height_feet", placeholder="Feet",
+                on_change=sync_height_from_feet_inches,
+            )
+            height_inches = inches_column.number_input(
+                "Height (in)", min_value=0.0, max_value=11.9, value=None, step=0.1,
+                format="%.1f", key="assessment_height_inches", placeholder="Inches",
+                on_change=sync_height_from_feet_inches,
+            )
+            height_cm = (
+                height_to_cm("ft/in", feet=int(height_feet), inches=height_inches)
+                if height_feet is not None and height_inches is not None else None
+            )
+
+        weight_unit = st.selectbox(
+            "Weight measurement unit", ["kg", "lb"], key="assessment_weight_unit",
+            format_func=lambda unit: "Kilograms (kg)" if unit == "kg" else "Pounds (lb)",
+            on_change=sync_weight_unit_fields,
+        )
+        weights = st.columns(2)
+        if weight_unit == "kg":
+            if "assessment_current_weight_kg_entry" not in st.session_state:
+                st.session_state.assessment_current_weight_kg_entry = st.session_state.get(
+                    "assessment_current_weight"
+                )
+            if "assessment_usual_weight_kg_entry" not in st.session_state:
+                st.session_state.assessment_usual_weight_kg_entry = st.session_state.get(
+                    "assessment_usual_weight"
+                )
+            current_weight = weights[0].number_input(
+                "Current body weight (kg)", min_value=1.0, value=None, step=0.1,
+                format="%.1f", key="assessment_current_weight_kg_entry",
+                placeholder="Enter weight", on_change=sync_weight_from_kg_entry,
+                args=(
+                    "assessment_current_weight_kg_entry",
+                    "assessment_current_weight",
+                    "assessment_current_weight_lb",
+                ),
+            )
+            usual_weight = weights[1].number_input(
+                "Usual body weight (kg)", min_value=1.0, value=None, step=0.1,
+                format="%.1f", key="assessment_usual_weight_kg_entry",
+                placeholder="Optional", on_change=sync_weight_from_kg_entry,
+                args=(
+                    "assessment_usual_weight_kg_entry",
+                    "assessment_usual_weight",
+                    "assessment_usual_weight_lb",
+                ),
+            )
+        else:
+            current_weight_lb = weights[0].number_input(
+                "Current body weight (lb)", min_value=1.0, value=None, step=0.1,
+                format="%.1f", key="assessment_current_weight_lb", placeholder="Enter weight",
+                on_change=sync_weight_from_lb,
+                args=("assessment_current_weight_lb", "assessment_current_weight"),
+            )
+            usual_weight_lb = weights[1].number_input(
+                "Usual body weight (lb)", min_value=1.0, value=None, step=0.1,
+                format="%.1f", key="assessment_usual_weight_lb", placeholder="Optional",
+                on_change=sync_weight_from_lb,
+                args=("assessment_usual_weight_lb", "assessment_usual_weight"),
+            )
+            current_weight = current_weight_lb * KG_PER_LB if current_weight_lb is not None else None
+            usual_weight = usual_weight_lb * KG_PER_LB if usual_weight_lb is not None else None
+
+        ready_for_weight = bool(sex and current_weight is not None and height_cm is not None)
+        if ready_for_weight:
+            bmi = current_weight / (height_cm / 100) ** 2
+            stats = [f"BMI <strong>{bmi:.1f} kg/m²</strong>"]
+            if usual_weight is None:
+                stats.extend(["weight change not entered", "weight loss not entered"])
+            else:
+                change = current_weight - usual_weight
+                stats.extend([
+                    f"weight change <strong>{change:+.1f} kg</strong>",
+                    f"weight loss <strong>{max((usual_weight - current_weight) / usual_weight * 100, 0):.1f}%</strong>",
+                ])
+            st.markdown(f'<p class="assessment-readout">{" · ".join(stats)}</p>', unsafe_allow_html=True)
+            ibw = hamwi_ibw_kg(sex, height_cm)
+            devine_ibw = devine_ibw_kg(sex, height_cm)
+        else:
+            ibw = None
+            devine_ibw = None
+
+        if st.session_state.get("assessment_adjusted_weight_factor") is None:
+            st.session_state.assessment_adjusted_weight_factor = 0.25
+        correction_factor = st.session_state.assessment_adjusted_weight_factor
+        estimated_weight = st.session_state.get("assessment_estimated_weight")
+        adjusted_weight = (adjusted_body_weight_kg(current_weight, ibw, correction_factor)
+                           if ready_for_weight and correction_factor is not None else None)
+
+        hamwi_work = (
+            f"45.5 + 0.866 × ({height_cm:.1f} − 152.4)"
+            if sex == "Female" and height_cm is not None
+            else f"48.0 + 1.063 × ({height_cm:.1f} − 152.4)"
+            if sex == "Male" and height_cm is not None
+            else "—"
+        )
+        devine_work = (
+            f"45.5 + 2.3 × (({height_cm:.1f} ÷ 2.54) − 60)"
+            if sex == "Female" and height_cm is not None
+            else f"50.0 + 2.3 × (({height_cm:.1f} ÷ 2.54) − 60)"
+            if sex == "Male" and height_cm is not None
+            else "—"
+        )
+        adjusted_work = (f"{ibw:.1f} + ({current_weight:.1f} − {ibw:.1f}) × [[{correction_factor:g}]]"
+                         if adjusted_weight is not None else "—")
+        weight_calculations = pd.DataFrame([
+            {"Weight": "Current body weight", "Values used": "Entered measurement", "Result (kg)": f"{current_weight:.1f}" if current_weight is not None else "—"},
+            {"Weight": "Ideal body weight (Hamwi — SI units)", "Values used": hamwi_work, "Result (kg)": f"{ibw:.1f}" if ibw is not None else "—"},
+            {"Weight": "Ideal body weight (Devine — medication-dosing reference)", "Values used": devine_work, "Result (kg)": f"{devine_ibw:.1f}" if devine_ibw is not None else "—"},
+            {"Weight": "Adjusted body weight (Hamwi IBW)", "Values used": adjusted_work, "Result (kg)": f"{adjusted_weight:.1f}" if adjusted_weight is not None else "—"},
+            {"Weight": "Estimated dry / clinician-selected weight", "Values used": "Entered weight", "Result (kg)": f"{estimated_weight:.1f}" if estimated_weight is not None else "—"},
+        ])
+        render_report_table(weight_calculations)
+        adjustment, estimated = st.columns(2)
+        correction_factor = adjustment.number_input(
+            "Adjusted body-weight factor", min_value=0.0, max_value=1.0,
+            value=None, step=0.05, format="%.2f", key="assessment_adjusted_weight_factor",
+        )
+        estimated_weight = estimated.number_input("Estimated dry / clinician-selected weight (kg)", min_value=1.0, value=None, step=0.1, format="%.1f", key="assessment_estimated_weight", placeholder="Optional")
+        adjusted_weight = (adjusted_body_weight_kg(current_weight, ibw, correction_factor)
+                           if ready_for_weight and correction_factor is not None else None)
+        hamwi_label = "Ideal body weight (Hamwi — SI units)"
+        if st.session_state.get("assessment_weight_choice") == "Hamwi IBW":
+            st.session_state.assessment_weight_choice = hamwi_label
+        adjusted_label = "Adjusted body weight (Hamwi IBW)"
+        if st.session_state.get("assessment_weight_choice") in {
+            "Adjusted body weight", "Adjusted body weight (Hamwi-based)"
+        }:
+            st.session_state.assessment_weight_choice = adjusted_label
+        weight_options = {
+            "Current body weight": current_weight,
+            hamwi_label: ibw,
+            adjusted_label: adjusted_weight,
+            "Estimated dry / clinician-selected weight": estimated_weight,
+        }
+        available_choices = [name for name, value in weight_options.items() if value is not None]
+
+    # Propofol affects the EN allocation rather than the energy-requirement
+    # equations, so it is owned by the EN plan and not by Assessment.
+    st.session_state.pop("assessment_propofol_rate", None)
+    with st.container(border=True):
+        st.subheader("Energy assessment")
+        weight_choice = st.selectbox(
+            "Weight used for energy, protein, and water calculations",
+            [""] + available_choices,
+            key="assessment_weight_choice",
+            format_func=lambda value: (
+                f"{value} ({weight_options[value]:.1f} kg)" if value else "Select…"
+            ),
+        )
+        calculation_weight = weight_options.get(weight_choice)
+        ready_for_equations = bool(ready_for_weight and calculation_weight is not None and age is not None)
+        mifflin = mifflin_st_jeor_kcal(sex, calculation_weight, height_cm, age) if ready_for_equations else None
+        harris = harris_benedict_kcal(sex, calculation_weight, height_cm, age) if ready_for_equations else None
+        energy_low, energy_high, energy_measure = st.columns(3)
+        low_kcal_kg = energy_low.number_input(
+            "Energy range, from (kcal/kg)", min_value=0.0, value=None,
+            step=1.0, format="%.0f", key="assessment_energy_low_kcal_kg",
+            placeholder="Optional",
+        )
+        high_kcal_kg = energy_high.number_input(
+            "Energy range, to (kcal/kg)", min_value=0.0, value=None,
+            step=1.0, format="%.0f", key="assessment_energy_high_kcal_kg",
+            placeholder="Optional",
+        )
+        measured = energy_measure.number_input(
+            "Indirect calorimetry (kcal/day)", min_value=0.0, value=None,
+            step=25.0, format="%.0f", key="assessment_indirect_calorimetry",
+            placeholder="Optional",
+        )
+        st.session_state.setdefault("assessment_activity_factor", 1.0)
+        st.session_state.setdefault("assessment_stress_factor", 1.0)
+        factor_columns = st.columns(2)
+        activity_factor = factor_columns[0].number_input(
+            "Activity factor", min_value=0.0, max_value=5.0, step=0.05, format="%.2f",
+            key="assessment_activity_factor",
+        )
+        stress_factor = factor_columns[1].number_input(
+            "Stress factor", min_value=0.0, max_value=5.0, step=0.05, format="%.2f",
+            key="assessment_stress_factor",
+        )
+        with st.expander("Ventilation and temperature", expanded=False):
+            temperature_input, minute_ventilation_input = st.columns(2)
+            temperature = temperature_input.number_input(
+                "Maximum temperature (°C)", min_value=30.0, max_value=45.0, value=None,
+                step=0.1, format="%.1f", key="assessment_temperature", placeholder="Optional",
+            )
+            minute_ventilation = minute_ventilation_input.number_input(
+                "Minute ventilation (L/min)", min_value=0.0, value=None, step=0.1,
+                format="%.1f", key="assessment_minute_ventilation", placeholder="Optional",
+            )
+        st.markdown("**Energy calculations**")
+        energy_rows: list[dict[str, object]] = []
+        if calculation_weight is not None and (
+            low_kcal_kg is not None or high_kcal_kg is not None
+        ):
+            entered_bounds = [
+                bound for bound in (low_kcal_kg, high_kcal_kg) if bound is not None
+            ]
+            bound_text = "–".join(f"{bound:g}" for bound in entered_bounds)
+            energy_text = "–".join(
+                f"{calculation_weight * bound:.0f}" for bound in entered_bounds
+            )
+            energy_rows.append({
+                "Method": (
+                    "Weight-based range" if len(entered_bounds) == 2
+                    else "Weight-based estimate"
+                ),
+                "Calculation": (
+                    f"{calculation_weight:.1f} kg × {bound_text} kcal/kg"
+                ),
+                "Energy (kcal/day)": energy_text,
+                "Activity/stress-adjusted\nenergy (kcal/day)": "—",
+            })
+        if measured is not None:
+            energy_rows.append({
+                "Method": "Indirect calorimetry",
+                "Calculation": "Measured value",
+                "Energy (kcal/day)": f"{measured:.0f}",
+                "Activity/stress-adjusted\nenergy (kcal/day)": "—",
+            })
+        if ready_for_equations:
+            if sex == "Male":
+                mifflin_calculation = (
+                    f"10 × {calculation_weight:.1f} kg + 6.25 × {height_cm:.1f} cm "
+                    f"− 5 × {age:.0f} y + 5"
+                )
+                harris_calculation = (
+                    f"88.362 + 13.397 × {calculation_weight:.1f} kg + 4.799 × {height_cm:.1f} cm "
+                    f"− 5.677 × {age:.0f} y"
+                )
+            else:
+                mifflin_calculation = (
+                    f"10 × {calculation_weight:.1f} kg + 6.25 × {height_cm:.1f} cm "
+                    f"− 5 × {age:.0f} y − 161"
+                )
+                harris_calculation = (
+                    f"447.593 + 9.247 × {calculation_weight:.1f} kg + 3.098 × {height_cm:.1f} cm "
+                    f"− 4.330 × {age:.0f} y"
+                )
+            energy_rows.extend([
+                {
+                    "Method": "Mifflin–St Jeor", "Calculation": mifflin_calculation,
+                    "Energy (kcal/day)": f"{mifflin:.0f}",
+                    "Activity/stress-adjusted\nenergy (kcal/day)": (
+                        f"{mifflin * activity_factor * stress_factor:.0f}"
+                    ),
+                },
+                {
+                    "Method": "Harris–Benedict", "Calculation": harris_calculation,
+                    "Energy (kcal/day)": f"{harris:.0f}",
+                    "Activity/stress-adjusted\nenergy (kcal/day)": (
+                        f"{harris * activity_factor * stress_factor:.0f}"
+                    ),
+                },
+            ])
+            if temperature is not None and minute_ventilation is not None:
+                energy_rows.extend([
+                    {
+                        "Method": "Penn State 2003b",
+                        "Calculation": (
+                            f"0.96 × {mifflin:.0f} + 167 × {temperature:.1f} °C + "
+                            f"31 × {minute_ventilation:.1f} L/min − 6212"
+                        ),
+                        "Energy (kcal/day)": f'{penn_state_2003b_kcal(
+                            mifflin, temperature, minute_ventilation
+                        ):.0f}',
+                        "Activity/stress-adjusted\nenergy (kcal/day)": "—",
+                    },
+                    {
+                        "Method": "Modified Penn State 2010",
+                        "Calculation": (
+                            f"0.71 × {mifflin:.0f} + 85 × {temperature:.1f} °C + "
+                            f"64 × {minute_ventilation:.1f} L/min − 3085"
+                        ),
+                        "Energy (kcal/day)": f'{penn_state_2010_kcal(
+                            mifflin, temperature, minute_ventilation
+                        ):.0f}',
+                        "Activity/stress-adjusted\nenergy (kcal/day)": "—",
+                    },
+                ])
+        if energy_rows:
+            with st.container(key="energy_calculations_table"):
+                render_report_table(pd.DataFrame(energy_rows).round(0))
+        target_energy = st.number_input(
+            "Energy goal for EN plan (kcal/day)", min_value=0.0, value=None,
+            step=25.0, format="%.0f", key="assessment_energy_target", placeholder="Enter goal",
+        )
+
+    with st.container(border=True):
+        st.subheader("Protein and water goal ranges")
+        st.caption(
+            "Review the calculated ranges and any additional protein losses, "
+            "then enter the goals used in the EN plan."
+        )
+        protein_panel, water_panel = st.columns(2, gap="small")
+        with protein_panel:
+            with st.container(border=True, key="protein_target_box"):
+                st.markdown('<div class="target-box-heading"><strong>Protein</strong></div>', unsafe_allow_html=True)
+                protein_low, protein_high = st.columns(2)
+                low_gkg = protein_low.number_input("Lower (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_low_gkg", placeholder="Optional")
+                high_gkg = protein_high.number_input("Upper (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_high_gkg", placeholder="Optional")
+                render_worked_bounds("Calculated protein range", calculation_weight, low_gkg, high_gkg, "g/day")
+                with st.expander("Additional protein losses", expanded=False):
+                    st.caption(
+                        "Open abdomen: exudate volume × protein factor. Suggested factor: "
+                        "**15–30 g/L**; use a measured or local value when available."
+                    )
+                    volume, factor = st.columns(2)
+                    exudate_ml = volume.number_input(
+                        "Exudate volume (mL/day)", min_value=0.0, value=None, step=25.0,
+                        format="%.0f", key="assessment_exudate_ml", placeholder="Optional",
+                    )
+                    loss_factor = factor.number_input(
+                        "Chosen protein factor (g/L)", min_value=0.0, value=None, step=1.0,
+                        format="%.0f", key="assessment_protein_loss_factor", placeholder="15–30",
+                    )
+                    exudate_loss = (
+                        open_abdomen_protein_loss_g(exudate_ml, loss_factor)
+                        if exudate_ml is not None and loss_factor is not None else None
+                    )
+                    exudate_result = f"{exudate_loss:.0f} g/day" if exudate_loss is not None else "—"
+                    st.markdown(
+                        '<p class="worked-bounds">Estimated additional protein loss: '
+                        f'<strong>{exudate_result}</strong></p>',
+                        unsafe_allow_html=True,
+                    )
+                    other_loss = st.number_input(
+                        "Other clinician-estimated protein loss (g/day)", min_value=0.0, value=None,
+                        step=1.0, format="%.0f", key="assessment_other_protein_loss", placeholder="Optional",
+                    )
+                    entered_losses = [
+                        loss for loss in (exudate_loss, other_loss) if loss is not None
+                    ]
+                    if entered_losses:
+                        st.markdown(
+                            f'<p class="worked-bounds">Total additional protein loss: '
+                            f'<strong>{sum(entered_losses):.0f} g/day</strong></p>',
+                            unsafe_allow_html=True,
+                        )
+                target_protein = st.number_input("Protein goal for EN plan (g/day)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_protein_target", placeholder="Enter goal")
+        with water_panel:
+            with st.container(border=True, key="water_target_box"):
+                st.markdown('<div class="target-box-heading"><strong>Water</strong></div>', unsafe_allow_html=True)
+                water_low, water_high = st.columns(2)
+                low_mlkg = water_low.number_input("Lower (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_low_mlkg", placeholder="Optional")
+                high_mlkg = water_high.number_input("Upper (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_high_mlkg", placeholder="Optional")
+                render_worked_bounds("Calculated water range", calculation_weight, low_mlkg, high_mlkg, "mL/day")
+                target_water = st.number_input("Water goal for EN plan (mL/day)", min_value=0.0, value=None, step=25.0, format="%.0f", key="assessment_water_target", placeholder="Enter goal")
+
+    st.session_state.assessment_handoff = {
+        "energy_target": target_energy, "protein_target": target_protein, "water_target": target_water,
+        "calculation_weight": calculation_weight,
+    }
+
+
+def update_assessment_goal(
+    editor_key: str,
+    assessment_key: str,
+    en_key: str,
+    icu_key: str,
+    handoff_key: str,
+) -> None:
+    """Update the authoritative Assessment goal from a plan-page editor."""
+    value = st.session_state.get(editor_key)
+    st.session_state[assessment_key] = value
+    st.session_state[en_key] = value
+    st.session_state[icu_key] = value
+    handoff = dict(st.session_state.get("assessment_handoff", {}))
+    handoff[handoff_key] = value
+    st.session_state.assessment_handoff = handoff
+
+
+def render_assessment_goals(
+    key_prefix: str,
+) -> tuple[float | None, float | None, float | None]:
+    """Show one shared set of goals with an optional in-place Assessment editor."""
+    goal_values: list[float | None] = []
+    editor_keys: list[str] = []
+    for goal in PLAN_GOALS:
+        assessment_key = str(goal["assessment_key"])
+        value = st.session_state.get(assessment_key)
+        goal_values.append(value)
+        st.session_state[str(goal["en_key"])] = value
+        st.session_state[str(goal["icu_key"])] = value
+        editor_key = f"{key_prefix}_assessment_{goal['name']}_goal_editor"
+        st.session_state[editor_key] = value
+        editor_keys.append(editor_key)
+
+    with st.container(border=True):
+        render_box_heading("Goals from Assessment")
+        summary_columns = st.columns([1, 1, 1, 0.8], vertical_alignment="bottom")
+        for column, goal, value in zip(summary_columns[:3], PLAN_GOALS, goal_values):
+            display = "—" if value is None else f"{number(value):.0f} {goal['unit']}"
+            column.markdown(
+                f'<p class="summary-line">{goal["label"]}<br><strong>{display}</strong></p>',
+                unsafe_allow_html=True,
+            )
+        with summary_columns[3].popover("Adjust goals", width="stretch"):
+            st.caption("Changes here also update Assessment.")
+            for goal, editor_key in zip(PLAN_GOALS, editor_keys):
+                st.number_input(
+                    f"{goal['label']} goal ({goal['unit']})",
+                    min_value=0.0,
+                    value=None,
+                    step=float(goal["step"]),
+                    format="%.0f",
+                    key=editor_key,
+                    placeholder="Enter goal",
+                    on_change=update_assessment_goal,
+                    args=(
+                        editor_key,
+                        str(goal["assessment_key"]),
+                        str(goal["en_key"]),
+                        str(goal["icu_key"]),
+                        str(goal["handoff_key"]),
+                    ),
+                )
+    return goal_values[0], goal_values[1], goal_values[2]

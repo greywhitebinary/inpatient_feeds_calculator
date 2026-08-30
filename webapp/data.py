@@ -23,26 +23,49 @@ MODULAR_REQUIRED_COLUMNS = {
     "basis_description", "kcal_per_basis", "protein_g_per_basis",
     "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
     "free_water_ml_per_basis", "preparation_water_rule", "source", "verified",
+    "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
+    "magnesium_mg_per_basis", "phosphorus_mg_per_basis",
 }
 
 FORMULA_NUMERIC_COLUMNS = {
     "kcal_per_mL", "protein_per_mL", "fat_per_mL", "carbohydrate_per_mL",
-    "fibre_per_mL", "sodium_per_mL", "potassium_per_mL", "calcium_per_mL",
+    "sodium_per_mL", "potassium_per_mL", "calcium_per_mL",
     "magnesium_per_mL", "phosphorus_per_mL", "free_water_per_mL",
 }
+FORMULA_OPTIONAL_NUMERIC_COLUMNS = {"fibre_per_mL"}
 MODULAR_NUMERIC_COLUMNS = {
     "basis_amount", "kcal_per_basis", "protein_g_per_basis",
     "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
     "free_water_ml_per_basis",
 }
+MODULAR_OPTIONAL_NUMERIC_COLUMNS = {
+    "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
+    "magnesium_mg_per_basis", "phosphorus_mg_per_basis",
+}
 
 
 def load_master_formulas() -> pd.DataFrame:
-    return pd.read_csv(FORMULA_PATH, encoding="utf-8-sig").fillna(0)
+    formulas = pd.read_csv(FORMULA_PATH, encoding="utf-8-sig")
+    validate_columns(formulas, FORMULA_REQUIRED_COLUMNS, "Master formulary")
+    return validate_product_rows(
+        formulas,
+        FORMULA_NUMERIC_COLUMNS,
+        "Master formulary",
+        optional_numeric_columns=FORMULA_OPTIONAL_NUMERIC_COLUMNS,
+        positive_numeric_columns={"kcal_per_mL"},
+    ).fillna(0)
 
 
 def load_master_modulars() -> pd.DataFrame:
-    return pd.read_csv(MODULAR_PATH, encoding="utf-8-sig").fillna(0)
+    modulars = pd.read_csv(MODULAR_PATH, encoding="utf-8-sig")
+    validate_columns(modulars, MODULAR_REQUIRED_COLUMNS, "Master modulars")
+    return validate_product_rows(
+        modulars,
+        MODULAR_NUMERIC_COLUMNS,
+        "Master modulars",
+        optional_numeric_columns=MODULAR_OPTIONAL_NUMERIC_COLUMNS,
+        positive_numeric_columns={"basis_amount"},
+    ).fillna(0)
 
 
 def validate_columns(frame: pd.DataFrame, required: set[str], label: str) -> None:
@@ -51,7 +74,13 @@ def validate_columns(frame: pd.DataFrame, required: set[str], label: str) -> Non
         raise ValueError(f"{label} is missing required columns: {', '.join(missing)}.")
 
 
-def validate_product_rows(frame: pd.DataFrame, numeric_columns: set[str], label: str) -> pd.DataFrame:
+def validate_product_rows(
+    frame: pd.DataFrame,
+    numeric_columns: set[str],
+    label: str,
+    optional_numeric_columns: set[str] | None = None,
+    positive_numeric_columns: set[str] | None = None,
+) -> pd.DataFrame:
     """Reject incomplete core profiles before a local formulary becomes active."""
     cleaned = frame.copy()
     text_columns = ("name", "brand", "source", "verified")
@@ -65,6 +94,15 @@ def validate_product_rows(frame: pd.DataFrame, numeric_columns: set[str], label:
         converted = pd.to_numeric(cleaned[column], errors="coerce")
         if converted.isna().any() or (converted < 0).any():
             raise ValueError(f"{label} has a blank, non-numeric, or negative value in {column}.")
+        if column in (positive_numeric_columns or set()) and (converted <= 0).any():
+            raise ValueError(f"{label} requires a value greater than zero in {column}.")
+        cleaned[column] = converted
+    for column in optional_numeric_columns or set():
+        raw = cleaned[column]
+        converted = pd.to_numeric(raw, errors="coerce")
+        has_invalid = raw.notna() & converted.isna()
+        if has_invalid.any() or (converted.dropna() < 0).any():
+            raise ValueError(f"{label} has a blank, non-numeric, or negative value in {column}.")
         cleaned[column] = converted
     return cleaned
 
@@ -72,8 +110,20 @@ def validate_product_rows(frame: pd.DataFrame, numeric_columns: set[str], label:
 def validate_import(formulas: pd.DataFrame, modulars: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     validate_columns(formulas, FORMULA_REQUIRED_COLUMNS, "My Formulary worksheet")
     validate_columns(modulars, MODULAR_REQUIRED_COLUMNS, "My Modulars worksheet")
-    formulas = validate_product_rows(formulas, FORMULA_NUMERIC_COLUMNS, "My Formulary worksheet")
-    modulars = validate_product_rows(modulars, MODULAR_NUMERIC_COLUMNS, "My Modulars worksheet")
+    formulas = validate_product_rows(
+        formulas,
+        FORMULA_NUMERIC_COLUMNS,
+        "My Formulary worksheet",
+        optional_numeric_columns=FORMULA_OPTIONAL_NUMERIC_COLUMNS,
+        positive_numeric_columns={"kcal_per_mL"},
+    )
+    modulars = validate_product_rows(
+        modulars,
+        MODULAR_NUMERIC_COLUMNS,
+        "My Modulars worksheet",
+        optional_numeric_columns=MODULAR_OPTIONAL_NUMERIC_COLUMNS,
+        positive_numeric_columns={"basis_amount"},
+    )
     if modulars["id"].astype(str).str.strip().replace("nan", "").eq("").any():
         raise ValueError("My Modulars worksheet contains a blank id.")
     if modulars["id"].astype(str).str.strip().str.casefold().duplicated().any():

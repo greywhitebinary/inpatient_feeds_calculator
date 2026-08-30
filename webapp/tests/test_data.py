@@ -35,6 +35,33 @@ class FormularyImportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate product names"):
             validate_import(formulas, self.modulars)
 
+    def test_rejects_missing_modular_electrolyte_column(self):
+        modulars = self.modulars.drop(columns=["sodium_mg_per_basis"])
+        with self.assertRaisesRegex(ValueError, "sodium_mg_per_basis"):
+            validate_import(self.formulas, modulars)
+
+    def test_rejects_malformed_required_modular_value(self):
+        modulars = self.modulars.astype({"basis_amount": "object"}).copy()
+        modulars.loc[modulars.index[0], "basis_amount"] = "not-a-number"
+        with self.assertRaisesRegex(ValueError, "basis_amount"):
+            validate_import(self.formulas, modulars)
+
+    def test_rejects_zero_formula_energy_density(self):
+        self.formulas.loc[self.formulas.index[0], "kcal_per_mL"] = 0
+        with self.assertRaisesRegex(ValueError, "greater than zero.*kcal_per_mL"):
+            validate_import(self.formulas, self.modulars)
+
+    def test_rejects_zero_modular_basis(self):
+        self.modulars.loc[self.modulars.index[0], "basis_amount"] = 0
+        with self.assertRaisesRegex(ValueError, "greater than zero.*basis_amount"):
+            validate_import(self.formulas, self.modulars)
+
+    def test_rejects_malformed_present_modular_electrolyte_value(self):
+        modulars = self.modulars.astype({"sodium_mg_per_basis": "object"}).copy()
+        modulars.loc[modulars.index[0], "sodium_mg_per_basis"] = "not-a-number"
+        with self.assertRaisesRegex(ValueError, "sodium_mg_per_basis"):
+            validate_import(self.formulas, modulars)
+
     def test_abbott_profiles_use_the_reverified_ready_to_hang_values(self):
         formulas = load_master_formulas().set_index("name")
         expected = {

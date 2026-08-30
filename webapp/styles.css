@@ -12,7 +12,7 @@ html {
     max-width: 60rem;
     margin-left: 0 !important;
     margin-right: auto !important;
-    padding-top: 3.75rem;
+    padding-top: 3.75rem !important;
 }
 
 /* Report tables may extend to the right on wide screens while retaining the
@@ -26,7 +26,7 @@ html {
 
 .en-brand {
     margin: 0 0 0.6rem;
-    color: #A4243A;
+    color: var(--primary-color, #A4243A);
     font-size: 1rem;
     font-weight: 750;
     letter-spacing: -0.02em;
@@ -36,7 +36,6 @@ html {
 [data-testid="stAppViewContainer"] h1,
 [data-testid="stHeadingWithActionElements"] h1 {
     font-size: 1.5rem !important;
-    line-height: 1.25 !important;
     overflow: visible !important;
 }
 
@@ -56,6 +55,12 @@ html {
     margin-right: 0.32rem;
 }
 
+/* Match the compact orientation note beneath the BTF calculator title. */
+[class*="st-key-pagenote"] p {
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
 .stApp h2,
 [data-testid="stAppViewContainer"] h2,
 [data-testid="stHeadingWithActionElements"] h2 {
@@ -72,8 +77,9 @@ html {
 button[role="tab"],
 button[data-testid="stTab"],
 button[data-baseweb="tab"] {
-    margin-right: 1rem;
-    padding: 0.45rem 0.6rem;
+    margin-right: 1.25rem;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
 }
 
 [role="tab"] p,
@@ -84,50 +90,48 @@ button[data-baseweb="tab"] p {
     font-weight: 700;
 }
 
+/* Low/high propofol choices are local subtabs, not page navigation. */
+[class*="st-key-propofol_scenario_tabs"] [role="tab"] p,
+[class*="st-key-propofol_scenario_tabs"] button[data-testid="stTab"] p,
+[class*="st-key-propofol_scenario_tabs"] button[data-baseweb="tab"] p {
+    font-size: 1.05rem !important;
+}
+
 [role="tab"][aria-selected="true"] p,
 button[role="tab"][aria-selected="true"] p,
 button[data-testid="stTab"][aria-selected="true"] p,
 button[data-baseweb="tab"][aria-selected="true"] p {
-    color: #A4243A;
+    color: var(--primary-color, #A4243A);
 }
 
-[data-testid="stVerticalBlockBorderWrapper"] {
-    border-color: #DDD4D2;
-    border-radius: 8px;
-    background: var(--background-color);
-}
-
-[data-testid="stAlert"] {
-    border-left: 3px solid #A4243A;
-    background: var(--secondary-background-color);
-}
-
-.stButton > button,
-.stDownloadButton > button {
-    border-color: #A4243A;
-    color: #A4243A;
-    border-radius: 4px;
-    font-weight: 650;
-}
-
+/* Match BTF's convention: typed fields carry the maroon outline, while
+   choices retain the quieter theme surface. */
 [data-testid="stTextInputRootElement"],
+[data-testid="stTextAreaRootElement"],
+[data-testid="stTextInput"] [data-baseweb="input"],
+[data-testid="stTextArea"] textarea,
 [data-testid="stNumberInputContainer"] {
-    border: 2px solid #A4243A !important;
-    border-radius: 5px;
+    background: transparent !important;
+    border: 2px solid var(--primary-color, #A4243A) !important;
 }
 
-/* The framework paints the number-input interior separately.  Keeping it
-   transparent preserves the same typed-field convention as BTF-Calc. */
+[data-testid="stTextInput"] [data-baseweb="base-input"],
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] [data-baseweb="base-input"],
+[data-testid="stNumberInputContainer"] [data-baseweb="input"],
+[data-testid="stNumberInputContainer"] [data-baseweb="base-input"],
 [data-testid="stNumberInputContainer"] > div,
 [data-testid="stNumberInputContainer"] > div > div,
-[data-testid="stNumberInputContainer"] [data-baseweb="base-input"] {
+[data-testid="stNumberInputField"] {
     background: transparent !important;
 }
 
-[data-testid="stTextInputRootElement"] input,
-[data-testid="stNumberInputContainer"] input,
-[data-testid="stNumberInputContainer"] [data-baseweb="input"] {
-    background: transparent !important;
+[data-testid="stTextInputRootElement"]:focus-within,
+[data-testid="stTextAreaRootElement"]:focus-within,
+[data-testid="stTextArea"] textarea:focus,
+[data-testid="stNumberInputContainer"]:focus-within,
+[data-testid="stNumberInputContainer"].focused {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #A4243A) 25%, transparent) !important;
 }
 
 [class*="st-key-pagefooter"] p,
@@ -136,38 +140,300 @@ button[data-baseweb="tab"][aria-selected="true"] p {
     line-height: 1.55;
 }
 
-/* Feed-card figures are clinical reference values, not decorative stats.
-   Give the label, unit, and number a stable rhythm and enough contrast. */
-.feed-profile [data-testid="stCaptionContainer"] p {
-    margin-bottom: 0.1rem;
+.target-box-heading {
+    margin: 0 0 0.65rem;
+    padding: 0 0 0.45rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    background: transparent;
 }
 
-.feed-profile small {
-    color: var(--secondary-text-color);
-    font-size: 0.72rem;
+.target-box-heading strong {
+    display: block;
+    color: inherit;
+    font-size: 0.875rem !important;
+    font-weight: 700;
 }
 
-.feed-profile b {
-    display: inline-block;
-    min-width: 4.25rem;
-    font-size: 1rem;
-    line-height: 1.3;
+.target-box-heading span {
+    display: block;
+    margin-top: 0.12rem;
+    color: inherit;
+    opacity: 0.68;
+    font-size: 0.8125rem !important;
+    line-height: 1.25;
 }
 
-@media (prefers-color-scheme: dark) {
-    .en-brand,
-    button[role="tab"][aria-selected="true"] p,
-    button[data-testid="stTab"][aria-selected="true"] p,
-    button[data-baseweb="tab"][aria-selected="true"] p,
-    .stButton > button,
-    .stDownloadButton > button {
-        color: #E0708A;
-        border-color: #E0708A;
-    }
+.box-heading {
+    margin: 0 0 0.55rem;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.35;
+}
 
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        border-color: #4C3940;
-    }
+.box-heading strong {
+    color: inherit;
+    font-weight: 750;
+}
+
+.summary-line {
+    margin: 0.35rem 0 0.65rem;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.45;
+}
+
+.summary-line strong {
+    color: inherit;
+    font-weight: 750;
+}
+
+.inline-field-label {
+    margin: 0;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.35;
+    transform: translateY(-0.5rem);
+}
+
+.protein-shortfall {
+    color: var(--primary-color, #A4243A);
+}
+
+[class*="st-key-reference_row_"] {
+    padding: 0.3rem 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+}
+
+/* Streamlit applies a negative bottom margin to a markdown block whose root is
+   a div. Remove it here so each product label is vertically centred. */
+[class*="st-key-reference_row_"] .stMarkdown > div,
+[class*="st-key-reference_row_"] .stMarkdown > div > div {
+    margin-bottom: 0 !important;
+}
+
+[class*="st-key-reference_row_"] button {
+    white-space: nowrap;
+}
+
+.reference-product-text {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.2;
+}
+
+.reference-product-text strong,
+.reference-product-text span {
+    display: block;
+    margin: 0;
+}
+
+.reference-product-text span {
+    margin-top: 0.08rem;
+}
+
+/* Assessment readouts are supporting information, but they must remain
+   readable at a glance. Keep the copy quiet through size, not low contrast. */
+.assessment-readout,
+.worked-bounds {
+    margin: 0.45rem 0 0.65rem;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.4;
+}
+
+.assessment-readout strong,
+.worked-bounds strong {
+    color: inherit;
+    font-weight: 750;
+}
+
+.calculated-range {
+    margin: 0.35rem 0 0.55rem;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.35;
+}
+
+.calculated-range strong {
+    color: inherit;
+    font-weight: 750;
+}
+
+/* Propofol contributions read as two compact lines beside the inputs. */
+.propofol-readouts {
+    margin: 0 0 0.35rem;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.35;
+}
+
+.propofol-readouts p {
+    margin: 0.18rem 0;
+}
+
+.propofol-readouts strong {
+    font-weight: 750;
+}
+
+.formula-energy-calculation,
+.order-preview {
+    margin: 0.35rem 0 0.65rem;
+    color: inherit;
+    font-size: 0.875rem !important;
+    line-height: 1.45;
+}
+
+.formula-energy-calculation strong,
+.order-preview strong {
+    color: inherit;
+    font-weight: 750;
+}
+
+.loss-result-label {
+    margin: 1.6rem 0 0.1rem;
+    color: inherit;
+    opacity: 0.72;
+    font-size: 0.68rem;
+}
+
+.loss-result {
+    margin: 0;
+    color: inherit;
+    font-size: 0.875rem !important;
+    font-weight: 750;
+}
+
+/* Static clinical tables share one renderer because Streamlit's dataframe
+   does not wrap dense headers consistently. */
+.report-table-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
+    scrollbar-gutter: stable;
+    scrollbar-color: var(--primary-color, #A4243A) transparent;
+    scrollbar-width: thin;
+}
+
+.report-table-wrap::-webkit-scrollbar {
+    height: 0.65rem;
+}
+
+.report-table-wrap::-webkit-scrollbar-track {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    border-radius: 999px;
+}
+
+.report-table-wrap::-webkit-scrollbar-thumb {
+    background: var(--primary-color, #A4243A);
+    border: 2px solid transparent;
+    border-radius: 999px;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    border-radius: 6px;
+    overflow: hidden;
+    background: transparent;
+    color: inherit;
+    font-size: 0.78rem;
+}
+
+.report-table--wide,
+.report-table--dense {
+    min-width: 70rem;
+}
+
+.report-table--dense {
+    table-layout: fixed;
+}
+
+.report-table th,
+.report-table td {
+    padding: 0.5rem 0.55rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    text-align: left;
+    vertical-align: top;
+    white-space: normal;
+}
+
+.report-table thead th {
+    background: color-mix(in srgb, currentColor 7%, transparent);
+    color: inherit;
+    font-weight: 700;
+}
+
+.report-table thead small {
+    display: block;
+    margin-top: 0.08rem;
+    color: inherit;
+    opacity: 0.7;
+    font-size: 0.64rem;
+    font-weight: 500;
+}
+
+.report-table tbody th {
+    font-weight: 650;
+}
+
+.report-table .report-number {
+    text-align: left;
+    white-space: nowrap;
+}
+
+.report-table .report-inline-emphasis {
+    background: color-mix(in srgb, var(--primary-color, #A4243A) 10%, transparent);
+    color: inherit;
+    font-weight: 750;
+    padding: 0.05rem 0.2rem;
+    border-radius: 0.2rem;
+    white-space: nowrap;
+}
+
+.report-table--dense th,
+.report-table--dense td {
+    white-space: nowrap;
+}
+
+.report-table--dense thead th:first-child,
+.report-table--dense tbody th {
+    width: 22%;
+    min-width: 15rem;
+    text-align: left;
+    white-space: normal;
+}
+
+.report-table tbody tr:last-child th,
+.report-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* The energy table needs room for the method and worked calculation. */
+[class*="st-key-energy_calculations_table"] .report-table {
+    table-layout: fixed;
+    min-width: 56rem;
+}
+
+[class*="st-key-energy_calculations_table"] .report-table th:nth-child(1),
+[class*="st-key-energy_calculations_table"] .report-table td:nth-child(1) {
+    width: 21%;
+}
+
+[class*="st-key-energy_calculations_table"] .report-table th:nth-child(2),
+[class*="st-key-energy_calculations_table"] .report-table td:nth-child(2) {
+    width: 45%;
+}
+
+[class*="st-key-energy_calculations_table"] .report-table th:nth-child(3),
+[class*="st-key-energy_calculations_table"] .report-table td:nth-child(3) {
+    width: 14%;
+}
+
+[class*="st-key-energy_calculations_table"] .report-table th:nth-child(4),
+[class*="st-key-energy_calculations_table"] .report-table td:nth-child(4) {
+    width: 20%;
 }
 
 @media (max-width: 640px) {
