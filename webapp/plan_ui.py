@@ -193,7 +193,6 @@ def render_en_scenario(
     chosen_modulars: list[str] = []
     with st.container(border=True):
         render_box_heading("Add modulars")
-        st.caption("Enter the modular order. This calculator does not recommend doses.")
         if saved_modulars.empty:
             st.caption("Add modulars in Formulary if needed.")
         else:
@@ -202,7 +201,7 @@ def render_en_scenario(
                 for _, product in saved_modulars.iterrows()
             }
             chosen_modulars = st.multiselect(
-                "Modular orders (up to 6)", saved_modulars["name"].tolist(),
+                "Modulars", saved_modulars["name"].tolist(),
                 max_selections=6, key=scenario_key(scenario_id, "chosen_modulars"),
                 on_change=reset_new_modular_orders,
                 args=(scenario_id, modular_ids_by_name),

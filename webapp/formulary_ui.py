@@ -194,10 +194,7 @@ def show_formulary() -> None:
         )
     with st.expander("Find a modular", expanded=False):
         search = st.text_input("Search modular name", key="modular_search")
-        manufacturer = st.radio("Supplied reference library", ["All supplied reference modulars", "Nestlé", "Abbott"], horizontal=True, key="modular_reference_brand_filter")
-        options = master_modulars if manufacturer == "All supplied reference modulars" else master_modulars[
-            master_modulars["brand"].str.contains(manufacturer, case=False, na=False)
-        ]
+        options = master_modulars
         if search.strip():
             options = options.loc[options["name"].str.contains(search.strip(), case=False, na=False)]
         render_reference_list(options, set(st.session_state.my_modulars["name"]), "modular")

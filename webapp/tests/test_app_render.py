@@ -15,6 +15,34 @@ APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
 
 class AssessmentRenderTests(unittest.TestCase):
+    def test_modular_library_lists_all_products_without_a_manufacturer_filter(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+
+        self.assertNotIn(
+            "modular_reference_brand_filter",
+            {item.key for item in app.radio},
+        )
+        modular_button_keys = {
+            item.key for item in app.button
+            if str(item.key).startswith(("add_modular_", "saved_modular_"))
+        }
+        self.assertEqual(len(modular_button_keys), 6)
+
+    def test_modular_plan_card_uses_compact_parallel_labels(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        multiselect_labels = {item.label for item in app.multiselect}
+        captions = {item.value for item in app.caption}
+        self.assertIn("Modulars", multiselect_labels)
+        self.assertNotIn("Modular orders (up to 6)", multiselect_labels)
+        self.assertNotIn(
+            "Enter the modular order. This calculator does not recommend doses.",
+            captions,
+        )
+
     def test_header_uses_a_text_link_and_separates_identity_from_workflow(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
