@@ -8,10 +8,14 @@ from calculations import (
     adjusted_body_weight_kg,
     devine_ibw_kg,
     feed_delivery,
+    hamwi_ibw_kg,
     height_to_cm,
+    harris_benedict_kcal,
     hydration_flushes_per_day,
+    mg_to_mmol,
     mifflin_st_jeor_kcal,
     modular_delivery,
+    open_abdomen_protein_loss_g,
     ordered_feed_delivery,
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
@@ -22,8 +26,18 @@ from calculations import (
 
 
 class CalculationTests(unittest.TestCase):
+    """Reference-value tests whose expected results are calculated independently."""
+
     def test_height_conversion(self):
         self.assertAlmostEqual(height_to_cm("ft_in", feet=5, inches=10), 177.8)
+
+    def test_metric_height_conversion(self):
+        self.assertEqual(height_to_cm("m", metres=1.65), 165)
+
+    def test_hamwi_si_reference_values(self):
+        # At 65 inches: female 45.5 + 2.2(5); at 70 inches: male 48 + 2.7(10).
+        self.assertAlmostEqual(hamwi_ibw_kg("Female", 165.1), 56.5)
+        self.assertAlmostEqual(hamwi_ibw_kg("Male", 177.8), 75.0)
 
     def test_adjusted_weight(self):
         self.assertEqual(adjusted_body_weight_kg(100, 70), 77.5)
@@ -35,9 +49,33 @@ class CalculationTests(unittest.TestCase):
     def test_mifflin_male(self):
         self.assertAlmostEqual(mifflin_st_jeor_kcal("Male", 70, 175, 40), 1598.75)
 
+    def test_mifflin_female_reference_value(self):
+        # 10(64) + 6.25(165) - 5(67) - 161.
+        self.assertAlmostEqual(mifflin_st_jeor_kcal("Female", 64, 165, 67), 1175.25)
+
+    def test_revised_harris_benedict_reference_values(self):
+        # These literals independently exercise both published sex-specific equations.
+        self.assertAlmostEqual(
+            harris_benedict_kcal("Female", 64, 165, 67), 1260.461, places=3
+        )
+        self.assertAlmostEqual(
+            harris_benedict_kcal("Male", 80, 180, 50), 1740.092, places=3
+        )
+
     def test_both_penn_state_equations(self):
         self.assertAlmostEqual(penn_state_2003b_kcal(1500, 37, 8), 1655)
         self.assertAlmostEqual(penn_state_2010_kcal(1500, 37, 8), 1637)
+
+    def test_penn_state_reference_values_retain_unrounded_mifflin_input(self):
+        self.assertAlmostEqual(penn_state_2003b_kcal(975.25, 38.2, 9.7), 1404.34)
+        self.assertAlmostEqual(penn_state_2010_kcal(975.25, 38.2, 9.7), 1475.2275)
+
+    def test_open_abdomen_loss_converts_ml_to_litres(self):
+        self.assertAlmostEqual(open_abdomen_protein_loss_g(850, 22), 18.7)
+
+    def test_mg_to_mmol_uses_element_atomic_weight(self):
+        self.assertAlmostEqual(mg_to_mmol("potassium", 3910), 100)
+        self.assertAlmostEqual(mg_to_mmol("sodium", 2300), 100.043497, places=6)
 
     def test_feed_delivery_uses_achieved_percentage(self):
         formula = {"kcal_per_mL": 1.5, "protein_per_mL": 0.07, "free_water_per_mL": 0.766}
@@ -58,12 +96,47 @@ class CalculationTests(unittest.TestCase):
                 doses_per_day=3,
             )
 
+    def test_modular_delivery_scales_label_basis_and_preparation_water(self):
+        product = {
+            "basis_amount": 30,
+            "kcal_per_basis": 60,
+            "protein_g_per_basis": 15,
+            "sodium_mg_per_basis": 180,
+        }
+        result = modular_delivery(
+            product, units_per_dose=45, doses_per_day=2,
+            preparation_water_ml_per_dose=30,
+        )
+        # 45 mL twice daily is three 30-mL label servings per day.
+        self.assertEqual(result["energy_kcal"], 180)
+        self.assertEqual(result["protein_g"], 45)
+        self.assertEqual(result["sodium_mg"], 540)
+        self.assertEqual(result["preparation_water_ml"], 60)
+
     def test_practical_continuous_delivery_rounds_the_pump_rate_to_five_ml(self):
         formula = {"kcal_per_mL": 1.5, "protein_per_mL": 0.07, "free_water_per_mL": 0.766}
         result = practical_feed_delivery(formula, 1900, 20)
         self.assertEqual(result["ordered_rate_ml_hr"], 65)
         self.assertEqual(result["planned_volume_ml"], 1300)
         self.assertEqual(result["energy_kcal"], 1950)
+
+    def test_practical_continuous_delivery_uses_rounded_order_for_every_nutrient(self):
+        formula = {
+            "kcal_per_mL": 1.5,
+            "protein_per_mL": 0.068,
+            "carbohydrate_per_mL": 0.176,
+            "fat_per_mL": 0.060,
+            "free_water_per_mL": 0.765,
+        }
+        result = practical_feed_delivery(formula, 1800, 23)
+        # 1800 / 1.5 / 23 = 52.17 mL/h, ordered as 50 mL/h for 1150 mL/day.
+        self.assertEqual(result["ordered_rate_ml_hr"], 50)
+        self.assertEqual(result["planned_volume_ml"], 1150)
+        self.assertEqual(result["energy_kcal"], 1725)
+        self.assertAlmostEqual(result["protein_g"], 78.2)
+        self.assertAlmostEqual(result["carbohydrate_g"], 202.4)
+        self.assertAlmostEqual(result["fat_g"], 69.0)
+        self.assertAlmostEqual(result["free_water_ml"], 879.75)
 
     def test_entered_continuous_rate_drives_all_delivery_values(self):
         formula = {
@@ -105,6 +178,13 @@ class CalculationTests(unittest.TestCase):
         result = water_plan(775, 100, 0, 0, 0, 0, 6)
         self.assertEqual(result["hydration_flush_each_ml"], 115)
         self.assertEqual(result["hydration_flush_total_ml"], 690)
+
+    def test_water_plan_totals_each_water_source_once(self):
+        result = water_plan(1900, 879.75, 0, 60, 120, 0, 6)
+        # (1900 - 879.75 - 60 - 120) / 6 = 140.04, rounded to 140 mL.
+        self.assertEqual(result["hydration_flush_each_ml"], 140)
+        self.assertEqual(result["hydration_flush_total_ml"], 840)
+        self.assertAlmostEqual(result["total_water_ml"], 1899.75)
 
     def test_q4h_hydration_means_six_flushes_over_24_hours(self):
         self.assertEqual(hydration_flushes_per_day("qXh", 4), 6)

@@ -18,11 +18,11 @@ def render_case_record_actions() -> str:
         compact_label_column, _label_spacer = st.columns([2, 1])
         with compact_label_column:
             label = st.text_input(
-                "Patient / record label",
+                "Record label",
                 key="case_record_label",
                 help=(
-                    "Used in the page title and downloaded workbook. "
-                    "Follow local privacy policy."
+                    "Used in the page title and downloaded workbook. Avoid patient identifiers; "
+                    "use a local record label that follows your privacy policy."
                 ),
             )
     with upload_column:
@@ -60,7 +60,10 @@ def render_save_record(key_suffix: str) -> None:
         use_container_width=True,
         key=f"download_case_record_{key_suffix}",
     )
-    st.caption("Download this record as a spreadsheet. Reopen it later with “Open a saved record”.")
+    st.caption(
+        "Download the calculator inputs and product snapshot as a spreadsheet. The editable "
+        "chart-note draft is not included. Reopen the file later with “Open a saved record”."
+    )
 
 
 def render_footer() -> None:

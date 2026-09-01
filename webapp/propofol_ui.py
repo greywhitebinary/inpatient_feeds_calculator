@@ -9,6 +9,7 @@ import streamlit as st
 
 from calculations import propofol_intake
 from case_record_ui import render_save_record
+from chart_note import build_chart_note_html, render_chart_note_editor
 from constants import DAILY_INTAKE_DECIMALS, PROPOFOL_COMPARISON_ROW_DECIMALS, PROPOFOL_SCENARIOS
 from plan_ui import render_en_scenario, render_en_workflow_setup
 from session_state import scenario_key, seed_scenario_state
@@ -58,6 +59,7 @@ def render_propofol_exposure(
             '</div>',
             unsafe_allow_html=True,
         )
+        st.caption("Calculated using 1.1 kcal and 0.1 g fat per mL of Propofol.")
     return rate, number(hours)
 
 
@@ -182,10 +184,15 @@ def show_icu_propofol() -> None:
 
     with st.container(border=True):
         render_box_heading("Chart note")
-        st.caption("Copy and paste into your chart. No patient-identifying fields are included.")
-        if "higher" in results:
-            note = f"{results['lower']['note']}\n\n{results['higher']['note']}"
-        else:
-            note = str(results["lower"]["note"])
-        st.code(note, language=None)
+        st.caption(
+            "Edit as needed, then copy to the EMR. Downloading the record does not "
+            "save the chart-note text."
+        )
+        note_results = [results[scenario_id] for scenario_id in valid_scenarios]
+        render_chart_note_editor(
+            build_chart_note_html(st.session_state, note_results),
+            editor_id="propofol",
+            case_token=str(st.session_state["_chart_note_case_token"]),
+            height=940 if len(note_results) > 1 else 780,
+        )
     render_save_record("icu_propofol")

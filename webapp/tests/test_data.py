@@ -6,7 +6,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from data import load_master_formulas, load_master_modulars, validate_import
+from data import MODULAR_PATH, load_master_formulas, load_master_modulars, validate_import
 
 
 class FormularyImportTests(unittest.TestCase):
@@ -78,6 +78,26 @@ class FormularyImportTests(unittest.TestCase):
                 self.assertAlmostEqual(row["free_water_per_mL"], free_water, places=5)
                 self.assertIn("ready-to-hang", row["source"])
                 self.assertEqual(row["verified"], "2026-08-27")
+
+    def test_medtrition_profiles_use_the_canadian_product_sheets(self):
+        modulars = load_master_modulars().set_index("id")
+        expected = {
+            "medtrition-prosource-nocarb": (60, 15, 0, "label_directed"),
+            "medtrition-hifibre": (30, 0, 12, "rd_entered"),
+            "medtrition-banatrall-gos": (40, 0, 2, "rd_entered"),
+        }
+        for product_id, (energy, protein, fibre, water_rule) in expected.items():
+            with self.subTest(product_id=product_id):
+                row = modulars.loc[product_id]
+                self.assertEqual(row["kcal_per_basis"], energy)
+                self.assertEqual(row["protein_g_per_basis"], protein)
+                self.assertEqual(row["fibre_g_per_basis"], fibre)
+                self.assertEqual(row["preparation_water_rule"], water_rule)
+                self.assertEqual(row["verified"], "2026-08-31")
+
+        raw = pd.read_csv(MODULAR_PATH).set_index("id")
+        for product_id in expected:
+            self.assertTrue(pd.isna(raw.loc[product_id, "free_water_ml_per_basis"]))
 
 
 if __name__ == "__main__":

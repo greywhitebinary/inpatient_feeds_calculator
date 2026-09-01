@@ -36,11 +36,11 @@ FORMULA_OPTIONAL_NUMERIC_COLUMNS = {"fibre_per_mL"}
 MODULAR_NUMERIC_COLUMNS = {
     "basis_amount", "kcal_per_basis", "protein_g_per_basis",
     "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
-    "free_water_ml_per_basis",
 }
 MODULAR_OPTIONAL_NUMERIC_COLUMNS = {
     "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
     "magnesium_mg_per_basis", "phosphorus_mg_per_basis",
+    "free_water_ml_per_basis",
 }
 
 

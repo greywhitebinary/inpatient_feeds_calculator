@@ -77,7 +77,7 @@ def penn_state_2010_kcal(mifflin_kcal: float, temperature_c: float,
 
 
 def propofol_intake(rate_ml_hr: float, hours_per_day: float = 24) -> dict[str, float]:
-    """Calculate energy and fat from a 10% propofol rate over the entered daily duration."""
+    """Calculate intake using 1.1 kcal and 0.1 g fat per mL of propofol emulsion."""
     volume_ml = rate_ml_hr * hours_per_day
     return {"volume_ml": volume_ml, "kcal": volume_ml * 1.1, "fat_g": volume_ml * 0.1}
 

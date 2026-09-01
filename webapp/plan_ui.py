@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from assessment_ui import render_assessment_goals
+from chart_note import build_chart_note_html, render_chart_note_editor
 from calculations import (
     hydration_flushes_per_day,
     mg_to_mmol,
@@ -188,6 +189,7 @@ def render_en_scenario(
     modular_note_parts: list[str] = []
     modular_protein_sources: list[str] = []
     modular_fat_sources: list[str] = []
+    chart_modulars: list[dict[str, object]] = []
     chosen_modulars: list[str] = []
     with st.container(border=True):
         render_box_heading("Add modulars")
@@ -261,6 +263,20 @@ def render_en_scenario(
                         modular_fat_sources.append(
                             f"{order['fat_g']:.0f} g from {modular_name} ({daily_amount})"
                         )
+                    chart_modulars.append({
+                        "name": modular_name,
+                        "order": modular_chart_amount(
+                            product, number(units), number(doses)
+                        ),
+                        "daily_amount": daily_amount,
+                        "energy_kcal": order["energy_kcal"],
+                        "protein_g": order["protein_g"],
+                        "carbohydrate_g": order["carbohydrate_g"],
+                        "fat_g": order["fat_g"],
+                        "free_water_ml": order["free_water_ml"],
+                        "preparation_water_ml": order["preparation_water_ml"],
+                        "preparation_water_per_dose_ml": number(preparation),
+                    })
                 else:
                     st.caption(
                         "Enter both the amount and frequency to include this modular."
@@ -356,7 +372,7 @@ def render_en_scenario(
         )
         patency = water_b.number_input(
             "Patency flushes (mL/day)", min_value=0.0, step=10.0, format="%.0f",
-            help="Reference: ASPEN minimum 30 mL q4h for continuous adult EN.",
+            help="Enter a separate patency-flush volume only when it is part of the plan.",
             key=scenario_key(scenario_id, "patency_flushes"),
         )
         schedule_a, schedule_b = st.columns(2)
@@ -380,6 +396,7 @@ def render_en_scenario(
             ))
             flushes = hydration_flushes_per_day(schedule_format, schedule_value)
             hydration_schedule_text = f"q{schedule_value}h"
+            hydration_chart_schedule_text = f"q{schedule_value}h"
         else:
             schedule_value = int(schedule_b.number_input(
                 "Hydration flushes (number/day)", min_value=1, max_value=24,
@@ -387,6 +404,7 @@ def render_en_scenario(
             ))
             flushes = hydration_flushes_per_day(schedule_format, schedule_value)
             hydration_schedule_text = f"{flushes} times daily"
+            hydration_chart_schedule_text = f"{flushes} times daily"
         hydration = water_plan(
             water_target, final_planned_delivery["free_water_ml"], modular_totals["free_water_ml"],
             modular_totals["preparation_water_ml"], medication, patency, flushes,
@@ -396,7 +414,7 @@ def render_en_scenario(
             hydration["water_flushes_total_ml"] - modular_preparation_water, 0
         )
         st.markdown(
-            '<p class="summary-line">Recommended hydration flush schedule: '
+            '<p class="summary-line">Calculated hydration flush schedule: '
             f'<strong>{hydration["hydration_flush_each_ml"]:.0f} mL '
             f'{hydration_schedule_text}.</strong></p>',
             unsafe_allow_html=True,
@@ -579,33 +597,7 @@ def render_en_scenario(
     total: dict[str, object] = {"Source": "Total"}
     for column in source_frame.columns[1:]:
         total[column] = source_frame[column].sum()
-    protein_sources = [f"{displayed_delivery['protein_g']:.0f} g from {formula['name']}"] + modular_protein_sources
-    fat_sources = [f"{displayed_delivery['fat_g']:.0f} g from {formula['name']}"] + modular_fat_sources
-    if propofol["fat_g"]:
-        fat_sources.append(f"{propofol['fat_g']:.0f} g from propofol")
-    total_fluid = number(total["Free water (mL)"]) + number(total["Water flushes (mL)"])
-    fluid_sources = [f"{number(total['Free water (mL)']):.0f} mL from free water"]
-    if modular_preparation_water:
-        fluid_sources.append(
-            f"{modular_preparation_water:.0f} mL from modular preparation water"
-        )
-    if other_water_flushes:
-        fluid_sources.append(f"{other_water_flushes:.0f} mL from water flushes")
     modular_note = "; ".join(modular_note_parts) or "No modulars ordered"
-    propofol_note = (
-        f" ({propofol_rate:g} mL/hour propofol for {propofol_hours:g} hours)"
-        if propofol_rate > 0 else ""
-    )
-    note = (
-        f"{label}{propofol_note}: {formula['name']} at {schedule_description}.\n"
-        f"Modulars: {modular_note}. Hydration flushes: {hydration['hydration_flush_each_ml']:.0f} mL "
-        f"{hydration_schedule_text}.\n"
-        f"Total daily intake ({'full planned formula' if view_percent == 100 else f'{view_percent}% planned formula'}): "
-        f"Energy {number(total['Energy (kcal)']):.0f} kcal, Protein {number(total['Protein (g)']):.0f} g "
-        f"({' + '.join(protein_sources)}), CHO {number(total['Carbohydrate (g)']):.0f} g, "
-        f"Fat {number(total['Fat (g)']):.0f} g ({' + '.join(fat_sources)}), "
-        f"Fluids {total_fluid:.0f} mL ({' + '.join(fluid_sources)})."
-    )
     planned_total = {
         "Energy (kcal)": (
             final_planned_delivery["energy_kcal"]
@@ -621,6 +613,30 @@ def render_en_scenario(
             + propofol["fat_g"]
         ),
     }
+    chart_total = {
+        "Energy (kcal)": (
+            final_planned_delivery["energy_kcal"]
+            + modular_totals["energy_kcal"]
+            + propofol["kcal"]
+        ),
+        "Protein (g)": (
+            final_planned_delivery["protein_g"] + modular_totals["protein_g"]
+        ),
+        "Carbohydrate (g)": (
+            final_planned_delivery["carbohydrate_g"]
+            + modular_totals["carbohydrate_g"]
+        ),
+        "Fat (g)": (
+            final_planned_delivery["fat_g"]
+            + modular_totals["fat_g"]
+            + propofol["fat_g"]
+        ),
+        "Free water (mL)": (
+            final_planned_delivery["free_water_ml"]
+            + modular_totals["free_water_ml"]
+        ),
+        "Water flushes (mL)": modular_preparation_water + other_water_flushes,
+    }
     return {
         "label": label,
         "propofol_rate": propofol_rate, "propofol_hours": propofol_hours,
@@ -628,7 +644,15 @@ def render_en_scenario(
         "formula": formula, "formula_energy_target": final_formula_energy_target,
         "schedule_description": schedule_description, "modulars": modular_note,
         "source_frame": source_frame, "total": total,
-        "planned_total": planned_total, "note": note,
+        "planned_total": planned_total,
+        "delivery": final_planned_delivery,
+        "chart_total": chart_total,
+        "modular_totals": modular_totals,
+        "chart_modulars": chart_modulars,
+        "hydration": hydration,
+        "hydration_chart_schedule_text": hydration_chart_schedule_text,
+        "medication_flushes_ml": number(medication),
+        "patency_flushes_ml": number(patency),
         "view_percent": view_percent,
         "intake_heading": (
             "Planned daily intake"
@@ -702,6 +726,13 @@ def show_en_plan() -> None:
         )
     with st.container(border=True):
         render_box_heading("Chart note")
-        st.caption("Copy and paste into your chart. No patient-identifying fields are included.")
-        st.code(str(result["note"]), language=None)
+        st.caption(
+            "Edit as needed, then copy to the EMR. Downloading the record does not "
+            "save the chart-note text."
+        )
+        render_chart_note_editor(
+            build_chart_note_html(st.session_state, [result]),
+            editor_id="en_plan",
+            case_token=str(st.session_state["_chart_note_case_token"]),
+        )
     render_save_record("en_plan")

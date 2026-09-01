@@ -411,6 +411,10 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn("Energy from propofol", rendered_html)
         self.assertIn("Fat from propofol", rendered_html)
         self.assertIn(
+            "Calculated using 1.1 kcal and 0.1 g fat per mL of Propofol.",
+            [item.value for item in app.caption],
+        )
+        self.assertIn(
             "Enter a higher propofol rate to calculate this plan.",
             [item.value for item in app.caption],
         )
@@ -423,6 +427,14 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(
             "scenario_higher_feeding_hours", {item.key for item in app.number_input}
         )
+        chart_note = app.session_state["_chart_note_generated_propofol"]
+        self.assertIn(
+            "When Propofol is running at 15 mL/hr for 24 hours/day, "
+            "use this EN plan:",
+            chart_note,
+        )
+        self.assertIn("Propofol 396 kcal", chart_note)
+        self.assertNotIn("Propofol 528 kcal", chart_note)
 
     def test_propofol_plan_comparison_uses_full_orders_during_partial_review(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -485,7 +497,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertRegex(rendered_html, r">[+−]\d+<")
         self.assertNotIn("above goal", rendered_html)
         self.assertNotIn("below goal", rendered_html)
-        self.assertIn("Recommended hydration flush schedule:", rendered_html)
+        self.assertIn("Calculated hydration flush schedule:", rendered_html)
         self.assertIn("Water from formula and modulars:", rendered_html)
         self.assertIn("Remaining before flushes:", rendered_html)
         self.assertIn('class="protein-gap protein-shortfall"', rendered_html)
@@ -524,8 +536,8 @@ class AssessmentRenderTests(unittest.TestCase):
         rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertIn(">1150<", rendered_html)
         self.assertIn(">1800<", rendered_html)
-        self.assertIn(">881<", rendered_html)
-        self.assertIn(">66.3<", rendered_html)
+        self.assertIn(">880<", rendered_html)
+        self.assertIn(">65.0<", rendered_html)
         self.assertNotIn(">1200.0<", rendered_html)
         self.assertNotIn(">1800.0<", rendered_html)
         self.assertNotIn(">880.9<", rendered_html)
@@ -553,10 +565,35 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["scenario_standard_feeding_hours"], 12)
         rendered_html = "\n".join(item.value for item in app.markdown)
-        self.assertIn("Recommended hydration flush schedule:", rendered_html)
+        self.assertIn("Calculated hydration flush schedule:", rendered_html)
         self.assertRegex(rendered_html, r"<strong>\d+ mL q4h\.</strong>")
-        chart_notes = "\n".join(item.value for item in app.code)
-        self.assertRegex(chart_notes, r"Hydration flushes: \d+ mL q4h\.")
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertRegex(
+            chart_note,
+            r"Hydration: Provide \d+ mL water flushes q4h\.",
+        )
+
+    def test_patency_flush_change_updates_generated_chart_note(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        before = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("Hydration flushes 130 mL q4h", before)
+        self.assertNotIn("Patency flushes", before)
+
+        patency = next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_patency_flushes"
+        )
+        patency.set_value(120).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        after = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("Patency flushes 120 mL", after)
+        self.assertIn("Hydration flushes 110 mL q4h", after)
+        self.assertNotIn("Hydration flushes 130 mL q4h", after)
 
     def test_adding_formulary_products_preserves_the_existing_en_plan(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -626,7 +663,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn("<strong>1265 mL</strong> formula/day", rendered_html)
         self.assertIn("<strong>1948 kcal/day</strong> total", rendered_html)
         self.assertIn(
-            "Selected EN feed: <strong>89 g/day</strong>", rendered_html
+            "Selected EN feed: <strong>86 g/day</strong>", rendered_html
         )
 
         reset = next(
@@ -652,6 +689,17 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 45)
         self.assertFalse(app.session_state["scenario_standard_order_user_edited"])
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn(
+            "Enteral nutrition plan: Isosource 1.5 at 45 mL/hour for "
+            "23 hours daily.",
+            chart_note,
+        )
+        self.assertNotIn(
+            "Enteral nutrition plan: Isosource 1.5 at 50 mL/hour for "
+            "23 hours daily.",
+            chart_note,
+        )
 
     def test_modular_energy_does_not_silently_reduce_the_standard_rate(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -698,7 +746,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         rendered_html = "\n".join(item.value for item in app.markdown)
         planned_order = (
-            "Full planned formula order (100%): Isosource Fibre 1.5 at "
+            "Full planned formula order (100%): Isosource 1.5 at "
             "50 mL/hour for 23 hours daily."
         )
         partial_notice = (
@@ -734,11 +782,11 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertIn(
-            "Water from formula and modulars: <strong>1001 mL/day</strong>",
+            "Water from formula and modulars: <strong>1000 mL/day</strong>",
             rendered_html,
         )
         self.assertIn(
-            "Recommended hydration flush schedule: <strong>100 mL 6 times daily.</strong>",
+            "Calculated hydration flush schedule: <strong>130 mL q4h.</strong>",
             rendered_html,
         )
         self.assertIn(
@@ -766,7 +814,7 @@ class AssessmentRenderTests(unittest.TestCase):
             app.session_state["scenario_standard_modular_doses_abbott-liquiprotein"]
         )
         rendered_html = "\n".join(item.value for item in app.markdown)
-        chart_notes = "\n".join(item.value for item in app.code)
+        chart_notes = app.session_state["_chart_note_generated_en_plan"]
         self.assertNotIn("5 mL from modulars", rendered_html)
         self.assertNotIn("LiquiProtein", chart_notes)
 
@@ -776,7 +824,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         liquid_modular_amount.set_value(6).run(timeout=30)
         rendered_html = "\n".join(item.value for item in app.markdown)
-        chart_notes = "\n".join(item.value for item in app.code)
+        chart_notes = app.session_state["_chart_note_generated_en_plan"]
         self.assertNotIn("5 mL from modulars", rendered_html)
         self.assertNotIn("LiquiProtein", chart_notes)
 
@@ -789,7 +837,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertIn("5 mL from modulars", rendered_html)
-        self.assertIn(">881<", rendered_html)
+        self.assertIn(">885<", rendered_html)
 
     def test_example_rates_and_modular_totals_use_the_regular_calculations(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -797,14 +845,17 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
 
-        formula = load_master_formulas().loc[
-            lambda frame: frame["name"] == "Isosource Fibre 1.5"
+        standard_formula = load_master_formulas().loc[
+            lambda frame: frame["name"] == "Isosource 1.5"
+        ].iloc[0].to_dict()
+        propofol_formula = load_master_formulas().loc[
+            lambda frame: frame["name"] == "Peptamen 1.5"
         ].iloc[0].to_dict()
         modular = load_master_modulars().loc[
             lambda frame: frame["id"] == "nestle-beneprotein"
         ].iloc[0].to_dict()
         standard = practical_feed_delivery(
-            formula,
+            standard_formula,
             app.session_state["en_total_energy_target"],
             app.session_state["scenario_standard_feeding_hours"],
         )
@@ -813,7 +864,7 @@ class AssessmentRenderTests(unittest.TestCase):
             app.session_state["scenario_higher_propofol_hours"],
         )
         higher = practical_feed_delivery(
-            formula,
+            propofol_formula,
             app.session_state["icu_total_energy_target"] - propofol["kcal"],
             app.session_state["scenario_higher_feeding_hours"],
         )
@@ -840,13 +891,60 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(modular_totals["protein_g"], 12)
         self.assertEqual(modular_totals["preparation_water_ml"], 120)
 
+    def test_example_chart_notes_match_independent_hand_calculations(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        standard_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn(
+            "energy 1,775 kcal (Formula 1,725 kcal + Beneprotein 50 kcal)",
+            standard_note,
+        )
+        self.assertIn(
+            "protein 90 g (Formula 78 g + Beneprotein 12 g), CHO 202 g, and fat 69 g",
+            standard_note,
+        )
+        self.assertIn(
+            "Total water provided is 1,900 mL/day (Free water 880 mL + "
+            "Beneprotein flushes 120 mL + Med flushes 120 mL + "
+            "Hydration flushes 130 mL q4h)",
+            standard_note,
+        )
+
+        propofol_note = app.session_state["_chart_note_generated_propofol"]
+        self.assertIn(
+            "When Propofol is running at 20 mL/hr for 24 hours/day",
+            propofol_note,
+        )
+        self.assertIn(
+            "energy 1,786 kcal (Formula 1,208 kcal + Beneprotein 50 kcal + "
+            "Propofol 528 kcal)",
+            propofol_note,
+        )
+        self.assertIn(
+            "protein 67 g (Formula 55 g + Beneprotein 12 g), CHO 151 g, and "
+            "fat 93 g (Formula 45 g + Propofol 48 g)",
+            propofol_note,
+        )
+        self.assertIn(
+            "Total water provided is 1,910 mL/day (Free water 620 mL + "
+            "Beneprotein flushes 120 mL + Med flushes 120 mL + "
+            "Hydration flushes 175 mL q4h)",
+            propofol_note,
+        )
+
     def test_chart_note_uses_per_administration_modular_frequency(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
         next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
 
         self.assertFalse(app.exception)
-        chart_notes = "\n".join(item.value for item in app.code)
-        self.assertIn("Modulars: Beneprotein 1 packet BID.", chart_notes)
+        chart_notes = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn(
+            "Modulars: Beneprotein 1 packet BID, administered with 60 mL water each time.",
+            chart_notes,
+        )
         self.assertNotIn("Modulars: Beneprotein:", chart_notes)
         rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertIn("2 packets daily", rendered_html)

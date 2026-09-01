@@ -323,7 +323,7 @@ def export_case_record_workbook(
         ["The record label is part of this downloaded file. Store and transfer the file according to local privacy policy.", None],
         ["Record version", CASE_RECORD_VERSION],
         ["Saved at UTC", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")],
-        ["Patient / record label", label],
+        ["Record label", label],
     ])
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:

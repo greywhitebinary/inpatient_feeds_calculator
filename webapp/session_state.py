@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
 from zipfile import BadZipFile
 
 import pandas as pd
@@ -25,6 +26,7 @@ def initialise_state() -> None:
     if "my_modulars" not in st.session_state:
         st.session_state.my_modulars = modulars.iloc[0:0].copy()
     st.session_state.setdefault("case_record_label", "My EN record")
+    st.session_state.setdefault("_chart_note_case_token", uuid4().hex)
     for goal in PLAN_GOALS:
         assessment_key = str(goal["assessment_key"])
         if st.session_state.get(assessment_key) is None:
@@ -144,6 +146,7 @@ def open_uploaded_case_record(uploaded_file) -> None:
     st.session_state.update(state)
     st.session_state.my_formulas = formulas
     st.session_state.my_modulars = modulars
+    st.session_state["_chart_note_case_token"] = uuid4().hex
     st.session_state["_case_record_notice"] = (
         "success", "The saved record is now open."
     )
@@ -152,12 +155,15 @@ def open_uploaded_case_record(uploaded_file) -> None:
 def load_example_record() -> None:
     """Load a clearly-labelled demonstration without persisting any case data."""
     formulas, modulars = master_data()
-    example_feed = formulas.loc[formulas["name"] == "Isosource Fibre 1.5"].iloc[[0]].copy()
+    example_feed = formulas.loc[
+        formulas["name"].isin(["Isosource 1.5", "Peptamen 1.5"])
+    ].copy()
     example_modular = modulars.loc[modulars["id"] == "nestle-beneprotein"].iloc[[0]].copy()
 
     clear_case_record_state()
     st.session_state.my_formulas = example_feed
     st.session_state.my_modulars = example_modular
+    st.session_state["_chart_note_case_token"] = uuid4().hex
     st.session_state.update({
         "case_record_label": "Example — inpatient EN review",
         "assessment_sex": "Female",
@@ -171,8 +177,10 @@ def load_example_record() -> None:
         "assessment_estimated_weight": 62.0,
         "assessment_weight_choice": "Current body weight",
         "assessment_indirect_calorimetry": None,
-        "assessment_activity_factor": 1.0,
+        "assessment_activity_factor": 1.2,
         "assessment_stress_factor": 1.0,
+        "assessment_energy_low_kcal_kg": 25.0,
+        "assessment_energy_high_kcal_kg": 30.0,
         "assessment_energy_target": 1800.0,
         "assessment_protein_low_gkg": 1.2,
         "assessment_protein_high_gkg": 1.5,
@@ -184,13 +192,13 @@ def load_example_record() -> None:
         "en_total_energy_target": 1800.0,
         "en_protein_target": 85.0,
         "en_water_target": 1900.0,
-        "feed_candidates": ["Isosource Fibre 1.5"],
+        "feed_candidates": ["Isosource 1.5"],
         "icu_total_energy_target": 1800.0,
         "icu_protein_target": 85.0,
         "icu_water_target": 1900.0,
-        "icu_feed_candidates": ["Isosource Fibre 1.5"],
+        "icu_feed_candidates": ["Peptamen 1.5"],
         "icu_planned_daily_intake_scenario": "lower",
-        "en_selected_formula": "Isosource Fibre 1.5",
+        "en_selected_formula": "Isosource 1.5",
         "en_schedule_type": "Continuous / cyclic",
         "en_feeding_hours": 23.0,
         "en_achieved_delivery_pct": 100,
@@ -199,13 +207,13 @@ def load_example_record() -> None:
         "modular_doses_nestle-beneprotein": 2.0,
         "modular_water_nestle-beneprotein": 60.0,
         "en_medication_flushes": 120.0,
-        "en_patency_flushes": 180.0,
+        "en_patency_flushes": 0.0,
         "en_hydration_flushes": 6,
-        "en_hydration_schedule_format": "times/day",
+        "en_hydration_schedule_format": "qXh",
         "en_hydration_interval_hours": 4,
         "scenario_standard_propofol_rate": 0.0,
         "scenario_standard_propofol_hours": 24.0,
-        "scenario_standard_selected_formula": "Isosource Fibre 1.5",
+        "scenario_standard_selected_formula": "Isosource 1.5",
         "scenario_standard_schedule_type": "Continuous / cyclic",
         "scenario_standard_feeding_hours": 23.0,
         "scenario_standard_achieved_delivery_pct": 100,
@@ -214,13 +222,13 @@ def load_example_record() -> None:
         "scenario_standard_modular_doses_nestle-beneprotein": 2.0,
         "scenario_standard_modular_water_nestle-beneprotein": 60.0,
         "scenario_standard_medication_flushes": 120.0,
-        "scenario_standard_patency_flushes": 180.0,
+        "scenario_standard_patency_flushes": 0.0,
         "scenario_standard_hydration_flushes": 6,
-        "scenario_standard_hydration_schedule_format": "times/day",
+        "scenario_standard_hydration_schedule_format": "qXh",
         "scenario_standard_hydration_interval_hours": 4,
         "scenario_lower_propofol_rate": 0.0,
         "scenario_lower_propofol_hours": 24.0,
-        "scenario_lower_selected_formula": "Isosource Fibre 1.5",
+        "scenario_lower_selected_formula": "Peptamen 1.5",
         "scenario_lower_schedule_type": "Continuous / cyclic",
         "scenario_lower_feeding_hours": 23.0,
         "scenario_lower_achieved_delivery_pct": 100,
@@ -229,13 +237,13 @@ def load_example_record() -> None:
         "scenario_lower_modular_doses_nestle-beneprotein": 2.0,
         "scenario_lower_modular_water_nestle-beneprotein": 60.0,
         "scenario_lower_medication_flushes": 120.0,
-        "scenario_lower_patency_flushes": 180.0,
+        "scenario_lower_patency_flushes": 0.0,
         "scenario_lower_hydration_flushes": 6,
-        "scenario_lower_hydration_schedule_format": "times/day",
+        "scenario_lower_hydration_schedule_format": "qXh",
         "scenario_lower_hydration_interval_hours": 4,
         "scenario_higher_propofol_rate": 20.0,
         "scenario_higher_propofol_hours": 24.0,
-        "scenario_higher_selected_formula": "Isosource Fibre 1.5",
+        "scenario_higher_selected_formula": "Peptamen 1.5",
         "scenario_higher_schedule_type": "Continuous / cyclic",
         "scenario_higher_feeding_hours": 23.0,
         "scenario_higher_achieved_delivery_pct": 100,
@@ -244,9 +252,9 @@ def load_example_record() -> None:
         "scenario_higher_modular_doses_nestle-beneprotein": 2.0,
         "scenario_higher_modular_water_nestle-beneprotein": 60.0,
         "scenario_higher_medication_flushes": 120.0,
-        "scenario_higher_patency_flushes": 180.0,
+        "scenario_higher_patency_flushes": 0.0,
         "scenario_higher_hydration_flushes": 6,
-        "scenario_higher_hydration_schedule_format": "times/day",
+        "scenario_higher_hydration_schedule_format": "qXh",
         "scenario_higher_hydration_interval_hours": 4,
     })
 
@@ -321,7 +329,7 @@ def seed_scenario_state(
     defaults: dict[str, object] = {
         "selected_formula": candidates[0],
         "schedule_type": "Continuous / cyclic",
-        "feeding_hours": 20.0,
+        "feeding_hours": 23.0,
         "feeds_per_day": 4,
         "achieved_delivery_pct": 100,
         "delivery_view": "Full planned EN",
