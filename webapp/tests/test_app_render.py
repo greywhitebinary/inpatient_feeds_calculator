@@ -27,6 +27,44 @@ class AssessmentRenderTests(unittest.TestCase):
             if str(item.key).startswith(("add_modular_", "saved_modular_"))
         }
         self.assertEqual(len(modular_button_keys), 6)
+        self.assertIn(
+            "Scroll to view more feeds.",
+            {item.value for item in app.caption},
+        )
+        ons_button_keys = {
+            item.key for item in app.button
+            if str(item.key).startswith(("add_ons_", "saved_ons_"))
+        }
+        self.assertEqual(len(ons_button_keys), 46)
+        ons_filter = next(
+            item for item in app.radio
+            if item.key == "ons_reference_brand_filter"
+        )
+        self.assertEqual(
+            ons_filter.options,
+            ["All supplied ONS", "Nestlé ONS", "Abbott ONS"],
+        )
+        product_filter = next(
+            item for item in app.selectbox
+            if item.key == "feed_reference_product_filter"
+        )
+        self.assertEqual(
+            product_filter.options,
+            [
+                "All products",
+                "Nestlé EN formulas",
+                "Abbott EN formulas",
+                "Nestlé ONS",
+                "Abbott ONS",
+            ],
+        )
+        subheadings = [item.value for item in app.subheader]
+        self.assertLess(
+            subheadings.index("My Formulary"), subheadings.index("My Modulars")
+        )
+        self.assertLess(
+            subheadings.index("My Modulars"), subheadings.index("My ONS")
+        )
 
     def test_modular_plan_card_uses_compact_parallel_labels(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -42,6 +80,83 @@ class AssessmentRenderTests(unittest.TestCase):
             "Enter the modular order. This calculator does not recommend doses.",
             captions,
         )
+        self.assertIn(
+            "Missing a modular? Add it to My Modulars on the Formulary tab.",
+            captions,
+        )
+        self.assertIn(
+            "Missing a feed? Add it to My Formulary on the Formulary tab.",
+            captions,
+        )
+        self.assertIn(
+            "Use My ONS for oral intake. Add an ONS to My Formulary when it "
+            "will be given through the feeding tube.",
+            captions,
+        )
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("How ONS calculations work", {
+            item.label for item in app.expander
+        })
+        self.assertIn("<strong>My Formulary</strong>", rendered_html)
+        self.assertIn("<strong>My ONS</strong>", rendered_html)
+        self.assertNotIn("ONS selected from My Formulary", rendered_html)
+
+    def test_assessment_footer_navigation_controls_the_active_tab(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_assessment_en_plan"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "EN plan")
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_assessment_propofol"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "Propofol")
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_assessment_formulary"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "Formulary")
+
+    def test_formulary_footer_navigation_controls_the_active_tab(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_formulary_assessment"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "Assessment")
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_formulary_en_plan"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "EN plan")
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_formulary_propofol"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "Propofol")
+
+    def test_plan_and_propofol_have_footer_navigation(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_en_plan_propofol"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "Propofol")
+
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_propofol_en_plan"
+        ).click().run(timeout=30)
+        self.assertEqual(app.session_state["workspace_tab"], "EN plan")
 
     def test_header_uses_a_text_link_and_separates_identity_from_workflow(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -52,7 +167,9 @@ class AssessmentRenderTests(unittest.TestCase):
             "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]",
             captions,
         )
-        self.assertIn("Uses Canadian formula and modular product information.", captions)
+        self.assertIn(
+            "Uses Canadian formula, modular, and ONS product information.", captions
+        )
         self.assertIn("Work left to right: set up My Formulary", captions)
         self.assertNotIn("First time here?", captions)
         self.assertNotIn("substack logo", captions.lower())
@@ -71,7 +188,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         self.assertNotIn("Under development", footer_text)
         self.assertIn(
-            "Formula and modular values come from manufacturers’ Canadian product information.",
+            "Formula, modular, and ONS values come from manufacturers’ Canadian product information.",
             footer_text,
         )
         self.assertIn("Display tip:", footer_text)
@@ -368,11 +485,10 @@ class AssessmentRenderTests(unittest.TestCase):
         tab_labels = [item.label for item in app.tabs]
         self.assertIn("EN plan", tab_labels)
         self.assertIn("Propofol", tab_labels)
-        self.assertIn("Lower/no propofol", tab_labels)
-        self.assertIn("Higher propofol", tab_labels)
-        self.assertNotIn("Primary plan", tab_labels)
-        self.assertNotIn("Alternate plan", tab_labels)
+        self.assertNotIn("Lower/no propofol", tab_labels)
+        self.assertNotIn("Higher propofol", tab_labels)
         self.assertIn("scenario_standard_schedule_type", {item.key for item in app.radio})
+        self.assertIn("scenario_propofol_schedule_type", {item.key for item in app.radio})
         self.assertEqual(app.session_state["scenario_standard_propofol_rate"], 0.0)
         self.assertEqual(app.session_state["icu_total_energy_target"], 1800.0)
 
@@ -381,90 +497,226 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         standard_hours.set_value(16).run(timeout=30)
         self.assertEqual(app.session_state["scenario_standard_feeding_hours"], 16)
-        self.assertEqual(app.session_state["scenario_lower_feeding_hours"], 23.0)
+        self.assertEqual(app.session_state["scenario_propofol_feeding_hours"], 23.0)
 
-        lower_schedule = next(
-            item for item in app.radio if item.key == "scenario_lower_schedule_type"
+        propofol_schedule = next(
+            item for item in app.radio if item.key == "scenario_propofol_schedule_type"
         )
-        lower_schedule.set_value("Intermittent").run(timeout=30)
+        propofol_schedule.set_value("Intermittent").run(timeout=30)
 
         self.assertFalse(app.exception)
         number_input_keys = {item.key for item in app.number_input}
-        self.assertIn("scenario_lower_feeds_per_day", number_input_keys)
-        self.assertNotIn("scenario_lower_feeding_hours", number_input_keys)
+        self.assertIn("scenario_propofol_feeds_per_day", number_input_keys)
+        self.assertNotIn("scenario_propofol_feeding_hours", number_input_keys)
 
-    def test_copy_to_higher_propofol_keeps_the_higher_rate(self):
+    def test_propofol_help_copy_explains_each_method_concisely(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
-        example.click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
-        lower_hours = next(
-            item for item in app.number_input if item.key == "scenario_lower_feeding_hours"
-        )
-        lower_hours.set_value(18).run(timeout=30)
-        lower_propofol_hours = next(
-            item for item in app.number_input if item.key == "scenario_lower_propofol_hours"
-        )
-        higher_propofol_hours = next(
-            item for item in app.number_input if item.key == "scenario_higher_propofol_hours"
-        )
-        lower_propofol_hours.set_value(12)
-        higher_propofol_hours.set_value(18).run(timeout=30)
-        copy_button = next(
-            item for item in app.button
-            if item.label == "Copy lower-propofol EN plan"
-        )
-        copy_button.click().run(timeout=30)
-
-        self.assertFalse(app.exception)
-        self.assertEqual(app.session_state["scenario_higher_feeding_hours"], 18)
-        self.assertEqual(app.session_state["scenario_higher_propofol_rate"], 20.0)
-        self.assertEqual(app.session_state["scenario_higher_propofol_hours"], 18)
-
-    def test_higher_propofol_rate_stays_in_its_tab_and_drives_its_plan(self):
-        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
-        example.click().run(timeout=30)
-
-        higher_rate = next(
-            item for item in app.number_input if item.key == "scenario_higher_propofol_rate"
-        )
-        higher_rate.set_value(None).run(timeout=30)
-
-        number_input_keys = {item.key for item in app.number_input}
-        self.assertIn("scenario_higher_propofol_rate", number_input_keys)
-        self.assertIn("scenario_higher_propofol_hours", number_input_keys)
-        self.assertNotIn("scenario_higher_feeding_hours", number_input_keys)
         rendered_html = "\n".join(item.value for item in app.markdown)
-        self.assertIn("Energy from propofol", rendered_html)
-        self.assertIn("Fat from propofol", rendered_html)
         self.assertIn(
-            "Calculated using 1.1 kcal and 0.1 g fat per mL of Propofol.",
-            [item.value for item in app.caption],
+            "subtracts projected Propofol energy from the EN energy target",
+            rendered_html,
         )
         self.assertIn(
-            "Enter a higher propofol rate to calculate this plan.",
-            [item.value for item in app.caption],
+            "The calculator provides two suggested EN rates. It uses the expected "
+            "durations to calculate planned daily formula volume and protein provision.",
+            rendered_html,
+        )
+        self.assertIn(
+            "If feeding time is less than 24 hours/day, it is distributed "
+            "proportionally according to the expected hours at each Propofol rate.",
+            rendered_html,
+        )
+        self.assertNotIn("for each condition", rendered_html)
+        self.assertNotIn(
+            "shortens the time assigned to both conditions",
+            rendered_html,
         )
 
-        higher_rate = next(
-            item for item in app.number_input if item.key == "scenario_higher_propofol_rate"
+    def test_conditional_propofol_mode_uses_one_shared_en_plan(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example.click().run(timeout=30)
+
+        method = next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_propofol_method"
         )
-        higher_rate.set_value(15.0).run(timeout=30)
+        method.set_value("Changing Propofol rates").run(timeout=30)
+
         self.assertFalse(app.exception)
+        number_input_keys = {item.key for item in app.number_input}
         self.assertIn(
-            "scenario_higher_feeding_hours", {item.key for item in app.number_input}
+            "_propofol_widget_scenario_propofol_lower_propofol_rate",
+            number_input_keys,
+        )
+        self.assertIn(
+            "_propofol_widget_scenario_propofol_higher_propofol_rate",
+            number_input_keys,
+        )
+        self.assertIn(
+            "_propofol_widget_scenario_propofol_conditional_lower_rate_ml_hr",
+            number_input_keys,
+        )
+        self.assertIn(
+            "_propofol_widget_scenario_propofol_conditional_higher_rate_ml_hr",
+            number_input_keys,
+        )
+        self.assertEqual(app.session_state["scenario_propofol_conditional_lower_rate_ml_hr"], 50)
+        self.assertEqual(app.session_state["scenario_propofol_conditional_higher_rate_ml_hr"], 35)
+        self.assertEqual(
+            [item.key for item in app.selectbox].count("scenario_propofol_selected_formula"), 1
         )
         chart_note = app.session_state["_chart_note_generated_propofol"]
         self.assertIn(
-            "When Propofol is running at 15 mL/hr for 24 hours/day, "
-            "use this EN plan:",
+            "When Propofol is not running, provide feed at 50 mL/hr.", chart_note
+        )
+        self.assertIn(
+            "When Propofol is at 20 mL/hr, provide feed at 35 mL/hr.", chart_note
+        )
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn(
+            "Suggested EN rate with lower/no Propofol (mL/hour)", rendered_html
+        )
+        self.assertIn(
+            "Suggested EN rate with higher Propofol (mL/hour)", rendered_html
+        )
+        self.assertIn(
+            "Projected formula delivery: (50 mL/hour × 17.25 hours) + "
+            "(35 mL/hour × 5.75 hours) = <strong>1,064 mL/day</strong>.",
+            rendered_html,
+        )
+
+    def test_propofol_prescription_target_is_applied_before_propofol_energy(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        target = next(
+            item for item in app.number_input
+            if item.key == "scenario_propofol_prescription_target_pct"
+        )
+        target.set_value(110).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        # 1800 × 110% = 1980 kcal; after 528 kcal from Propofol, a 1.5-kcal/mL
+        # formula over 23 hours rounds to 40 mL/hour.
+        self.assertEqual(app.session_state["scenario_propofol_ordered_rate_ml_hr"], 40)
+        self.assertIn(
+            "EN prescription target: 110% of estimated energy requirement "
+            "(1,980 kcal/day).",
+            app.session_state["_chart_note_generated_propofol"],
+        )
+        rationale = next(
+            item for item in app.checkbox
+            if item.key == "scenario_propofol_prescription_interruption_note"
+        )
+        self.assertFalse(rationale.value)
+        self.assertEqual(
+            rationale.label,
+            'Include “to account for anticipated interruptions” in the '
+            '**Chart note below**',
+        )
+        rationale.set_value(True).run(timeout=30)
+        self.assertIn(
+            "EN prescription target: 110% of estimated energy requirement "
+            "(1,980 kcal/day) to account for anticipated interruptions.",
+            app.session_state["_chart_note_generated_propofol"],
+        )
+
+    def test_standard_en_plan_has_an_independent_prescription_target(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        target = next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_prescription_target_pct"
+        )
+        target.set_value(110).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 55)
+        self.assertEqual(
+            app.session_state["scenario_propofol_prescription_target_pct"], 100
+        )
+        rationale = next(
+            item for item in app.checkbox
+            if item.key == "scenario_standard_prescription_interruption_note"
+        )
+        self.assertFalse(rationale.value)
+        self.assertIn(
+            "EN prescription target: 110% of estimated energy requirement "
+            "(1,980 kcal/day).",
+            app.session_state["_chart_note_generated_en_plan"],
+        )
+
+    def test_projected_propofol_rate_and_hours_drive_the_shared_plan(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example.click().run(timeout=30)
+
+        rate = next(
+            item for item in app.number_input
+            if item.label == "Propofol rate (mL/hour)"
+        )
+        hours = next(
+            item for item in app.number_input if item.label == "Expected hours"
+        )
+        rate.set_value(15.0)
+        hours.set_value(12.0).run(timeout=30)
+        self.assertFalse(app.exception)
+        chart_note = app.session_state["_chart_note_generated_propofol"]
+        self.assertIn(
+            "With projected Propofol at 15 mL/hr for 12 hours/day:",
             chart_note,
         )
-        self.assertIn("Propofol 396 kcal", chart_note)
+        self.assertIn("Propofol 198 kcal", chart_note)
         self.assertNotIn("Propofol 528 kcal", chart_note)
 
-    def test_propofol_plan_comparison_uses_full_orders_during_partial_review(self):
+    def test_propofol_values_remain_visible_when_switching_methods(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        method = next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_propofol_method"
+        )
+        method.set_value("Changing Propofol rates").run(timeout=30)
+        higher_rate = next(
+            item for item in app.number_input
+            if item.key == "_propofol_widget_scenario_propofol_higher_propofol_rate"
+        )
+        higher_hours = next(
+            item for item in app.number_input
+            if item.label == "Expected duration (hours/day)"
+        )
+        self.assertEqual(higher_rate.value, 20)
+        self.assertEqual(higher_hours.value, 6)
+
+        method = next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_propofol_method"
+        )
+        method.set_value("Single Propofol rate").run(timeout=30)
+        daily_rate = next(
+            item for item in app.number_input
+            if item.label == "Propofol rate (mL/hour)"
+        )
+        daily_hours = next(
+            item for item in app.number_input if item.label == "Expected hours"
+        )
+        self.assertEqual(daily_rate.value, 20)
+        self.assertEqual(daily_hours.value, 24)
+
+    def test_propofol_partial_delivery_review_uses_the_shared_plan(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
         next(
             item for item in app.button if item.label == "📋 Load example record"
@@ -472,19 +724,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
         achieved = next(
             item for item in app.number_input
-            if item.key == "scenario_lower_achieved_delivery_pct"
+            if item.key == "scenario_propofol_achieved_delivery_pct"
         )
         achieved.set_value(50).run(timeout=30)
 
         self.assertFalse(app.exception)
         rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertIn("Estimated daily intake at 50% formula delivery", rendered_html)
-        self.assertIn(
-            '<th scope="row" class="">Total energy (kcal/day)</th>'
-            '<td class="report-number">1775</td>'
-            '<td class="report-number">1786</td>',
-            rendered_html,
-        )
 
     def test_formula_comparison_includes_the_full_electrolyte_profile(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -689,7 +935,6 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(">1898<", rendered_html)
         self.assertIn("Difference (planned − goal)", rendered_html)
         self.assertIn("<strong>1265 mL</strong> formula/day", rendered_html)
-        self.assertIn("<strong>1948 kcal/day</strong> total", rendered_html)
         self.assertIn(
             "Selected EN feed: <strong>86 g/day</strong>", rendered_html
         )
@@ -702,6 +947,32 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 50)
         self.assertFalse(app.session_state["scenario_standard_order_user_edited"])
+        self.assertFalse(app.session_state["scenario_standard_order_user_edited"])
+
+    def test_low_continuous_rate_can_be_described_as_trickle_in_chart_note(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        ordered_rate = next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        )
+        ordered_rate.set_value(20).run(timeout=30)
+
+        trickle = next(
+            item for item in app.checkbox
+            if item.key == "scenario_standard_describe_as_trickle"
+        )
+        trickle.check().run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertIn(
+            "Initiate trickle EN with Isosource 1.5 at 20 mL/hour for "
+            "23 hours daily.",
+            app.session_state["_chart_note_generated_en_plan"],
+        )
 
     def test_unedited_order_follows_a_recalculated_suggestion(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -741,7 +1012,93 @@ class AssessmentRenderTests(unittest.TestCase):
 
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 50)
+
+    def test_ons_order_does_not_change_the_suggested_en_rate(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        suggested_rate = app.session_state[
+            "scenario_standard_ordered_rate_ml_hr"
+        ]
+        ons = next(
+            item for item in app.multiselect
+            if item.key == "scenario_standard_chosen_ons"
+        )
+        ons.set_value(["BOOST Plus Calories — Vanilla"]).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == (
+                "scenario_standard_ons_containers_"
+                "nestle-boost-plus-calories-vanilla"
+            )
+        ).set_value(1).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == (
+                "scenario_standard_ons_times_"
+                "nestle-boost-plus-calories-vanilla"
+            )
+        ).set_value(2).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(
+            app.session_state["scenario_standard_ordered_rate_ml_hr"],
+            suggested_rate,
+        )
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("Planned EN and ONS provision", rendered_html)
+        self.assertIn("Combined EN + ONS", rendered_html)
+        self.assertIn(
+            "Free water from ONS is included in daily totals but excluded "
+            "from water-flush calculations.",
+            {item.value for item in app.caption},
+        )
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn(
+            "ONS: BOOST Plus Calories — Vanilla, 1 carton BID.", chart_note
+        )
+        self.assertIn("At goal, EN and ONS orders provide", chart_note)
+        self.assertIn("(EN 1,775 kcal + ONS 720 kcal)", chart_note)
+        self.assertIn("Total water provided is 2,266 mL/day", chart_note)
+        self.assertIn("ONS water 366 mL", chart_note)
+        self.assertIn(
+            "Hydration: Provide 130 mL water flushes q4h.", chart_note
+        )
         self.assertFalse(app.session_state["scenario_standard_order_user_edited"])
+
+    def test_ons_selected_as_formula_is_treated_as_en(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        candidates = next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        )
+        self.assertNotIn("BOOST Plus Calories — Vanilla", candidates.options)
+        next(
+            item for item in app.button
+            if item.key == "add_feed_BOOST Plus Calories — Vanilla"
+        ).click().run(timeout=30)
+        candidates = next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        )
+        self.assertIn("BOOST Plus Calories — Vanilla", candidates.options)
+        candidates.set_value(["BOOST Plus Calories — Vanilla"]).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(
+            app.session_state["scenario_standard_selected_formula"],
+            "BOOST Plus Calories — Vanilla",
+        )
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn(
+            "Enteral nutrition plan: BOOST Plus Calories — Vanilla", chart_note
+        )
+        self.assertNotIn("ONS: BOOST Plus Calories — Vanilla", chart_note)
+        self.assertNotIn("EN and ONS orders provide", chart_note)
 
     def test_modular_energy_does_not_silently_reduce_a_propofol_rate(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -749,13 +1106,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
         doses = next(
             item for item in app.number_input
-            if item.key == "scenario_higher_modular_doses_nestle-beneprotein"
+            if item.key == "scenario_propofol_modular_doses_nestle-beneprotein"
         )
         doses.set_value(6).run(timeout=30)
 
         self.assertFalse(app.exception)
-        self.assertEqual(app.session_state["scenario_higher_ordered_rate_ml_hr"], 35)
-        self.assertFalse(app.session_state["scenario_higher_order_user_edited"])
+        self.assertEqual(app.session_state["scenario_propofol_ordered_rate_ml_hr"], 35)
+        self.assertFalse(app.session_state["scenario_propofol_order_user_edited"])
 
     def test_reduced_delivery_review_keeps_the_order_and_explains_the_view(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -888,13 +1245,13 @@ class AssessmentRenderTests(unittest.TestCase):
             app.session_state["scenario_standard_feeding_hours"],
         )
         propofol = propofol_intake(
-            app.session_state["scenario_higher_propofol_rate"],
-            app.session_state["scenario_higher_propofol_hours"],
+            app.session_state["scenario_propofol_propofol_rate"],
+            app.session_state["scenario_propofol_propofol_hours"],
         )
         higher = practical_feed_delivery(
             propofol_formula,
             app.session_state["icu_total_energy_target"] - propofol["kcal"],
-            app.session_state["scenario_higher_feeding_hours"],
+            app.session_state["scenario_propofol_feeding_hours"],
         )
         modular_totals = modular_delivery(modular, 1, 2, 60)
 
@@ -905,16 +1262,11 @@ class AssessmentRenderTests(unittest.TestCase):
             standard["ordered_rate_ml_hr"],
         )
         self.assertEqual(
-            app.session_state["scenario_lower_ordered_rate_ml_hr"],
-            standard["ordered_rate_ml_hr"],
-        )
-        self.assertEqual(
-            app.session_state["scenario_higher_ordered_rate_ml_hr"],
+            app.session_state["scenario_propofol_ordered_rate_ml_hr"],
             higher["ordered_rate_ml_hr"],
         )
         self.assertFalse(app.session_state["scenario_standard_order_user_edited"])
-        self.assertFalse(app.session_state["scenario_lower_order_user_edited"])
-        self.assertFalse(app.session_state["scenario_higher_order_user_edited"])
+        self.assertFalse(app.session_state["scenario_propofol_order_user_edited"])
         self.assertEqual(modular_totals["energy_kcal"], 50)
         self.assertEqual(modular_totals["protein_g"], 12)
         self.assertEqual(modular_totals["preparation_water_ml"], 120)
@@ -943,7 +1295,7 @@ class AssessmentRenderTests(unittest.TestCase):
 
         propofol_note = app.session_state["_chart_note_generated_propofol"]
         self.assertIn(
-            "When Propofol is running at 20 mL/hr for 24 hours/day",
+            "With projected Propofol at 20 mL/hr for 24 hours/day",
             propofol_note,
         )
         self.assertIn(

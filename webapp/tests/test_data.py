@@ -1,23 +1,90 @@
 import sys
+from io import BytesIO
 from pathlib import Path
 import unittest
 
 import pandas as pd
+from openpyxl import load_workbook
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from data import MODULAR_PATH, load_master_formulas, load_master_modulars, validate_import
+from data import (
+    MODULAR_PATH,
+    export_formulary_workbook,
+    import_formulary_workbook,
+    load_master_formulas,
+    load_master_modulars,
+    load_master_ons,
+    validate_import,
+)
 
 
 class FormularyImportTests(unittest.TestCase):
     def setUp(self):
         self.formulas = load_master_formulas().iloc[[0]].copy()
         self.modulars = load_master_modulars().iloc[[0]].copy()
+        self.ons = load_master_ons().iloc[[0]].copy()
 
     def test_accepts_a_complete_product_profile(self):
-        formulas, modulars = validate_import(self.formulas, self.modulars)
+        formulas, modulars, ons = validate_import(
+            self.formulas, self.modulars, self.ons
+        )
         self.assertEqual(formulas.iloc[0]["name"], "Isosource Fibre 1.5")
         self.assertEqual(modulars.iloc[0]["name"], "Beneprotein")
+        self.assertEqual(ons.iloc[0]["name"], "Ensure Advance — Vanilla")
+
+    def test_downloaded_formulary_reimports_without_changing_products(self):
+        formulas = load_master_formulas()
+        modulars = load_master_modulars()
+        ons = load_master_ons()
+
+        payload = export_formulary_workbook(formulas, modulars, ons)
+        restored_formulas, restored_modulars, restored_ons = import_formulary_workbook(
+            BytesIO(payload)
+        )
+
+        pd.testing.assert_frame_equal(
+            restored_formulas.reset_index(drop=True), formulas.reset_index(drop=True),
+            check_dtype=False,
+        )
+        pd.testing.assert_frame_equal(
+            restored_modulars.reset_index(drop=True), modulars.reset_index(drop=True),
+            check_dtype=False,
+        )
+        pd.testing.assert_frame_equal(
+            restored_ons.reset_index(drop=True), ons.reset_index(drop=True),
+            check_dtype=False,
+        )
+
+    def test_legacy_two_sheet_formulary_opens_with_an_empty_ons_list(self):
+        payload = export_formulary_workbook(self.formulas, self.modulars)
+        workbook = load_workbook(BytesIO(payload))
+        del workbook["My ONS"]
+        legacy = BytesIO()
+        workbook.save(legacy)
+        formulas, modulars, ons = import_formulary_workbook(
+            BytesIO(legacy.getvalue())
+        )
+        self.assertEqual(len(formulas), 1)
+        self.assertEqual(len(modulars), 1)
+        self.assertTrue(ons.empty)
+
+    def test_ons_library_uses_separate_flavour_rows(self):
+        ons = load_master_ons()
+        self.assertEqual(len(ons), 46)
+        boost = ons.loc[ons["product_name"] == "BOOST Plus Calories"]
+        self.assertEqual(
+            set(boost["flavour"]), {"Vanilla", "Chocolate", "Strawberry"}
+        )
+        vanilla = boost.loc[boost["flavour"] == "Vanilla"].iloc[0]
+        self.assertAlmostEqual(
+            vanilla["kcal_per_mL"] * vanilla["container_size_ml"], 360,
+            places=3,
+        )
+        self.assertAlmostEqual(
+            vanilla["protein_per_mL"] * vanilla["container_size_ml"], 14,
+            places=3,
+        )
 
     def test_rejects_a_negative_core_nutrient_value(self):
         self.formulas.loc[self.formulas.index[0], "protein_per_mL"] = -0.01

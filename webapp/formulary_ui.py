@@ -9,10 +9,16 @@ import streamlit as st
 
 from data import export_formulary_workbook, import_formulary_workbook
 from session_state import master_data
-from ui_common import number, render_formulary_table, render_report_table
+from ui_common import (
+    number,
+    render_formulary_table,
+    render_report_table,
+)
 
 def formula_type(name: str) -> str:
     """Return a plain-language working category for the saved-card display."""
+    if name.startswith(("Ensure ", "BOOST ")):
+        return "oral nutrition supplement"
     if any(term in name for term in ("NovaSource", "Nepro", "Suplena")):
         return "renal formula"
     if any(term in name for term in ("Peptamen", "Pivot", "Vital Peptide")):
@@ -34,12 +40,21 @@ def formula_type(name: str) -> str:
 
 def render_reference_list(options: pd.DataFrame, saved_names: set[str], kind: str) -> None:
     """Render a compact, browsable reference list without displacing saved cards."""
-    with st.container(height=360, border=False):
+    if kind == "feed":
+        st.caption("Scroll to view more feeds.")
+    with st.container(height=360, border=False, key=f"reference_list_{kind}"):
         if options.empty:
             st.caption(f"No matching {kind} in the reference library.")
         for row_position, (_, item) in enumerate(options.iterrows()):
-            description = (f"{item['brand']} · {formula_type(str(item['name']))}"
-                           if kind == "feed" else f"{item['brand']} · {item['basis_description']}")
+            if kind == "feed":
+                description = f"{item['brand']} · {formula_type(str(item['name']))}"
+            elif kind == "modular":
+                description = f"{item['brand']} · {item['basis_description']}"
+            else:
+                description = (
+                    f"{item['brand']} · {number(item['container_size_ml']):g} mL "
+                    f"{item['package_unit']}"
+                )
             with st.container(key=f"reference_row_{kind}_{row_position}"):
                 description_column, button_column = st.columns([3, 2], vertical_alignment="center")
                 description_column.markdown(
@@ -55,7 +70,8 @@ def render_reference_list(options: pd.DataFrame, saved_names: set[str], kind: st
                     )
                 else:
                     button_column.button(
-                        f"Add to My {'Formulary' if kind == 'feed' else 'Modulars'}",
+                        f"Add to My "
+                        f"{'Formulary' if kind == 'feed' else 'Modulars' if kind == 'modular' else 'ONS'}",
                         key=f"add_{kind}_{item['name']}",
                         width="content",
                         on_click=add_reference_product,
@@ -75,9 +91,13 @@ def add_reference_product(kind: str, item: dict[str, object]) -> None:
         st.session_state.my_formulas = add_unique(
             st.session_state.my_formulas, addition, "name"
         )
-    else:
+    elif kind == "modular":
         st.session_state.my_modulars = add_unique(
             st.session_state.my_modulars, addition, "id"
+        )
+    else:
+        st.session_state.my_ons = add_unique(
+            st.session_state.my_ons, addition, "id"
         )
 
 
@@ -95,36 +115,47 @@ def remove_selected_products(kind: str) -> None:
                     if name not in removed
                 ]
         st.session_state.remove_feeds = []
-    else:
+    elif kind == "modular":
         removed = set(st.session_state.get("remove_modulars", []))
         st.session_state.my_modulars = st.session_state.my_modulars.loc[
             ~st.session_state.my_modulars["name"].isin(removed)
         ].reset_index(drop=True)
         st.session_state.remove_modulars = []
+    else:
+        removed = set(st.session_state.get("remove_ons", []))
+        st.session_state.my_ons = st.session_state.my_ons.loc[
+            ~st.session_state.my_ons["name"].isin(removed)
+        ].reset_index(drop=True)
+        st.session_state.remove_ons = []
 
 
 def show_formulary() -> None:
-    master_formulas, master_modulars = master_data()
+    master_formulas, master_modulars, master_ons = master_data()
     st.caption("Verify product values against current local labels before use.")
 
     with st.expander("Import or export My Formulary", expanded=False):
         st.caption(
-            "Uploading replaces My Formulary for this session. "
+            "Uploading replaces the product lists for this session. "
             "Calculations use the uploaded values."
         )
         upload = st.file_uploader("Import a .xlsx workbook", type="xlsx", key="formulary_upload")
         if upload is not None and st.button("Validate and import workbook"):
             try:
-                formulas, modulars = import_formulary_workbook(upload)
+                formulas, modulars, ons = import_formulary_workbook(upload)
                 st.session_state.my_formulas = formulas
                 st.session_state.my_modulars = modulars
+                st.session_state.my_ons = ons
                 st.success("Imported the product worksheets. No patient information is imported or retained.")
             except ValueError as error:
                 st.error(str(error))
         st.caption("To add or edit a product, update the downloaded workbook and upload it here.")
         st.download_button(
             "Download My Formulary (.xlsx)",
-            data=export_formulary_workbook(st.session_state.my_formulas, st.session_state.my_modulars),
+            data=export_formulary_workbook(
+                st.session_state.my_formulas,
+                st.session_state.my_modulars,
+                st.session_state.my_ons,
+            ),
             file_name="my_enteral_formulary.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
@@ -155,10 +186,35 @@ def show_formulary() -> None:
 
     with st.expander("Find a feed", expanded=False):
         search = st.text_input("Search formula name", key="feed_search")
-        manufacturer = st.radio("Supplied reference library", ["All supplied reference feeds", "Nestlé", "Abbott"], horizontal=True, key="feed_reference_brand_filter")
-        options = master_formulas if manufacturer == "All supplied reference feeds" else master_formulas[
-            master_formulas["brand"].str.contains(manufacturer, case=False, na=False)
-        ]
+        product_group = st.selectbox(
+            "Supplied product library",
+            [
+                "All products",
+                "Nestlé EN formulas",
+                "Abbott EN formulas",
+                "Nestlé ONS",
+                "Abbott ONS",
+            ],
+            key="feed_reference_product_filter",
+        )
+        if product_group == "All products":
+            options = pd.concat(
+                [master_formulas, master_ons], ignore_index=True, sort=False
+            ).drop_duplicates(subset=["name"], keep="first")
+        elif product_group.endswith("ONS"):
+            manufacturer = product_group.removesuffix(" ONS")
+            options = master_ons[
+                master_ons["brand"].str.contains(
+                    manufacturer, case=False, na=False
+                )
+            ]
+        else:
+            manufacturer = product_group.removesuffix(" EN formulas")
+            options = master_formulas[
+                master_formulas["brand"].str.contains(
+                    manufacturer, case=False, na=False
+                )
+            ]
         if search.strip():
             options = options.loc[options["name"].str.contains(search.strip(), case=False, na=False)]
         render_reference_list(options, set(st.session_state.my_formulas["name"]), "feed")
@@ -198,3 +254,71 @@ def show_formulary() -> None:
         if search.strip():
             options = options.loc[options["name"].str.contains(search.strip(), case=False, na=False)]
         render_reference_list(options, set(st.session_state.my_modulars["name"]), "modular")
+
+    st.divider()
+    ons_heading, ons_actions = st.columns([4, 1], vertical_alignment="bottom")
+    ons_heading.subheader("My ONS")
+    st.caption(
+        "Use My ONS for oral intake. Add an ONS to My Formulary when it will "
+        "be given through the feeding tube."
+    )
+    with st.expander("How ONS calculations work", expanded=False):
+        st.markdown(
+            '<div class="calculation-help-copy">'
+            '<p><strong>My Formulary</strong><br>'
+            'Water content is used when calculating water flushes.</p>'
+            '<p><strong>My ONS</strong><br>'
+            'Water appears in Planned daily intake but does not reduce '
+            'calculated water flushes.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    if not st.session_state.my_ons.empty:
+        with ons_actions.popover("Remove ONS", width="stretch"):
+            remove = st.multiselect(
+                "ONS to remove",
+                st.session_state.my_ons["name"].tolist(),
+                key="remove_ons",
+            )
+            st.button(
+                "Remove selected ONS",
+                key="remove_selected_ons",
+                disabled=not remove,
+                on_click=remove_selected_products,
+                args=("ons",),
+                use_container_width=True,
+            )
+        render_report_table(
+            st.session_state.my_ons[[
+                "name", "brand", "container_size_ml", "package_unit",
+            ]].rename(columns={
+                "name": "Product",
+                "brand": "Manufacturer",
+                "container_size_ml": "Container (mL)",
+                "package_unit": "Package",
+            })
+        )
+    with st.expander("Find an ONS", expanded=False):
+        search = st.text_input("Search ONS name or flavour", key="ons_search")
+        manufacturer = st.radio(
+            "Supplied reference library",
+            ["All supplied ONS", "Nestlé ONS", "Abbott ONS"],
+            horizontal=True,
+            key="ons_reference_brand_filter",
+        )
+        options = (
+            master_ons
+            if manufacturer == "All supplied ONS"
+            else master_ons[
+                master_ons["brand"].str.contains(
+                    manufacturer.removesuffix(" ONS"), case=False, na=False
+                )
+            ]
+        )
+        if search.strip():
+            term = search.strip()
+            options = options.loc[
+                options["name"].str.contains(term, case=False, na=False)
+                | options["brand"].str.contains(term, case=False, na=False)
+            ]
+        render_reference_list(options, set(st.session_state.my_ons["name"]), "ons")

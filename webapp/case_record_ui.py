@@ -28,7 +28,7 @@ def render_case_record_actions() -> str:
     with upload_column:
         with st.popover("📂 Open a saved record", width="stretch"):
             uploaded = st.file_uploader("Open a saved record", type="xlsx", key="case_record_upload", label_visibility="collapsed")
-            st.caption("Opening a file replaces the current record and My Formulary.")
+            st.caption("Opening a file replaces the current record and product lists.")
             st.button(
                 "Open it",
                 key="load_case_record",
@@ -53,7 +53,10 @@ def render_save_record(key_suffix: str) -> None:
     st.download_button(
         "💾 Download this record",
         data=export_case_record_workbook(
-            st.session_state, st.session_state.my_formulas, st.session_state.my_modulars
+            st.session_state,
+            st.session_state.my_formulas,
+            st.session_state.my_modulars,
+            st.session_state.my_ons,
         ),
         file_name="inpatient_en_case_record.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -86,6 +89,6 @@ def render_footer() -> None:
                 "substitute for professional medical advice, diagnosis, or treatment. For advice about an "
                 "individual's care, consult their physician, registered dietitian, or other qualified health "
                 "professional. Do not delay seeking that advice because of a result from this calculator.\n\n"
-                "Formula and modular values come from manufacturers’ Canadian product information. Verify them "
+                "Formula, modular, and ONS values come from manufacturers’ Canadian product information. Verify them "
                 "against current local product labels and institutional formularies before clinical use."
             )

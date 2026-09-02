@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from case_io import export_case_record_workbook, import_case_record_workbook
-from data import load_master_formulas, load_master_modulars
+from data import load_master_formulas, load_master_modulars, load_master_ons
 
 
 class CaseRecordTests(unittest.TestCase):
@@ -50,9 +50,27 @@ class CaseRecordTests(unittest.TestCase):
         legacy = BytesIO()
         workbook.save(legacy)
 
-        restored, _, _ = import_case_record_workbook(BytesIO(legacy.getvalue()))
+        restored, _, _, _ = import_case_record_workbook(BytesIO(legacy.getvalue()))
 
         self.assertEqual(restored["case_record_label"], "Older record")
+
+    def test_import_accepts_case_record_without_my_ons_sheet(self):
+        payload = export_case_record_workbook(
+            {"case_record_label": "Pre-ONS record"},
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+        workbook = load_workbook(BytesIO(payload))
+        del workbook["My ONS"]
+        legacy = BytesIO()
+        workbook.save(legacy)
+
+        restored, _, _, restored_ons = import_case_record_workbook(
+            BytesIO(legacy.getvalue())
+        )
+
+        self.assertEqual(restored["case_record_label"], "Pre-ONS record")
+        self.assertTrue(restored_ons.empty)
 
     def test_import_accepts_legacy_plan_goal_mirrors(self):
         payload = export_case_record_workbook(
@@ -66,7 +84,7 @@ class CaseRecordTests(unittest.TestCase):
         legacy = BytesIO()
         workbook.save(legacy)
 
-        restored, _, _ = import_case_record_workbook(BytesIO(legacy.getvalue()))
+        restored, _, _, _ = import_case_record_workbook(BytesIO(legacy.getvalue()))
 
         self.assertEqual(restored["icu_total_energy_target"], 1750.0)
 
@@ -86,7 +104,9 @@ class CaseRecordTests(unittest.TestCase):
         }
 
         payload = export_case_record_workbook(state, formulas, modulars)
-        restored, restored_formulas, restored_modulars = import_case_record_workbook(BytesIO(payload))
+        restored, restored_formulas, restored_modulars, restored_ons = (
+            import_case_record_workbook(BytesIO(payload))
+        )
 
         self.assertEqual(restored["assessment_age"], 67.0)
         self.assertEqual(restored["feed_candidates"], [formulas.iloc[0]["name"]])
@@ -94,6 +114,41 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(restored["en_hydration_interval_hours"], 4)
         self.assertEqual(restored_formulas["name"].tolist(), formulas["name"].tolist())
         self.assertEqual(restored_modulars["id"].tolist(), modulars["id"].tolist())
+        self.assertTrue(restored_ons.empty)
+
+    def test_round_trip_preserves_ons_snapshot_and_order(self):
+        formulas = load_master_formulas().head(1)
+        modulars = load_master_modulars().head(0)
+        ons = load_master_ons().loc[
+            lambda frame: frame["name"] == "BOOST Plus Calories — Vanilla"
+        ].copy()
+        product_id = ons.iloc[0]["id"]
+        state = {
+            "scenario_standard_chosen_ons": [ons.iloc[0]["name"]],
+            f"scenario_standard_ons_containers_{product_id}": 1.0,
+            f"scenario_standard_ons_times_{product_id}": 2.0,
+        }
+
+        payload = export_case_record_workbook(
+            state, formulas, modulars, ons
+        )
+        restored, _, _, restored_ons = import_case_record_workbook(
+            BytesIO(payload)
+        )
+
+        self.assertEqual(
+            restored["scenario_standard_chosen_ons"],
+            ["BOOST Plus Calories — Vanilla"],
+        )
+        self.assertEqual(
+            restored[f"scenario_standard_ons_containers_{product_id}"], 1.0
+        )
+        self.assertEqual(
+            restored[f"scenario_standard_ons_times_{product_id}"], 2.0
+        )
+        self.assertEqual(
+            restored_ons["name"].tolist(), ["BOOST Plus Calories — Vanilla"]
+        )
 
     def test_round_trip_preserves_an_unentered_value(self):
         formulas = load_master_formulas().head(0)
@@ -104,10 +159,31 @@ class CaseRecordTests(unittest.TestCase):
             modulars,
         )
 
-        restored, _, _ = import_case_record_workbook(BytesIO(payload))
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
 
         self.assertIn("assessment_energy_target", restored)
         self.assertIsNone(restored["assessment_energy_target"])
+
+    def test_download_excludes_generated_and_edited_chart_note_state(self):
+        payload = export_case_record_workbook(
+            {
+                "case_record_label": "Chart-note exclusion check",
+                "assessment_age": 67,
+                "_chart_note_generated_en_plan": "Generated chart note",
+                "_chart_note_editor_en_plan": "Clinician-edited chart note",
+                "unrelated_widget_state": "Do not save",
+            },
+            load_master_formulas().head(1),
+            load_master_modulars().head(1),
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        self.assertEqual(restored["case_record_label"], "Chart-note exclusion check")
+        self.assertEqual(restored["assessment_age"], 67)
+        self.assertNotIn("_chart_note_generated_en_plan", restored)
+        self.assertNotIn("_chart_note_editor_en_plan", restored)
+        self.assertNotIn("unrelated_widget_state", restored)
 
     def test_import_rejects_an_invalid_numeric_widget_value(self):
         payload = export_case_record_workbook(
@@ -171,7 +247,7 @@ class CaseRecordTests(unittest.TestCase):
         }
 
         payload = export_case_record_workbook(state, formulas, modulars)
-        restored, _, _ = import_case_record_workbook(BytesIO(payload))
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
 
         self.assertFalse(restored["scenario_primary_include_propofol"])
         self.assertEqual(restored[f"scenario_primary_modular_doses_{product_id}"], 2.0)
@@ -211,7 +287,7 @@ class CaseRecordTests(unittest.TestCase):
         }
 
         payload = export_case_record_workbook(state, formulas, modulars)
-        restored, _, _ = import_case_record_workbook(BytesIO(payload))
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
 
         self.assertEqual(restored["scenario_standard_feeding_hours"], 18.0)
         self.assertEqual(restored["scenario_standard_ordered_rate_ml_hr"], 55.0)
@@ -234,6 +310,50 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(restored["assessment_activity_factor"], 1.1)
         self.assertEqual(restored["assessment_stress_factor"], 1.2)
 
+    def test_round_trip_preserves_the_shared_conditional_propofol_plan(self):
+        formulas = load_master_formulas().head(1)
+        modulars = load_master_modulars().head(1)
+        product_id = modulars.iloc[0]["id"]
+        state = {
+            "assessment_energy_target": 1800.0,
+            "icu_feed_candidates": [formulas.iloc[0]["name"]],
+            "scenario_propofol_propofol_method": "Conditional EN rates",
+            "scenario_propofol_prescription_target_pct": 110.0,
+            "scenario_propofol_prescription_interruption_note": True,
+            "scenario_propofol_lower_propofol_rate": 0.0,
+            "scenario_propofol_higher_propofol_rate": 20.0,
+            "scenario_propofol_higher_propofol_hours": 6.0,
+            "scenario_propofol_selected_formula": formulas.iloc[0]["name"],
+            "scenario_propofol_feeding_hours": 23.0,
+            "scenario_propofol_conditional_lower_rate_ml_hr": 55.0,
+            "scenario_propofol_conditional_higher_rate_ml_hr": 40.0,
+            "scenario_propofol_conditional_lower_rate_user_edited": True,
+            f"scenario_propofol_modular_doses_{product_id}": 3.0,
+            "icu_planned_daily_intake_scenario": "higher",
+            "scenario_higher_propofol_rate": 30.0,
+        }
+
+        payload = export_case_record_workbook(state, formulas, modulars)
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        self.assertEqual(
+            restored["scenario_propofol_propofol_method"], "Changing Propofol rates"
+        )
+        self.assertEqual(restored["scenario_propofol_prescription_target_pct"], 110.0)
+        self.assertTrue(
+            restored["scenario_propofol_prescription_interruption_note"]
+        )
+        self.assertEqual(restored["scenario_propofol_higher_propofol_hours"], 6.0)
+        self.assertEqual(
+            restored["scenario_propofol_conditional_lower_rate_ml_hr"], 55.0
+        )
+        self.assertTrue(
+            restored["scenario_propofol_conditional_lower_rate_user_edited"]
+        )
+        self.assertEqual(restored[f"scenario_propofol_modular_doses_{product_id}"], 3.0)
+        self.assertNotIn("icu_planned_daily_intake_scenario", restored)
+        self.assertNotIn("scenario_higher_propofol_rate", restored)
+
     def test_old_height_fields_migrate_to_centimetres_on_import(self):
         formulas = load_master_formulas().head(0)
         modulars = load_master_modulars().head(0)
@@ -246,7 +366,7 @@ class CaseRecordTests(unittest.TestCase):
             modulars,
         )
 
-        restored, _, _ = import_case_record_workbook(BytesIO(payload))
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
 
         self.assertEqual(restored["assessment_height_cm"], 165.0)
         self.assertNotIn("assessment_height_unit", restored)

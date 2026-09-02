@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from calculations import (
     adjusted_body_weight_kg,
+    conditional_feed_delivery,
     devine_ibw_kg,
     feed_delivery,
     hamwi_ibw_kg,
@@ -15,12 +16,16 @@ from calculations import (
     mg_to_mmol,
     mifflin_st_jeor_kcal,
     modular_delivery,
+    ons_delivery,
     open_abdomen_protein_loss_g,
     ordered_feed_delivery,
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
     practical_feed_delivery,
     propofol_intake,
+    suggested_conditional_formula_rate,
+    total_propofol_intake,
+    total_ons_delivery,
     water_plan,
 )
 
@@ -112,6 +117,25 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(result["protein_g"], 45)
         self.assertEqual(result["sodium_mg"], 540)
         self.assertEqual(result["preparation_water_ml"], 60)
+
+    def test_ons_delivery_scales_container_and_frequency(self):
+        product = {
+            "container_size_ml": 237,
+            "kcal_per_mL": 360 / 237,
+            "protein_per_mL": 14 / 237,
+            "carbohydrate_per_mL": 45 / 237,
+            "fat_per_mL": 14 / 237,
+            "free_water_per_mL": 183 / 237,
+        }
+        order = ons_delivery(product, containers_each_time=1, times_per_day=2)
+        totals = total_ons_delivery([order])
+        self.assertEqual(totals["daily_containers"], 2)
+        self.assertEqual(totals["daily_volume_ml"], 474)
+        self.assertAlmostEqual(totals["energy_kcal"], 720)
+        self.assertAlmostEqual(totals["protein_g"], 28)
+        self.assertAlmostEqual(totals["carbohydrate_g"], 90)
+        self.assertAlmostEqual(totals["fat_g"], 28)
+        self.assertAlmostEqual(totals["free_water_ml"], 366)
 
     def test_practical_continuous_delivery_rounds_the_pump_rate_to_five_ml(self):
         formula = {"kcal_per_mL": 1.5, "protein_per_mL": 0.07, "free_water_per_mL": 0.766}
@@ -208,6 +232,37 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(result["volume_ml"], 240)
         self.assertEqual(result["kcal"], 264)
         self.assertEqual(result["fat_g"], 24)
+
+    def test_propofol_conditions_sum_to_one_projected_daily_exposure(self):
+        result = total_propofol_intake([
+            {"rate_ml_hr": 0, "hours": 18},
+            {"rate_ml_hr": 20, "hours": 6},
+        ])
+        self.assertEqual(result["volume_ml"], 120)
+        self.assertEqual(result["kcal"], 132)
+        self.assertEqual(result["fat_g"], 12)
+
+    def test_conditional_rates_preserve_the_daily_target_with_23_feeding_hours(self):
+        formula = {
+            "kcal_per_mL": 1.5,
+            "protein_per_mL": 0.07,
+            "free_water_per_mL": 0.76,
+        }
+        conditions = [
+            {"rate_ml_hr": 0, "hours": 18},
+            {"rate_ml_hr": 20, "hours": 6},
+        ]
+        rates = [
+            suggested_conditional_formula_rate(formula, 1800, 23, item["rate_ml_hr"])
+            for item in conditions
+        ]
+        self.assertEqual(rates, [50, 35])
+        delivery = conditional_feed_delivery(formula, 23, conditions, rates)
+        combined_energy = delivery["energy_kcal"] + total_propofol_intake(conditions)["kcal"]
+        # Bedside rates are rounded to 5 mL/hour, so the projected total is close
+        # to, rather than mathematically identical to, the unrounded target.
+        self.assertAlmostEqual(delivery["planned_volume_ml"], 1063.75)
+        self.assertAlmostEqual(combined_energy, 1727.625)
 
 
 if __name__ == "__main__":

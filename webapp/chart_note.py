@@ -329,6 +329,21 @@ def _source_breakdown(sources: Sequence[tuple[float, str]], unit: str) -> str:
     ) + ")"
 
 
+def _ons_order_text(item: Mapping[str, object]) -> str:
+    containers = _number(item.get("containers_each_time"))
+    times = _number(item.get("times_per_day"))
+    unit = str(item.get("package_unit", "container"))
+    if containers != 1:
+        unit += "s"
+    frequency = {
+        1: "daily",
+        2: "BID",
+        3: "TID",
+        4: "QID",
+    }.get(int(times) if times.is_integer() else -1, f"{_fmt(times)} times/day")
+    return f"{item['name']}, {_fmt(containers)} {unit} {frequency}"
+
+
 def _intervention_html(result: Mapping[str, object], include_label: bool) -> str:
     formula = dict(result["formula"])
     delivery = dict(result["delivery"])
@@ -336,8 +351,42 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     propofol = dict(result["propofol"])
     hydration = dict(result["hydration"])
     modulars = list(result.get("chart_modulars", []))
+    ons = list(result.get("chart_ons", []))
+    ons_totals = dict(result.get("ons_totals", {}))
     lines: list[str] = []
-    if include_label:
+    prescription_target_pct = _number(result.get("prescription_target_pct", 100))
+    if prescription_target_pct and prescription_target_pct != 100:
+        estimated_requirement = _number(
+            result.get("estimated_energy_requirement")
+        )
+        target_text = (
+            f"EN prescription target: {_fmt(prescription_target_pct)}% of estimated "
+            "energy requirement"
+        )
+        if estimated_requirement > 0:
+            prescription_energy = (
+                estimated_requirement * prescription_target_pct / 100
+            )
+            target_text += f" ({_fmt(prescription_energy)} kcal/day)"
+        if (
+            prescription_target_pct > 100
+            and bool(result.get("prescription_interruption_note"))
+        ):
+            target_text += " to account for anticipated interruptions"
+        lines.append(target_text + ".")
+
+    propofol_method = result.get("propofol_method")
+    if propofol_method in {"Single Propofol rate", "Single daily EN rate"}:
+        rate = _number(result.get("propofol_rate"))
+        hours = _number(result.get("propofol_hours"))
+        if rate > 0 and hours > 0:
+            lines.append(
+                f"With projected Propofol at {_fmt(rate)} mL/hr for "
+                f"{_fmt(hours)} hours/day:"
+            )
+        elif rate <= 0 or hours <= 0:
+            lines.append("When Propofol is not running:")
+    elif include_label:
         rate = _number(result.get("propofol_rate"))
         hours = _number(result.get("propofol_hours"))
         if rate > 0:
@@ -349,10 +398,51 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             scenario = "When Propofol is not running, use this EN plan:"
         lines.append(f"<strong>{escape(scenario)}</strong>")
 
-    lines.append(
-        f"Enteral nutrition plan: {escape(str(formula['name']))} at "
-        f"{escape(str(result['schedule_description']))}."
-    )
+    if propofol_method in {"Changing Propofol rates", "Conditional EN rates"}:
+        exposure_parts = []
+        for condition in result.get("propofol_conditions", []):
+            condition_map = dict(condition)
+            rate = _number(condition_map.get("rate_ml_hr"))
+            hours = _number(condition_map.get("hours"))
+            if rate > 0 and hours > 0:
+                exposure_parts.append(
+                    f"{_fmt(rate)} mL/hr for {_fmt(hours)} hours/day"
+                )
+        if exposure_parts:
+            lines.append(
+                "Projected Propofol exposure: " + " and ".join(exposure_parts) + "."
+            )
+        plan_label = (
+            f"Initiate trickle EN with {formula['name']}."
+            if bool(result.get("describe_as_trickle"))
+            else f"Enteral nutrition plan: {formula['name']}."
+        )
+        lines.append(escape(plan_label))
+        for order in result.get("conditional_orders", []):
+            order_map = dict(order)
+            propofol_rate = _number(order_map.get("propofol_rate_ml_hr"))
+            formula_rate = _number(order_map.get("formula_rate_ml_hr"))
+            if propofol_rate > 0:
+                condition_text = f"Propofol is at {_fmt(propofol_rate)} mL/hr"
+            else:
+                condition_text = "Propofol is not running"
+            lines.append(
+                f"When {condition_text}, provide feed at {_fmt(formula_rate)} mL/hr."
+            )
+        lines.append(
+            f"Projected formula delivery is {_fmt(_number(delivery.get('planned_volume_ml')))} "
+            f"mL/day over {_fmt(_number(result.get('feeding_hours')))} feeding hours."
+        )
+    elif bool(result.get("describe_as_trickle")):
+        lines.append(
+            f"Initiate trickle EN with {escape(str(formula['name']))} at "
+            f"{escape(str(result['schedule_description']))}."
+        )
+    else:
+        lines.append(
+            f"Enteral nutrition plan: {escape(str(formula['name']))} at "
+            f"{escape(str(result['schedule_description']))}."
+        )
     if modulars:
         modular_descriptions = []
         for item in modulars:
@@ -364,6 +454,12 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
                 )
             modular_descriptions.append(description)
         lines.append("Modulars: " + "; ".join(escape(text) for text in modular_descriptions) + ".")
+    if ons:
+        lines.append(
+            "ONS: " + "; ".join(
+                escape(_ons_order_text(item)) for item in ons
+            ) + "."
+        )
 
     hydration_each = _number(hydration.get("hydration_flush_each_ml"))
     if hydration_each > 0:
@@ -393,6 +489,9 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     water_sources = [f"Free water {_fmt(formula_water)} mL"]
     if modular_free_water:
         water_sources.append(f"Modular free water {_fmt(modular_free_water)} mL")
+    ons_water = _number(ons_totals.get("free_water_ml"))
+    if ons_water:
+        water_sources.append(f"ONS water {_fmt(ons_water)} mL")
     for item in modulars:
         administration_water = _number(item.get("preparation_water_ml"))
         if administration_water:
@@ -416,16 +515,37 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
         )
 
     total_water = _number(total["Free water (mL)"]) + _number(total["Water flushes (mL)"])
-    regimen = (
-        "At goal, the complete regimen provides "
-        f"energy {_fmt(_number(total['Energy (kcal)']))} kcal"
-        f"{_source_breakdown(energy_sources, 'kcal')}, "
-        f"protein {_fmt(_number(total['Protein (g)']))} g"
-        f"{_source_breakdown(protein_sources, 'g')}, "
-        f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g, and "
-        f"fat {_fmt(_number(total['Fat (g)']))} g"
-        f"{_source_breakdown(fat_sources, 'g')}."
-    )
+    if ons:
+        ons_energy = _number(ons_totals.get("energy_kcal"))
+        ons_protein = _number(ons_totals.get("protein_g"))
+        ons_carbohydrate = _number(ons_totals.get("carbohydrate_g"))
+        ons_fat = _number(ons_totals.get("fat_g"))
+        regimen = (
+            "At goal, EN and ONS orders provide "
+            f"energy {_fmt(_number(total['Energy (kcal)']))} kcal "
+            f"(EN {_fmt(_number(total['Energy (kcal)']) - ons_energy)} kcal + "
+            f"ONS {_fmt(ons_energy)} kcal), "
+            f"protein {_fmt(_number(total['Protein (g)']))} g "
+            f"(EN {_fmt(_number(total['Protein (g)']) - ons_protein)} g + "
+            f"ONS {_fmt(ons_protein)} g), "
+            f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g "
+            f"(EN {_fmt(_number(total['Carbohydrate (g)']) - ons_carbohydrate)} g + "
+            f"ONS {_fmt(ons_carbohydrate)} g), and "
+            f"fat {_fmt(_number(total['Fat (g)']))} g "
+            f"(EN {_fmt(_number(total['Fat (g)']) - ons_fat)} g + "
+            f"ONS {_fmt(ons_fat)} g)."
+        )
+    else:
+        regimen = (
+            "At goal, the complete regimen provides "
+            f"energy {_fmt(_number(total['Energy (kcal)']))} kcal"
+            f"{_source_breakdown(energy_sources, 'kcal')}, "
+            f"protein {_fmt(_number(total['Protein (g)']))} g"
+            f"{_source_breakdown(protein_sources, 'g')}, "
+            f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g, and "
+            f"fat {_fmt(_number(total['Fat (g)']))} g"
+            f"{_source_breakdown(fat_sources, 'g')}."
+        )
     water = (
         f"Total water provided is {_fmt(total_water)} mL/day ("
         + " + ".join(water_sources)

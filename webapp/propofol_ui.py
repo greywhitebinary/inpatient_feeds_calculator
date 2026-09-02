@@ -1,4 +1,4 @@
-"""Lower- and higher-propofol EN scenario workflow."""
+"""Shared EN planning workflow for projected Propofol exposure."""
 
 from __future__ import annotations
 
@@ -7,60 +7,156 @@ from copy import deepcopy
 import pandas as pd
 import streamlit as st
 
-from calculations import propofol_intake
+from calculations import total_propofol_intake
 from case_record_ui import render_save_record
 from chart_note import build_chart_note_html, render_chart_note_editor
-from constants import DAILY_INTAKE_DECIMALS, PROPOFOL_COMPARISON_ROW_DECIMALS, PROPOFOL_SCENARIOS
+from constants import DAILY_INTAKE_DECIMALS
 from plan_ui import render_en_scenario, render_en_workflow_setup
-from session_state import scenario_key, seed_scenario_state
+from session_state import (
+    scenario_key,
+    seed_propofol_widget,
+    seed_scenario_state,
+    sync_propofol_widget,
+)
 from ui_common import number, render_box_heading, render_report_table
 
-def render_propofol_exposure(
-    scenario_id: str,
-    *,
-    allow_blank_rate: bool = False,
-) -> tuple[float | None, float]:
-    """Render scenario-specific propofol inputs beside their calculated contributions."""
+
+PROPOFOL_METHODS = ("Single Propofol rate", "Changing Propofol rates")
+
+
+def _seed_propofol_plan(candidates: list[str], saved_modulars: pd.DataFrame) -> None:
+    """Create one shared plan while retaining values from older two-plan records."""
+    legacy_plan = st.session_state.get("icu_planned_daily_intake_scenario", "higher")
+    if legacy_plan not in {"lower", "higher"}:
+        legacy_plan = "higher"
+    seed_scenario_state("propofol", candidates, saved_modulars, legacy_plan)
+
+    propofol_rate_key = scenario_key("propofol", "propofol_rate")
+    if st.session_state.get(propofol_rate_key) is None:
+        st.session_state[propofol_rate_key] = 0.0
+
+    method_key = scenario_key("propofol", "propofol_method")
+    st.session_state.setdefault(method_key, PROPOFOL_METHODS[0])
+    method_migrations = {
+        "Single daily EN rate": "Single Propofol rate",
+        "Conditional EN rates": "Changing Propofol rates",
+    }
+    if st.session_state.get(method_key) in method_migrations:
+        st.session_state[method_key] = method_migrations[
+            str(st.session_state[method_key])
+        ]
+    st.session_state.setdefault(
+        scenario_key("propofol", "lower_propofol_rate"),
+        number(st.session_state.get(scenario_key("lower", "propofol_rate"))),
+    )
+    st.session_state.setdefault(
+        scenario_key("propofol", "higher_propofol_rate"),
+        number(st.session_state.get(scenario_key("higher", "propofol_rate"))),
+    )
+    st.session_state.setdefault(
+        scenario_key("propofol", "higher_propofol_hours"),
+        number(st.session_state.get(scenario_key("higher", "propofol_hours"), 6)),
+    )
+
+
+def _render_exposure_total(conditions: list[dict[str, object]]) -> dict[str, float]:
+    total = total_propofol_intake(conditions)
+    st.markdown(
+        '<p class="propofol-exposure-summary"><strong>Projected daily Propofol: '
+        f'{total["volume_ml"]:.0f} mL/day</strong>, providing '
+        f'{total["kcal"]:.0f} kcal/day and {total["fat_g"]:.1f} g fat/day.</p>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Propofol provides 1.1 kcal and 0.1 g fat per mL.")
+    return total
+
+
+def _render_single_daily_exposure() -> tuple[list[dict[str, object]], float, float]:
     with st.container(border=True):
-        render_box_heading("Propofol rate and duration")
-        exposure_columns = st.columns([1, 1, 1.35], vertical_alignment="bottom")
-        rate_arguments: dict[str, object] = {
-            "label": "Propofol rate (mL/hour)",
-            "min_value": 0.0,
-            "step": 1.0,
-            "format": "%.1f",
-            "key": scenario_key(scenario_id, "propofol_rate"),
-        }
-        if allow_blank_rate:
-            rate_arguments.update({"value": None, "placeholder": "Optional"})
-        rate = exposure_columns[0].number_input(**rate_arguments)
-        hours = exposure_columns[1].number_input(
-            "Hours at this rate",
-            min_value=0.0,
-            max_value=24.0,
-            step=1.0,
-            format="%.1f",
-            key=scenario_key(scenario_id, "propofol_hours"),
-            disabled=rate is None,
+        render_box_heading("Projected Propofol exposure")
+        columns = st.columns(2, vertical_alignment="bottom")
+        rate_state_key = scenario_key("propofol", "propofol_rate")
+        rate_widget_key = seed_propofol_widget(rate_state_key)
+        rate = columns[0].number_input(
+            "Propofol rate (mL/hour)", min_value=0.0, step=1.0, format="%.1f",
+            key=rate_widget_key,
+            on_change=sync_propofol_widget,
+            args=(rate_widget_key, rate_state_key),
         )
-        contribution = propofol_intake(number(rate), number(hours)) if rate is not None else None
-        energy_display = f"{contribution['kcal']:.0f} kcal/day" if contribution else "—"
-        fat_amount = (
-            f"{contribution['fat_g']:.1f}".rstrip("0").rstrip(".")
-            if contribution else None
+        hours_state_key = scenario_key("propofol", "propofol_hours")
+        hours_widget_key = seed_propofol_widget(hours_state_key)
+        hours = columns[1].number_input(
+            "Expected hours", min_value=0.0, max_value=24.0,
+            step=1.0, format="%.1f",
+            key=hours_widget_key,
+            on_change=sync_propofol_widget,
+            args=(hours_widget_key, hours_state_key),
         )
-        fat_display = f"{fat_amount} g/day" if fat_amount is not None else "—"
-        exposure_columns[2].markdown(
-            '<div class="propofol-readouts">'
-            '<p><span>Energy from propofol:</span> '
-            f'<strong>{energy_display}</strong></p>'
-            '<p><span>Fat from propofol:</span> '
-            f'<strong>{fat_display}</strong></p>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-        st.caption("Calculated using 1.1 kcal and 0.1 g fat per mL of Propofol.")
-    return rate, number(hours)
+        conditions: list[dict[str, object]] = [{
+            "id": "projected",
+            "label": "Projected exposure",
+            "rate_ml_hr": number(rate),
+            "hours": number(hours),
+        }]
+        _render_exposure_total(conditions)
+    return conditions, number(rate), number(hours)
+
+
+def _render_conditional_exposure() -> list[dict[str, object]]:
+    with st.container(border=True):
+        render_box_heading("Propofol conditions")
+        columns = st.columns(2, vertical_alignment="top")
+        lower_state_key = scenario_key("propofol", "lower_propofol_rate")
+        lower_widget_key = seed_propofol_widget(lower_state_key)
+        higher_state_key = scenario_key("propofol", "higher_propofol_rate")
+        higher_widget_key = seed_propofol_widget(higher_state_key)
+        higher_hours_state_key = scenario_key("propofol", "higher_propofol_hours")
+        higher_hours_widget_key = seed_propofol_widget(higher_hours_state_key)
+        lower_hours = 24 - number(st.session_state.get(higher_hours_state_key))
+        with columns[0].container(border=True):
+            st.markdown("**Lower/no Propofol**")
+            lower_rate = st.number_input(
+                "Propofol rate (mL/hour)", min_value=0.0, step=1.0,
+                format="%.1f", key=lower_widget_key,
+                on_change=sync_propofol_widget,
+                args=(lower_widget_key, lower_state_key),
+            )
+            st.markdown(
+                '<p class="condition-duration">Projected duration: '
+                f'<strong>{lower_hours:g} hours/day</strong></p>',
+                unsafe_allow_html=True,
+            )
+        with columns[1].container(border=True):
+            st.markdown("**Higher Propofol**")
+            higher_rate = st.number_input(
+                "Propofol rate (mL/hour)", min_value=0.0, step=1.0,
+                format="%.1f", key=higher_widget_key,
+                on_change=sync_propofol_widget,
+                args=(higher_widget_key, higher_state_key),
+            )
+            higher_hours = st.number_input(
+                "Expected duration (hours/day)", min_value=0.0, max_value=24.0,
+                step=1.0, format="%.1f", key=higher_hours_widget_key,
+                on_change=sync_propofol_widget,
+                args=(higher_hours_widget_key, higher_hours_state_key),
+            )
+        lower_hours = 24 - number(higher_hours)
+        conditions: list[dict[str, object]] = [
+            {
+                "id": "lower",
+                "label": "Lower/no Propofol",
+                "rate_ml_hr": number(lower_rate),
+                "hours": lower_hours,
+            },
+            {
+                "id": "higher",
+                "label": "Higher Propofol",
+                "rate_ml_hr": number(higher_rate),
+                "hours": number(higher_hours),
+            },
+        ]
+        _render_exposure_total(conditions)
+    return conditions
 
 
 def show_icu_propofol() -> None:
@@ -69,115 +165,60 @@ def show_icu_propofol() -> None:
     setup = render_en_workflow_setup("icu", "icu_feed_candidates")
     if setup is None:
         return
-    candidate_frame, saved_modulars, candidates, total_energy_target, protein_target, water_target = setup
-    lower_migration = "primary" if any(
-        key.startswith("scenario_primary_") for key in st.session_state
-    ) else None
-    higher_migration = "alternate" if any(
-        key.startswith("scenario_alternate_") for key in st.session_state
-    ) else None
-    seed_scenario_state("lower", candidates, saved_modulars, lower_migration)
-    seed_scenario_state("higher", candidates, saved_modulars, higher_migration)
+    (
+        candidate_frame, saved_modulars, _saved_ons, candidates, estimated_energy_requirement,
+        protein_target, water_target,
+    ) = setup
+    _seed_propofol_plan(candidates, saved_modulars)
     st.session_state.pop("assessment_propofol_rate", None)
 
-    results: dict[str, dict[str, object]] = {}
-    with st.container(key="propofol_scenario_tabs"):
-        scenario_tabs = st.tabs([label for _, label in PROPOFOL_SCENARIOS])
-    with scenario_tabs[0]:
-        lower_rate, lower_hours = render_propofol_exposure("lower")
-        results["lower"] = render_en_scenario(
-            "lower", "Lower/no propofol", candidate_frame, saved_modulars,
-            total_energy_target, protein_target, water_target,
-            number(lower_rate), number(lower_hours),
+    with st.container(border=True):
+        render_box_heading("Propofol planning")
+        method = st.radio(
+            "Method", PROPOFOL_METHODS, horizontal=True,
+            key=scenario_key("propofol", "propofol_method"),
         )
-    with scenario_tabs[1]:
-        higher_rate, higher_hours = render_propofol_exposure(
-            "higher", allow_blank_rate=True
-        )
-        copy_lower = st.button(
-            "Copy lower-propofol EN plan",
-            type="secondary",
-            help="Copies the EN regimen and water plan. Propofol settings are unchanged.",
-        )
-        if copy_lower:
-            for key, value in list(st.session_state.items()):
-                if key.startswith("scenario_lower_") and key not in {
-                    scenario_key("lower", "propofol_rate"),
-                    scenario_key("lower", "propofol_hours"),
-                } and not key.endswith(("_use_suggested_order", "_order_reset_requested")):
-                    higher_key = key.replace("scenario_lower_", "scenario_higher_", 1)
-                    st.session_state[higher_key] = deepcopy(value)
-            st.session_state.icu_planned_daily_intake_scenario = "higher"
-            st.rerun()
-        if higher_rate is None:
-            st.caption("Enter a higher propofol rate to calculate this plan.")
-        else:
-            results["higher"] = render_en_scenario(
-                "higher", "Higher propofol", candidate_frame, saved_modulars,
-                total_energy_target, protein_target, water_target,
-                number(higher_rate), number(higher_hours),
-            )
-
-    if "higher" in results:
-        comparison_rows = []
-        for row_label, getter in (
-            ("Propofol rate (mL/hour)", lambda item: item["propofol_rate"]),
-            ("Hours at this rate", lambda item: item["propofol_hours"]),
-            ("Propofol volume (mL/day)", lambda item: item["propofol"]["volume_ml"]),
-            ("Propofol energy (kcal/day)", lambda item: item["propofol"]["kcal"]),
-            ("Formula energy allocation (kcal/day)", lambda item: item["formula_energy_target"]),
-            ("Formula", lambda item: item["formula"]["name"]),
-            ("EN order", lambda item: item["schedule_description"]),
-            ("Modulars", lambda item: item["modulars"]),
-            ("Total energy (kcal/day)", lambda item: item["planned_total"]["Energy (kcal)"]),
-            ("Total protein (g/day)", lambda item: item["planned_total"]["Protein (g)"]),
-            ("Total fat (g/day)", lambda item: item["planned_total"]["Fat (g)"]),
-        ):
-            comparison_rows.append({
-                "Plan element": row_label,
-                "Lower/no propofol": getter(results["lower"]),
-                "Higher propofol": getter(results["higher"]),
-            })
-        with st.container(border=True):
-            render_box_heading("Plan comparison")
-            render_report_table(
-                pd.DataFrame(comparison_rows),
-                row_decimals=PROPOFOL_COMPARISON_ROW_DECIMALS,
-            )
-
-    valid_scenarios = list(results)
-    if len(valid_scenarios) > 1:
-        if st.session_state.get("icu_planned_daily_intake_scenario") not in valid_scenarios:
-            legacy_selection = st.session_state.get("planned_daily_intake_scenario")
-            st.session_state.icu_planned_daily_intake_scenario = (
-                legacy_selection if legacy_selection in valid_scenarios else "lower"
-            )
-    else:
-        st.session_state.icu_planned_daily_intake_scenario = "lower"
-    initial_selected_scenario = st.session_state.icu_planned_daily_intake_scenario
-    with st.container(key="fullbleed_icu_daily_intake", border=True):
-        render_box_heading(str(results[initial_selected_scenario]["intake_heading"]))
-        if len(valid_scenarios) > 1:
-            selector_label, selector_control = st.columns(
-                [1.15, 2.2], vertical_alignment="center"
-            )
-            selector_label.markdown(
-                '<p class="inline-field-label">Show planned daily intake for</p>',
+        with st.expander("How this calculation works"):
+            st.markdown(
+                '<div class="calculation-help-copy">'
+                '<p><strong>Single Propofol rate</strong><br>'
+                'Enter the expected Propofol rate and duration. The calculator subtracts '
+                'projected Propofol energy from the EN energy target before calculating '
+                'the formula rate.</p>'
+                '<p><strong>Changing Propofol rates</strong><br>'
+                'Enter the lower and higher Propofol rates and the expected hours at the '
+                'higher rate. Remaining hours use the lower rate. The calculator provides '
+                'two suggested EN rates. It uses the expected durations to calculate '
+                'planned daily formula volume and protein provision. If feeding time is '
+                'less than 24 hours/day, it is distributed proportionally according to '
+                'the expected hours at each Propofol rate.</p>'
+                '</div>',
                 unsafe_allow_html=True,
             )
-            selected_scenario = selector_control.radio(
-                "Show planned daily intake for", valid_scenarios, horizontal=True,
-                key="icu_planned_daily_intake_scenario",
-                format_func=lambda scenario_id: dict(PROPOFOL_SCENARIOS)[scenario_id],
-                label_visibility="collapsed",
-            )
-        else:
-            selected_scenario = "lower"
-        selected_result = results[selected_scenario]
-        source_frame = selected_result["source_frame"]
-        total = selected_result["total"]
+
+    if method == "Changing Propofol rates":
+        conditions = _render_conditional_exposure()
+        displayed_rate = 0.0
+        displayed_hours = 24.0
+    else:
+        conditions, displayed_rate, displayed_hours = _render_single_daily_exposure()
+
+    result = render_en_scenario(
+        "propofol", "Propofol EN plan", candidate_frame, saved_modulars, None,
+        estimated_energy_requirement, protein_target, water_target,
+        displayed_rate, displayed_hours,
+        propofol_conditions=conditions,
+        propofol_method=method,
+        estimated_energy_requirement=estimated_energy_requirement,
+    )
+
+    with st.container(key="fullbleed_icu_daily_intake", border=True):
+        render_box_heading(str(result["intake_heading"]))
         render_report_table(
-            pd.concat([source_frame, pd.DataFrame([total])], ignore_index=True),
+            pd.concat(
+                [result["source_frame"], pd.DataFrame([result["total"]])],
+                ignore_index=True,
+            ),
             decimals=DAILY_INTAKE_DECIMALS,
             wide=True,
         )
@@ -188,11 +229,10 @@ def show_icu_propofol() -> None:
             "Edit as needed, then copy to the EMR. Downloading the record does not "
             "save the chart-note text."
         )
-        note_results = [results[scenario_id] for scenario_id in valid_scenarios]
         render_chart_note_editor(
-            build_chart_note_html(st.session_state, note_results),
+            build_chart_note_html(st.session_state, [result]),
             editor_id="propofol",
             case_token=str(st.session_state["_chart_note_case_token"]),
-            height=940 if len(note_results) > 1 else 780,
+            height=860,
         )
     render_save_record("icu_propofol")

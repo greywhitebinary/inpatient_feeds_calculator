@@ -56,7 +56,10 @@ FORMULARY_TABLE_DECIMALS = {
 
 FORMULA_COMPARISON_DECIMALS = {
     "Volume (mL/day)": 0,
+    "Projected EN volume (mL/day)": 0,
     "Rate (mL/hour)": 0,
+    "Suggested EN rate with lower/no Propofol (mL/hour)": 0,
+    "Suggested EN rate with higher Propofol (mL/hour)": 0,
     "Volume/feed (mL)": 0,
     "Energy (kcal/day)": 0,
     "Protein (g/day)": 0,
@@ -88,19 +91,3 @@ DAILY_INTAKE_DECIMALS = {
     "P (mmol)": 1,
     "Mg (mmol)": 1,
 }
-
-PROPOFOL_COMPARISON_ROW_DECIMALS = {
-    "Propofol rate (mL/hour)": 1,
-    "Hours at this rate": 1,
-    "Propofol volume (mL/day)": 0,
-    "Propofol energy (kcal/day)": 0,
-    "Formula energy allocation (kcal/day)": 0,
-    "Total energy (kcal/day)": 0,
-    "Total protein (g/day)": 0,
-    "Total fat (g/day)": 0,
-}
-
-PROPOFOL_SCENARIOS = (
-    ("lower", "Lower/no propofol"),
-    ("higher", "Higher propofol"),
-)

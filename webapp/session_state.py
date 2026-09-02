@@ -11,20 +11,22 @@ import streamlit as st
 from calculations import height_to_cm
 from case_io import CASE_DYNAMIC_PREFIXES, CASE_STATE_KEYS, import_case_record_workbook
 from constants import KG_PER_LB, MEASUREMENT_ENTRY_KEYS, PLAN_GOALS
-from data import load_master_formulas, load_master_modulars
+from data import load_master_formulas, load_master_modulars, load_master_ons
 from ui_common import number
 
 @st.cache_data
-def master_data() -> tuple[pd.DataFrame, pd.DataFrame]:
-    return load_master_formulas(), load_master_modulars()
+def master_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    return load_master_formulas(), load_master_modulars(), load_master_ons()
 
 
 def initialise_state() -> None:
-    formulas, modulars = master_data()
+    formulas, modulars, ons = master_data()
     if "my_formulas" not in st.session_state:
         st.session_state.my_formulas = formulas.iloc[0:0].copy()
     if "my_modulars" not in st.session_state:
         st.session_state.my_modulars = modulars.iloc[0:0].copy()
+    if "my_ons" not in st.session_state:
+        st.session_state.my_ons = ons.iloc[0:0].copy()
     st.session_state.setdefault("case_record_label", "My EN record")
     st.session_state.setdefault("_chart_note_case_token", uuid4().hex)
     for goal in PLAN_GOALS:
@@ -130,6 +132,7 @@ def clear_case_record_state() -> None:
             key in CASE_STATE_KEYS
             or key in MEASUREMENT_ENTRY_KEYS
             or key.startswith(CASE_DYNAMIC_PREFIXES)
+            or key.startswith("_propofol_widget_")
         ):
             del st.session_state[key]
 
@@ -137,7 +140,7 @@ def clear_case_record_state() -> None:
 def open_uploaded_case_record(uploaded_file) -> None:
     """Apply a saved record before its widgets are instantiated on the rerun."""
     try:
-        state, formulas, modulars = import_case_record_workbook(uploaded_file)
+        state, formulas, modulars, ons = import_case_record_workbook(uploaded_file)
     except (BadZipFile, ValueError, OSError) as error:
         st.session_state["_case_record_notice"] = ("error", str(error))
         return
@@ -146,6 +149,7 @@ def open_uploaded_case_record(uploaded_file) -> None:
     st.session_state.update(state)
     st.session_state.my_formulas = formulas
     st.session_state.my_modulars = modulars
+    st.session_state.my_ons = ons
     st.session_state["_chart_note_case_token"] = uuid4().hex
     st.session_state["_case_record_notice"] = (
         "success", "The saved record is now open."
@@ -154,7 +158,7 @@ def open_uploaded_case_record(uploaded_file) -> None:
 
 def load_example_record() -> None:
     """Load a clearly-labelled demonstration without persisting any case data."""
-    formulas, modulars = master_data()
+    formulas, modulars, ons = master_data()
     example_feed = formulas.loc[
         formulas["name"].isin(["Isosource 1.5", "Peptamen 1.5"])
     ].copy()
@@ -163,6 +167,9 @@ def load_example_record() -> None:
     clear_case_record_state()
     st.session_state.my_formulas = example_feed
     st.session_state.my_modulars = example_modular
+    st.session_state.my_ons = ons.loc[
+        ons["name"].isin(["BOOST Plus Calories — Vanilla"])
+    ].copy()
     st.session_state["_chart_note_case_token"] = uuid4().hex
     st.session_state.update({
         "case_record_label": "Example — inpatient EN review",
@@ -226,6 +233,27 @@ def load_example_record() -> None:
         "scenario_standard_hydration_flushes": 6,
         "scenario_standard_hydration_schedule_format": "qXh",
         "scenario_standard_hydration_interval_hours": 4,
+        "scenario_propofol_propofol_method": "Single Propofol rate",
+        "scenario_propofol_prescription_target_pct": 100.0,
+        "scenario_propofol_prescription_interruption_note": False,
+        "scenario_propofol_propofol_rate": 20.0,
+        "scenario_propofol_propofol_hours": 24.0,
+        "scenario_propofol_lower_propofol_rate": 0.0,
+        "scenario_propofol_higher_propofol_rate": 20.0,
+        "scenario_propofol_higher_propofol_hours": 6.0,
+        "scenario_propofol_selected_formula": "Peptamen 1.5",
+        "scenario_propofol_schedule_type": "Continuous / cyclic",
+        "scenario_propofol_feeding_hours": 23.0,
+        "scenario_propofol_achieved_delivery_pct": 100,
+        "scenario_propofol_chosen_modulars": ["Beneprotein"],
+        "scenario_propofol_modular_units_nestle-beneprotein": 1.0,
+        "scenario_propofol_modular_doses_nestle-beneprotein": 2.0,
+        "scenario_propofol_modular_water_nestle-beneprotein": 60.0,
+        "scenario_propofol_medication_flushes": 120.0,
+        "scenario_propofol_patency_flushes": 0.0,
+        "scenario_propofol_hydration_flushes": 6,
+        "scenario_propofol_hydration_schedule_format": "qXh",
+        "scenario_propofol_hydration_interval_hours": 4,
         "scenario_lower_propofol_rate": 0.0,
         "scenario_lower_propofol_hours": 24.0,
         "scenario_lower_selected_formula": "Peptamen 1.5",
@@ -266,6 +294,30 @@ def scenario_key(scenario_id: str, field: str) -> str:
 def mark_order_as_edited(flag_key: str) -> None:
     """Remember that the RD has replaced the calculated order suggestion."""
     st.session_state[flag_key] = True
+
+
+def propofol_widget_key(state_key: str) -> str:
+    """Return a temporary widget key for a saved Propofol-plan value."""
+    return f"_propofol_widget_{state_key}"
+
+
+def seed_propofol_widget(state_key: str) -> str:
+    """Seed a temporary widget from its persistent saved-record value."""
+    widget_key = propofol_widget_key(state_key)
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state.get(state_key)
+    return widget_key
+
+
+def sync_propofol_widget(
+    widget_key: str,
+    state_key: str,
+    edited_key: str | None = None,
+) -> None:
+    """Copy a mounted Propofol widget value into persistent calculator state."""
+    st.session_state[state_key] = st.session_state.get(widget_key)
+    if edited_key is not None:
+        st.session_state[edited_key] = True
 
 
 def request_suggested_order(pending_key: str) -> None:
@@ -325,6 +377,9 @@ def seed_scenario_state(
         "hydration_flushes": "en_hydration_flushes",
         "hydration_schedule_format": "en_hydration_schedule_format",
         "hydration_interval_hours": "en_hydration_interval_hours",
+        "describe_as_trickle": "en_describe_as_trickle",
+        "prescription_target_pct": "en_prescription_target_pct",
+        "prescription_interruption_note": "en_prescription_interruption_note",
     }
     defaults: dict[str, object] = {
         "selected_formula": candidates[0],
@@ -342,6 +397,9 @@ def seed_scenario_state(
         "hydration_flushes": 6,
         "hydration_schedule_format": "times/day",
         "hydration_interval_hours": 4,
+        "describe_as_trickle": False,
+        "prescription_target_pct": 100.0,
+        "prescription_interruption_note": False,
     }
     for field, legacy_key in legacy_fields.items():
         key = scenario_key(scenario_id, field)

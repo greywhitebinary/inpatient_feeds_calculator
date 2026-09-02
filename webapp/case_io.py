@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 
 import pandas as pd
 
-from data import validate_import
+from data import load_master_ons, validate_import
 
 
 CASE_RECORD_TITLE = "Adult Inpatient Enteral Nutrition case record"
@@ -105,6 +105,8 @@ CASE_DYNAMIC_PREFIXES = (
 CASE_TRANSIENT_SUFFIXES = (
     "_use_suggested_order",
     "_order_reset_requested",
+    "_use_suggested",
+    "_reset_requested",
     "_chosen_modulars_previous",
 )
 
@@ -160,16 +162,21 @@ CASE_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "en_hydration_flushes": (1, 24, True),
     "en_hydration_interval_hours": (1, 24, True),
 }
-SCENARIO_ID_PATTERN = r"(?:standard|lower|higher|primary|alternate)"
+SCENARIO_ID_PATTERN = r"(?:standard|propofol|lower|higher|primary|alternate)"
 SCENARIO_FIELD_PATTERN = re.compile(
     rf"^scenario_(?P<scenario>{SCENARIO_ID_PATTERN})_(?P<field>.+)$"
 )
 SCENARIO_STRING_FIELDS = {
     "selected_formula", "ordered_formula_name", "schedule_type",
     "ordered_schedule_type", "delivery_view", "hydration_schedule_format",
+    "propofol_method",
 }
-SCENARIO_LIST_FIELDS = {"chosen_modulars"}
-SCENARIO_BOOL_FIELDS = {"order_user_edited", "include_propofol"}
+SCENARIO_LIST_FIELDS = {"chosen_modulars", "chosen_ons"}
+SCENARIO_BOOL_FIELDS = {
+    "order_user_edited", "include_propofol", "describe_as_trickle",
+    "conditional_lower_rate_user_edited", "conditional_higher_rate_user_edited",
+    "prescription_interruption_note",
+}
 SCENARIO_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "feeding_hours": (1, 24, False),
     "feeds_per_day": (1, 12, True),
@@ -182,6 +189,12 @@ SCENARIO_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "hydration_interval_hours": (1, 24, True),
     "propofol_rate": (0, None, False),
     "propofol_hours": (0, 24, False),
+    "lower_propofol_rate": (0, None, False),
+    "higher_propofol_rate": (0, None, False),
+    "higher_propofol_hours": (0, 24, False),
+    "prescription_target_pct": (1, 200, False),
+    "conditional_lower_rate_ml_hr": (0, None, False),
+    "conditional_higher_rate_ml_hr": (0, None, False),
 }
 
 
@@ -266,10 +279,18 @@ def _validate_case_state_value(key: str, value: Any) -> None:
             "times/day", "qXh", None,
         }:
             raise ValueError(f"Case record has an unsupported hydration schedule for {key}.")
+        if field == "propofol_method" and value not in {
+            "Single Propofol rate", "Changing Propofol rates",
+            "Single daily EN rate", "Conditional EN rates", None,
+        }:
+            raise ValueError(f"Case record has an unsupported Propofol method for {key}.")
     elif field in SCENARIO_NUMERIC_RANGES:
         minimum, maximum, integer = SCENARIO_NUMERIC_RANGES[field]
         _validate_number(key, value, minimum, maximum, integer)
-    elif field.startswith(("modular_units_", "modular_doses_", "modular_water_")):
+    elif field.startswith((
+        "modular_units_", "modular_doses_", "modular_water_",
+        "ons_containers_", "ons_times_",
+    )):
         _validate_number(key, value, 0)
     else:
         raise ValueError(f"Case record contains an unsupported scenario field: {key}.")
@@ -285,11 +306,22 @@ def _json_value(value: Any) -> str:
 def case_state_snapshot(session_state: dict[str, Any]) -> dict[str, Any]:
     """Return just the explicitly supported inputs and modular order values."""
     state: dict[str, Any] = {}
+    has_shared_propofol_plan = any(
+        key.startswith("scenario_propofol_") for key in session_state
+    )
     for key in CASE_STATE_KEYS:
         if key in session_state and key not in CASE_EXPORT_OMIT_KEYS:
+            if has_shared_propofol_plan and key in {
+                "icu_planned_daily_intake_scenario", "planned_daily_intake_scenario",
+            }:
+                continue
             state[key] = session_state[key]
     for key, value in session_state.items():
         if key.startswith(CASE_DYNAMIC_PREFIXES) and not key.endswith(CASE_TRANSIENT_SUFFIXES):
+            if has_shared_propofol_plan and key.startswith(
+                ("scenario_lower_", "scenario_higher_", "scenario_primary_", "scenario_alternate_")
+            ):
+                continue
             state[key] = value
     return state
 
@@ -307,7 +339,10 @@ def _configured_calculator_website() -> str:
 
 
 def export_case_record_workbook(
-    session_state: dict[str, Any], formulas: pd.DataFrame, modulars: pd.DataFrame
+    session_state: dict[str, Any],
+    formulas: pd.DataFrame,
+    modulars: pd.DataFrame,
+    ons: pd.DataFrame | None = None,
 ) -> bytes:
     """Create a reviewable workbook containing a local case and product snapshot."""
     state = case_state_snapshot(session_state)
@@ -315,6 +350,8 @@ def export_case_record_workbook(
         [{"Field key": key, "Saved value (JSON)": _json_value(value)} for key, value in sorted(state.items())]
     )
     label = str(state.get("case_record_label", "")).strip()
+    if ons is None:
+        ons = load_master_ons().iloc[0:0].copy()
     metadata = pd.DataFrame([
         [CASE_RECORD_TITLE, None],
         ["Calculator website", _configured_calculator_website()],
@@ -331,8 +368,11 @@ def export_case_record_workbook(
         inputs.to_excel(writer, sheet_name=CASE_INPUTS_SHEET, index=False)
         formulas.to_excel(writer, sheet_name="My Formulary", index=False)
         modulars.to_excel(writer, sheet_name="My Modulars", index=False)
+        ons.to_excel(writer, sheet_name="My ONS", index=False)
 
-        for name in (CASE_RECORD_SHEET, CASE_INPUTS_SHEET, "My Formulary", "My Modulars"):
+        for name in (
+            CASE_RECORD_SHEET, CASE_INPUTS_SHEET, "My Formulary", "My Modulars", "My ONS",
+        ):
             worksheet = writer.sheets[name]
             worksheet.sheet_view.showGridLines = False
             worksheet.freeze_panes = "A2" if name != CASE_RECORD_SHEET else "A6"
@@ -384,7 +424,9 @@ def _read_metadata(workbook: pd.ExcelFile) -> dict[str, str]:
     return values
 
 
-def import_case_record_workbook(uploaded_file) -> tuple[dict[str, Any], pd.DataFrame, pd.DataFrame]:
+def import_case_record_workbook(
+    uploaded_file,
+) -> tuple[dict[str, Any], pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Read and validate a previously downloaded local case record."""
     workbook = pd.ExcelFile(uploaded_file)
     required = {CASE_RECORD_SHEET, CASE_INPUTS_SHEET, "My Formulary", "My Modulars"}
@@ -419,6 +461,14 @@ def import_case_record_workbook(uploaded_file) -> tuple[dict[str, Any], pd.DataF
         _validate_case_state_value(key, value)
         state[key] = value
 
+    method_key = "scenario_propofol_propofol_method"
+    method_migrations = {
+        "Single daily EN rate": "Single Propofol rate",
+        "Conditional EN rates": "Changing Propofol rates",
+    }
+    if state.get(method_key) in method_migrations:
+        state[method_key] = method_migrations[str(state[method_key])]
+
     if "assessment_height_cm" not in state:
         unit = state.get("assessment_height_unit")
         if unit == "m" and state.get("assessment_height_m") is not None:
@@ -436,5 +486,10 @@ def import_case_record_workbook(uploaded_file) -> tuple[dict[str, Any], pd.DataF
             state.pop(key, None)
     formulas = pd.read_excel(workbook, sheet_name="My Formulary")
     modulars = pd.read_excel(workbook, sheet_name="My Modulars")
-    formulas, modulars = validate_import(formulas, modulars)
-    return state, formulas, modulars
+    ons = (
+        pd.read_excel(workbook, sheet_name="My ONS")
+        if "My ONS" in workbook.sheet_names
+        else load_master_ons().iloc[0:0].copy()
+    )
+    formulas, modulars, ons = validate_import(formulas, modulars, ons)
+    return state, formulas, modulars, ons

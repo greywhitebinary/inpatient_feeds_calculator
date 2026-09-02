@@ -39,6 +39,9 @@ def result_fixture():
         "patency_flushes_ml": 0,
         "propofol_rate": 0,
         "propofol_hours": 24,
+        "estimated_energy_requirement": 1800,
+        "prescription_target_pct": 100,
+        "prescription_interruption_note": False,
         "chart_total": {
             "Energy (kcal)": 1775,
             "Protein (g)": 90,
@@ -96,6 +99,47 @@ class ChartNoteTests(unittest.TestCase):
         self.assertNotIn("Usual weight:", note)
         self.assertIn("(CBW 64.0 kg × 1.2–1.5 g/kg)", note)
 
+    def test_ons_order_has_separate_en_and_ons_macro_subtotals(self):
+        result = result_fixture()
+        result["chart_ons"] = [{
+            "name": "BOOST Plus Calories — Vanilla",
+            "package_unit": "carton",
+            "containers_each_time": 1,
+            "times_per_day": 2,
+        }]
+        result["ons_totals"] = {
+            "energy_kcal": 720,
+            "protein_g": 28,
+            "carbohydrate_g": 90,
+            "fat_g": 28,
+            "free_water_ml": 366,
+        }
+        result["chart_total"].update({
+            "Energy (kcal)": 2495,
+            "Protein (g)": 118,
+            "Carbohydrate (g)": 292,
+            "Fat (g)": 97,
+            "Free water (mL)": 1246,
+        })
+
+        note = build_chart_note_html(self.state, [result])
+
+        self.assertIn(
+            "ONS: BOOST Plus Calories — Vanilla, 1 carton BID.", note
+        )
+        self.assertIn(
+            "At goal, EN and ONS orders provide energy 2,495 kcal "
+            "(EN 1,775 kcal + ONS 720 kcal)",
+            note,
+        )
+        self.assertIn(
+            "protein 118 g (EN 90 g + ONS 28 g)", note
+        )
+        self.assertIn("CHO 292 g (EN 202 g + ONS 90 g)", note)
+        self.assertIn("fat 97 g (EN 69 g + ONS 28 g)", note)
+        self.assertIn("Total water provided is 2,266 mL/day", note)
+        self.assertIn("ONS water 366 mL", note)
+
     def test_penn_equations_require_both_temperature_and_minute_ventilation(self):
         self.state["assessment_temperature"] = 38.2
         without_ventilation = build_chart_note_html(self.state, [result_fixture()])
@@ -119,6 +163,73 @@ class ChartNoteTests(unittest.TestCase):
             "use this EN plan:",
             note,
         )
+
+    def test_conditional_propofol_note_uses_one_plan_and_two_linked_rates(self):
+        result = result_fixture()
+        result["propofol_method"] = "Changing Propofol rates"
+        result["prescription_target_pct"] = 110
+        result["prescription_interruption_note"] = True
+        result["delivery"]["planned_volume_ml"] = 1064
+        result["feeding_hours"] = 23
+        result["propofol_conditions"] = [
+            {"rate_ml_hr": 0, "hours": 18},
+            {"rate_ml_hr": 20, "hours": 6},
+        ]
+        result["conditional_orders"] = [
+            {"propofol_rate_ml_hr": 0, "formula_rate_ml_hr": 50},
+            {"propofol_rate_ml_hr": 20, "formula_rate_ml_hr": 35},
+        ]
+
+        note = build_chart_note_html(self.state, [result])
+
+        self.assertIn(
+            "EN prescription target: 110% of estimated energy requirement "
+            "(1,980 kcal/day) to account for anticipated interruptions.",
+            note,
+        )
+        self.assertEqual(note.count("Enteral nutrition plan: Isosource 1.5."), 1)
+        self.assertIn(
+            "When Propofol is not running, provide feed at 50 mL/hr.", note
+        )
+        self.assertIn(
+            "When Propofol is at 20 mL/hr, provide feed at 35 mL/hr.", note
+        )
+        self.assertIn(
+            "Projected Propofol exposure: 20 mL/hr for 6 hours/day.",
+            note,
+        )
+        self.assertNotIn("0 mL/hr for 18 hours/day", note)
+        self.assertIn(
+            "Projected formula delivery is 1,064 mL/day over 23 feeding hours.",
+            note,
+        )
+
+    def test_modified_prescription_target_does_not_invent_a_reason(self):
+        result = result_fixture()
+        result["prescription_target_pct"] = 80
+
+        note = build_chart_note_html(self.state, [result])
+
+        self.assertIn(
+            "EN prescription target: 80% of estimated energy requirement "
+            "(1,440 kcal/day).",
+            note,
+        )
+        self.assertNotIn("anticipated interruptions", note)
+
+    def test_selected_trickle_description_changes_intervention_wording(self):
+        result = result_fixture()
+        result["describe_as_trickle"] = True
+        result["schedule_description"] = "20 mL/hour for 23 hours daily"
+
+        note = build_chart_note_html(self.state, [result])
+
+        self.assertIn(
+            "Initiate trickle EN with Isosource 1.5 at 20 mL/hour for "
+            "23 hours daily.",
+            note,
+        )
+        self.assertNotIn("Enteral nutrition plan: Isosource 1.5", note)
 
     def test_rd_selected_weight_is_named_in_weight_based_equations(self):
         self.state["assessment_estimated_weight"] = 62

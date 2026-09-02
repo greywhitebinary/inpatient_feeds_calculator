@@ -82,6 +82,87 @@ def propofol_intake(rate_ml_hr: float, hours_per_day: float = 24) -> dict[str, f
     return {"volume_ml": volume_ml, "kcal": volume_ml * 1.1, "fat_g": volume_ml * 0.1}
 
 
+def total_propofol_intake(
+    conditions: list[dict[str, float]],
+) -> dict[str, float]:
+    """Sum projected propofol exposure across rate-and-duration conditions."""
+    totals = {"volume_ml": 0.0, "kcal": 0.0, "fat_g": 0.0}
+    for condition in conditions:
+        contribution = propofol_intake(
+            max(float(condition.get("rate_ml_hr", 0)), 0),
+            max(float(condition.get("hours", 0)), 0),
+        )
+        for key in totals:
+            totals[key] += contribution[key]
+    return totals
+
+
+def suggested_conditional_formula_rate(
+    formula: Mapping[str, object],
+    energy_target_kcal: float,
+    feeding_hours: float,
+    propofol_rate_ml_hr: float,
+) -> float:
+    """Return a 5-mL-rounded EN rate for one propofol condition.
+
+    Propofol exposure is projected over a 24-hour clock day. Formula-running
+    hours are distributed proportionally across the conditions, so a 23-hour
+    EN schedule does not require the clinician to enter a second set of hours.
+    """
+    safe_feeding_hours = max(float(feeding_hours), 0)
+    kcal_per_ml = float(formula["kcal_per_mL"])
+    if safe_feeding_hours == 0 or kcal_per_ml <= 0:
+        return 0.0
+    hourly_formula_kcal = (
+        max(float(energy_target_kcal), 0) / safe_feeding_hours
+        - max(float(propofol_rate_ml_hr), 0) * 1.1 * 24 / safe_feeding_hours
+    )
+    unrounded_rate = max(hourly_formula_kcal, 0) / kcal_per_ml
+    return floor(unrounded_rate / 5 + 0.5) * 5
+
+
+def conditional_feed_delivery(
+    formula: Mapping[str, object],
+    feeding_hours: float,
+    conditions: list[dict[str, float]],
+    formula_rates_ml_hr: list[float],
+    achieved_percent: float = 100,
+) -> dict[str, float]:
+    """Aggregate formula delivery across conditional propofol-linked rates."""
+    if len(conditions) != len(formula_rates_ml_hr):
+        raise ValueError("Each propofol condition requires one formula rate.")
+    total_condition_hours = sum(max(float(item.get("hours", 0)), 0) for item in conditions)
+    safe_feeding_hours = max(float(feeding_hours), 0)
+    if total_condition_hours <= 0 or safe_feeding_hours <= 0:
+        return ordered_feed_delivery(formula, 0, safe_feeding_hours, achieved_percent)
+
+    deliveries = []
+    for condition, rate in zip(conditions, formula_rates_ml_hr):
+        condition_hours = max(float(condition.get("hours", 0)), 0)
+        allocated_feeding_hours = safe_feeding_hours * condition_hours / total_condition_hours
+        deliveries.append(
+            ordered_feed_delivery(
+                formula,
+                max(float(rate), 0),
+                allocated_feeding_hours,
+                achieved_percent,
+            )
+        )
+
+    result: dict[str, float] = {}
+    additive_keys = {
+        "planned_volume_ml", "delivered_volume_ml", "energy_kcal", "protein_g",
+        "carbohydrate_g", "fat_g", "fibre_g", "free_water_ml", "sodium_mg",
+        "potassium_mg", "calcium_mg", "magnesium_mg", "phosphorus_mg",
+    }
+    for key in additive_keys:
+        result[key] = sum(delivery.get(key, 0) for delivery in deliveries)
+    result["rate_ml_hr"] = result["planned_volume_ml"] / safe_feeding_hours
+    result["ordered_rate_ml_hr"] = result["rate_ml_hr"]
+    result["ordered_volume_per_feed_ml"] = 0.0
+    return result
+
+
 def open_abdomen_protein_loss_g(exudate_ml_day: float, factor_g_l: float) -> float:
     return exudate_ml_day / 1000 * factor_g_l
 
@@ -202,6 +283,47 @@ def total_modular_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
         "energy_kcal", "protein_g", "carbohydrate_g", "fat_g", "fibre_g",
         "free_water_ml", "preparation_water_ml", "sodium_mg", "potassium_mg",
         "calcium_mg", "magnesium_mg", "phosphorus_mg",
+    }
+    return {key: sum(order.get(key, 0) for order in orders) for key in keys}
+
+
+def ons_delivery(
+    product: Mapping[str, object],
+    containers_each_time: float,
+    times_per_day: float,
+) -> dict[str, float]:
+    """Calculate planned daily ONS provision from the labelled container."""
+    container_size_ml = float(product.get("container_size_ml", 0) or 0)
+    if container_size_ml <= 0:
+        raise ValueError("ONS container_size_ml must be greater than zero.")
+    daily_containers = containers_each_time * times_per_day
+    daily_volume_ml = daily_containers * container_size_ml
+    output = {
+        "daily_containers": daily_containers,
+        "daily_volume_ml": daily_volume_ml,
+    }
+    for result_key, column in {
+        "energy_kcal": "kcal_per_mL",
+        "protein_g": "protein_per_mL",
+        "carbohydrate_g": "carbohydrate_per_mL",
+        "fat_g": "fat_per_mL",
+        "fibre_g": "fibre_per_mL",
+        "free_water_ml": "free_water_per_mL",
+        "sodium_mg": "sodium_per_mL",
+        "potassium_mg": "potassium_per_mL",
+        "calcium_mg": "calcium_per_mL",
+        "magnesium_mg": "magnesium_per_mL",
+        "phosphorus_mg": "phosphorus_per_mL",
+    }.items():
+        output[result_key] = daily_volume_ml * float(product.get(column, 0) or 0)
+    return output
+
+
+def total_ons_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
+    keys = {
+        "daily_containers", "daily_volume_ml", "energy_kcal", "protein_g",
+        "carbohydrate_g", "fat_g", "fibre_g", "free_water_ml", "sodium_mg",
+        "potassium_mg", "calcium_mg", "magnesium_mg", "phosphorus_mg",
     }
     return {key: sum(order.get(key, 0) for order in orders) for key in keys}
 
