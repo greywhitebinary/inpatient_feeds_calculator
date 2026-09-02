@@ -94,7 +94,7 @@ class ChartNoteTests(unittest.TestCase):
         self.assertNotIn("free water from water flushes", note)
         self.assertNotIn("nutrition dosing weight", note.lower())
         self.assertIn("Height: 1.65 m", note)
-        self.assertIn("Current body weight: 64.0 kg", note)
+        self.assertIn("CBW: 64.0 kg", note)
         self.assertIn("UBW: 68.0 kg", note)
         self.assertNotIn("Usual weight:", note)
         self.assertIn("(CBW 64.0 kg × 1.2–1.5 g/kg)", note)
@@ -250,14 +250,14 @@ class ChartNoteTests(unittest.TestCase):
         )
         self.assertNotIn("Enteral nutrition plan: Isosource 1.5", note)
 
-    def test_rd_selected_weight_is_named_in_weight_based_equations(self):
+    def test_clinician_selected_weight_is_named_in_weight_based_equations(self):
         self.state["assessment_estimated_weight"] = 62
         self.state["assessment_weight_choice"] = (
             "Estimated dry / clinician-selected weight"
         )
         note = build_chart_note_html(self.state, [result_fixture()])
-        self.assertIn("(RD-selected weight 62.0 kg × 25–30 kcal/kg)", note)
-        self.assertIn("(RD-selected weight 62.0 kg × 1.2–1.5 g/kg)", note)
+        self.assertIn("(clinician-selected weight 62.0 kg × 25–30 kcal/kg)", note)
+        self.assertIn("(clinician-selected weight 62.0 kg × 1.2–1.5 g/kg)", note)
 
     def test_rounded_energy_equations_are_marked_as_approximate(self):
         note = build_chart_note_html(self.state, [result_fixture()])

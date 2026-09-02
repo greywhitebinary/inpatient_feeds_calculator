@@ -197,18 +197,29 @@ def undisclosed_note(
     undisclosed_sources: Mapping[str, list[str]],
     labels: Mapping[str, str],
 ) -> str:
-    """Describe which nutrients are missing a figure, and from which products."""
-    parts = []
+    """Describe which nutrients are missing a figure, and from which products.
+
+    Nutrients sharing the same set of products are grouped, so a plan with one
+    modular reads "P and Mg not declared by Beneprotein" rather than naming that
+    product once per nutrient. This sits under a table people scan, so it stays
+    to one line.
+    """
+    grouped: dict[tuple[str, ...], list[str]] = {}
     for nutrient, products in undisclosed_sources.items():
         if not products:
             continue
-        names = ", ".join(sorted(set(products)))
-        parts.append(f"{labels.get(nutrient, nutrient)} not declared by {names}")
-    if not parts:
+        key = tuple(sorted(set(products)))
+        grouped.setdefault(key, []).append(labels.get(nutrient, nutrient))
+    if not grouped:
         return ""
-    return (
-        "Totals exclude values the manufacturer does not publish: "
-        + "; ".join(parts)
-        + ". A dash means no ordered product declared a figure, which is not the "
-        "same as zero."
-    )
+    parts = [
+        f"{_join_words(nutrients)} not declared by {', '.join(products)}"
+        for products, nutrients in grouped.items()
+    ]
+    return "; ".join(parts) + "."
+
+
+def _join_words(items: list[str]) -> str:
+    if len(items) == 1:
+        return items[0]
+    return f"{', '.join(items[:-1])} and {items[-1]}"

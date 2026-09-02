@@ -222,6 +222,8 @@ def show_icu_propofol() -> None:
             decimals=DAILY_INTAKE_DECIMALS,
             wide=True,
         )
+        for note in result["table_notes"]:
+            st.caption(str(note))
 
     with st.container(border=True):
         render_box_heading("Chart note")

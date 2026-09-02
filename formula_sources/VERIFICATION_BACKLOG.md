@@ -31,6 +31,117 @@ and age, and no row cited it.
 
 ---
 
+## Clinical and math review, 2026-09-02
+
+A review of the equation layer, the unit boundaries, and the plan workflow,
+covering `calculations.py` against published equation forms and the assessment,
+plan and chart-note modules against how the numbers are actually used.
+
+**Verified correct and unchanged.** Hamwi, Devine, adjusted body weight at 0.25,
+Mifflin-St Jeor, Harris-Benedict (Roza-Shizgal 1984) and both Penn State forms
+all match their published coefficients. Every atomic weight in
+`ATOMIC_WEIGHTS_MG_PER_MMOL` is correct, and phosphorus is handled as elemental
+P, matching how labels report it. Propofol at 1.1 kcal/mL and 0.1 g fat/mL is
+right for a 10% emulsion, and its energy and fat are not double-counted.
+`water_plan` counts each component exactly once, including through
+`other_water_flushes`. The 5 mL rate rounding deviates up to 20% at low rates,
+but the plan check displays goal, total and signed difference, so it is visible
+rather than hidden; hydration flush rounding drifts by at most 20 mL.
+
+### Penn State weight basis — fixed
+
+The Mifflin term feeding both Penn State equations took whichever weight was
+chosen in the assessment selector. Selecting an adjusted weight understated
+Penn State 2003b by 538 kcal/day in a worked case (62-year-old man, 178 cm,
+150 kg, Tmax 38.5 C, Ve 9.0 L/min), and the error reached the chart note.
+
+The rule now: **Penn State uses only the current body weight or the
+clinician-selected weight, whichever the selector names, and the rows are
+withheld entirely when an ideal or adjusted weight is selected.**
+
+Withheld rather than recomputed, deliberately. Substituting a different weight
+would contradict the clinician's own selection and put two different weights on
+one table; the whole table now uses one weight or omits the rows. Per-equation
+weight pickers were considered and rejected as more friction than toggling one
+selector, since an RD entering ventilation inputs has already used it.
+
+This rule was reworked several times before settling. Earlier attempts pinned
+Penn State to the measured weight always, then let an entered clinician weight
+override the selector. Both produced a table showing two different weights,
+which is the thing the final rule avoids. Do not reintroduce either without
+also solving that.
+
+Note the open clinical question the rule deliberately does not answer: whether
+a measured weight remains right after fluid resuscitation. The equations were
+fitted using measured weight, but the Penn State work is not known to address
+gross fluid overload, and practice varies. The tool hands that judgment to the
+clinician through the weight selector rather than deciding it.
+
+Both equations are labelled with their population in the `Method` column and
+both are always shown; age and BMI gate nothing.
+
+### Water goal now optional — fixed
+
+The plan was blocked until energy, protein **and** water goals were entered. On
+a patient receiving IV fluid the enteral water calculation is not the one being
+managed, so the clinician had to type a placeholder — and the tool then sized
+hydration flushes against it and emitted "Hydration: Provide N mL water flushes
+q6h" into the chart note. A placeholder became an order.
+
+`water_plan` now accepts `None` as the target, which is a different state from a
+zero goal. With no goal the hydration schedule controls are hidden, the water
+row drops out of the plan check, and the chart note omits the hydration line.
+Medication and patency flushes still apply, since those are ordered
+independently, and free water still appears in the daily intake table.
+
+Goals are shared across the EN plan and Propofol tabs: `render_assessment_goals`
+mirrors the single assessment goal into the `en_` and `icu_` keys on every run.
+One patient, one goal, two planning modes. That is why a second example record
+demonstrating the no-goal path is not worth carrying.
+
+### Daily totals table notes — added
+
+Three cells in that table do not mean what a reader scanning it would assume.
+Each note is conditional, so a plain plan carries none, and they now render on
+both the EN plan and the Propofol tabs (previously only the former).
+
+- ONS free water counts toward the total but does not size hydration flushes.
+- Propofol volume is fluid but is not counted as free water. It is displayed,
+  not subtracted: the clinician already sets the water goal net of IV, so
+  subtracting it again would double-count.
+- Undisclosed modular minerals render as a dash rather than a zero.
+
+### Withdrawn
+
+Additional protein losses are computed and displayed but not carried into the
+protein goal. That is by design — the RD sees the figure and decides whether to
+include it. Not a defect.
+
+### Terminology
+
+"RD" was removed from everything a clinician sees — the assessment table, the
+chart note, and the `administration_note` text that ships in the exported My
+Modulars sheet. It now reads "clinician" throughout. The dietitian designation
+is a protected title and varies by jurisdiction, so the neutral term avoids
+implying a credential the reader may not hold. Two internal uses remain and are
+not displayed: the `preparation_water_rule` enum value `rd_entered`, and a
+docstring in `session_state.py`.
+
+Weight terms are introduced in full with their acronym in the Measurements and
+weight history table, and used as acronyms alone everywhere after it. Only the
+Hamwi row carries `IBW`, because that is the ideal weight the calculator uses;
+the Devine row is spelled out as a medication-dosing reference so the two are
+not confused.
+
+### Example record
+
+Gained `assessment_temperature` and `assessment_minute_ventilation` so the Penn
+State rows appear at all. The record's patient has a BMI of 23.5, so the
+population labels demonstrate that the modified 2010 equation does not apply and
+2003b does.
+
+---
+
 ## 1. Blank versus zero at runtime — DONE 2026-09-02
 
 `data.py` keeps the six modular mineral and free-water columns null through

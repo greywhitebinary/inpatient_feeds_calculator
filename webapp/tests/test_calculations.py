@@ -347,5 +347,28 @@ class UndisclosedValueTests(unittest.TestCase):
         self.assertEqual(totals["disclosed"]["phosphorus_mg"], 1)
 
 
+
+class OptionalWaterGoalTests(unittest.TestCase):
+    """No water goal must not produce a hydration flush order."""
+
+    def test_no_goal_prescribes_no_hydration_flush(self):
+        plan = water_plan(None, 1150, 0, 0, 200, 0, 4)
+        self.assertEqual(plan["hydration_flush_each_ml"], 0)
+        self.assertEqual(plan["hydration_flush_total_ml"], 0)
+
+    def test_no_goal_still_counts_ordered_flushes(self):
+        # Medication and patency flushes are ordered independently of a goal,
+        # so they stay in the water ledger.
+        plan = water_plan(None, 1150, 50, 30, 200, 100, 4)
+        self.assertEqual(plan["water_flushes_total_ml"], 330)
+        self.assertEqual(plan["total_water_ml"], 1530)
+
+    def test_zero_goal_and_no_goal_differ_from_a_real_goal(self):
+        no_goal = water_plan(None, 1150, 0, 0, 0, 0, 4)
+        real_goal = water_plan(2000, 1150, 0, 0, 0, 0, 4)
+        self.assertEqual(no_goal["hydration_flush_each_ml"], 0)
+        self.assertGreater(real_goal["hydration_flush_each_ml"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

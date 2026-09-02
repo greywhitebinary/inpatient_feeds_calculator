@@ -346,11 +346,15 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(
             '× <strong class="report-inline-emphasis">0.25</strong>', rendered_html
         )
-        self.assertIn("Ideal body weight (Hamwi — SI units)", rendered_html)
+        # Only the Hamwi row carries the IBW acronym: it is the ideal weight the
+        # calculator actually uses, and Devine is shown for medication dosing.
+        self.assertIn("Ideal body weight (IBW) — Hamwi, SI units", rendered_html)
         self.assertIn(
-            "Ideal body weight (Devine — medication-dosing reference)", rendered_html
+            "Ideal body weight — Devine, medication-dosing reference", rendered_html
         )
-        self.assertIn("Adjusted body weight (Hamwi IBW)", rendered_html)
+        self.assertIn("Current body weight (CBW)", rendered_html)
+        self.assertIn("Adjusted body weight (AdjBW) — from Hamwi IBW", rendered_html)
+        self.assertIn("Adjusted body weight (AdjBW) — from Hamwi IBW", rendered_html)
         captions = [item.value for item in app.caption]
         self.assertNotIn(
             "Devine is shown as a medication-dosing reference only and is not available "

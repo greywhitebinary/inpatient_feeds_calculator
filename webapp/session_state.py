@@ -186,6 +186,12 @@ def load_example_record() -> None:
         "assessment_indirect_calorimetry": None,
         "assessment_activity_factor": 1.2,
         "assessment_stress_factor": 1.0,
+        # Present so the example demonstrates the Penn State rows, which the
+        # Propofol scenario's ventilated patient is the case for. This patient's
+        # BMI is 23.5, so the applicability labels show that the modified 2010
+        # equation does not apply and 2003b does.
+        "assessment_temperature": 38.2,
+        "assessment_minute_ventilation": 8.5,
         "assessment_energy_low_kcal_kg": 25.0,
         "assessment_energy_high_kcal_kg": 30.0,
         "assessment_energy_target": 1800.0,

@@ -127,7 +127,7 @@ def render_en_scenario(
     saved_ons: pd.DataFrame | None,
     total_energy_target: float,
     protein_target: float,
-    water_target: float,
+    water_target: float | None,
     propofol_rate: float,
     propofol_hours: float = 24,
     *,
@@ -782,16 +782,29 @@ def render_en_scenario(
             + modular_totals["free_water_ml"]
             + modular_totals["preparation_water_ml"]
         )
-        remaining_before_flushes = max(water_target - free_water_before_flushes, 0)
-        st.markdown(
-            '<p class="summary-line">Water goal: '
-            f'<strong>{water_target:.0f} mL/day</strong> &nbsp;|&nbsp; '
-            'Water from formula and modulars: '
-            f'<strong>{free_water_before_flushes:.0f} mL/day</strong> &nbsp;|&nbsp; '
-            'Remaining before flushes: '
-            f'<strong>{remaining_before_flushes:.0f} mL/day</strong></p>',
-            unsafe_allow_html=True,
-        )
+        if water_target is None:
+            st.markdown(
+                '<p class="summary-line">Water goal: <strong>not set</strong> '
+                '&nbsp;|&nbsp; Water from formula and modulars: '
+                f'<strong>{free_water_before_flushes:.0f} mL/day</strong></p>',
+                unsafe_allow_html=True,
+            )
+            st.caption(
+                "No hydration flushes are calculated or charted without a water "
+                "goal. Enter one in Assessment or Adjust goals if enteral water "
+                "is being managed for this patient."
+            )
+        else:
+            remaining_before_flushes = max(water_target - free_water_before_flushes, 0)
+            st.markdown(
+                '<p class="summary-line">Water goal: '
+                f'<strong>{water_target:.0f} mL/day</strong> &nbsp;|&nbsp; '
+                'Water from formula and modulars: '
+                f'<strong>{free_water_before_flushes:.0f} mL/day</strong> &nbsp;|&nbsp; '
+                'Remaining before flushes: '
+                f'<strong>{remaining_before_flushes:.0f} mL/day</strong></p>',
+                unsafe_allow_html=True,
+            )
         if chart_ons:
             st.caption(
                 "Free water from ONS is included in daily totals but excluded "
@@ -807,36 +820,44 @@ def render_en_scenario(
             help="Enter a separate patency-flush volume only when it is part of the plan.",
             key=scenario_key(scenario_id, "patency_flushes"),
         )
-        schedule_a, schedule_b = st.columns(2)
-        schedule_format = schedule_a.selectbox(
-            "Hydration flush frequency",
-            options=["times/day", "qXh"],
-            format_func=lambda value: (
-                "Times/day (e.g., 6 times per day)"
-                if value == "times/day"
-                else "Interval (e.g., q4h)"
-            ),
-            help="Every-X-hours schedules run over 24 hours, independently of feeding hours.",
-            key=scenario_key(scenario_id, "hydration_schedule_format"),
-        )
-        if schedule_format == "qXh":
-            schedule_value = int(schedule_b.selectbox(
-                "Flush interval (hours)",
-                options=[1, 2, 3, 4, 6, 8, 12, 24],
-                format_func=lambda value: f"{value} hours",
-                key=scenario_key(scenario_id, "hydration_interval_hours"),
-            ))
-            flushes = hydration_flushes_per_day(schedule_format, schedule_value)
-            hydration_schedule_text = f"q{schedule_value}h"
-            hydration_chart_schedule_text = f"q{schedule_value}h"
+        # The hydration schedule exists only to distribute a goal-driven volume,
+        # so it is hidden when no water goal is set. Medication and patency
+        # flushes above are ordered independently and still apply.
+        if water_target is None:
+            flushes = 0
+            hydration_schedule_text = ""
+            hydration_chart_schedule_text = ""
         else:
-            schedule_value = int(schedule_b.number_input(
-                "Hydration flushes (number/day)", min_value=1, max_value=24,
-                key=scenario_key(scenario_id, "hydration_flushes"),
-            ))
-            flushes = hydration_flushes_per_day(schedule_format, schedule_value)
-            hydration_schedule_text = f"{flushes} times daily"
-            hydration_chart_schedule_text = f"{flushes} times daily"
+            schedule_a, schedule_b = st.columns(2)
+            schedule_format = schedule_a.selectbox(
+                "Hydration flush frequency",
+                options=["times/day", "qXh"],
+                format_func=lambda value: (
+                    "Times/day (e.g., 6 times per day)"
+                    if value == "times/day"
+                    else "Interval (e.g., q4h)"
+                ),
+                help="Every-X-hours schedules run over 24 hours, independently of feeding hours.",
+                key=scenario_key(scenario_id, "hydration_schedule_format"),
+            )
+            if schedule_format == "qXh":
+                schedule_value = int(schedule_b.selectbox(
+                    "Flush interval (hours)",
+                    options=[1, 2, 3, 4, 6, 8, 12, 24],
+                    format_func=lambda value: f"{value} hours",
+                    key=scenario_key(scenario_id, "hydration_interval_hours"),
+                ))
+                flushes = hydration_flushes_per_day(schedule_format, schedule_value)
+                hydration_schedule_text = f"q{schedule_value}h"
+                hydration_chart_schedule_text = f"q{schedule_value}h"
+            else:
+                schedule_value = int(schedule_b.number_input(
+                    "Hydration flushes (number/day)", min_value=1, max_value=24,
+                    key=scenario_key(scenario_id, "hydration_flushes"),
+                ))
+                flushes = hydration_flushes_per_day(schedule_format, schedule_value)
+                hydration_schedule_text = f"{flushes} times daily"
+                hydration_chart_schedule_text = f"{flushes} times daily"
         hydration = water_plan(
             water_target, final_planned_delivery["free_water_ml"], modular_totals["free_water_ml"],
             modular_totals["preparation_water_ml"], medication, patency, flushes,
@@ -845,12 +866,13 @@ def render_en_scenario(
         other_water_flushes = max(
             hydration["water_flushes_total_ml"] - modular_preparation_water, 0
         )
-        st.markdown(
-            '<p class="summary-line">Calculated hydration flush schedule: '
-            f'<strong>{hydration["hydration_flush_each_ml"]:.0f} mL '
-            f'{hydration_schedule_text}.</strong></p>',
-            unsafe_allow_html=True,
-        )
+        if water_target is not None:
+            st.markdown(
+                '<p class="summary-line">Calculated hydration flush schedule: '
+                f'<strong>{hydration["hydration_flush_each_ml"]:.0f} mL '
+                f'{hydration_schedule_text}.</strong></p>',
+                unsafe_allow_html=True,
+            )
 
     achieved_key = scenario_key(scenario_id, "achieved_delivery_pct")
     delivery_view_key = scenario_key(scenario_id, "delivery_view")
@@ -934,7 +956,10 @@ def render_en_scenario(
             + modular_preparation_water
             + other_water_flushes
         )
-        water_difference = displayed_total_water - water_target
+        water_difference = (
+            None if water_target is None
+            else displayed_total_water - water_target
+        )
         protein_difference = final_protein - protein_target
         energy_difference = final_energy - total_energy_target
         water_source_parts = []
@@ -968,7 +993,7 @@ def render_en_scenario(
             "Difference (planned − goal)"
             if view_percent == 100 else "Difference (estimated − goal)"
         )
-        final_checks = pd.DataFrame([
+        check_rows = [
             {
                 "Component": "Energy (kcal/day)",
                 "Goal": total_energy_target,
@@ -995,15 +1020,20 @@ def render_en_scenario(
                 total_column: final_protein,
                 difference_column: signed_difference(protein_difference),
             },
-            {
+        ]
+        # Without a water goal there is nothing to check against, so the row is
+        # omitted rather than shown with an empty goal and a meaningless
+        # difference. Free water still appears in the daily intake table.
+        if water_target is not None:
+            check_rows.append({
                 "Component": "Water (mL/day)",
                 "Goal": water_target,
                 "From feed": displayed_delivery["free_water_ml"],
                 "From other sources": water_sources_text,
                 total_column: displayed_total_water,
                 difference_column: signed_difference(water_difference),
-            },
-        ])
+            })
+        final_checks = pd.DataFrame(check_rows)
         render_report_table(final_checks, decimals=PLAN_CHECK_DECIMALS)
 
     source_rows = [
@@ -1131,11 +1161,27 @@ def render_en_scenario(
         "formula": formula, "formula_energy_target": final_formula_energy_target,
         "schedule_description": schedule_description, "modulars": modular_note,
         "source_frame": source_frame, "total": total,
-        "undisclosed_note": undisclosed_note(
-            modular_undisclosed,
-            {"sodium": "Na", "potassium": "K", "calcium": "Ca",
-             "phosphorus": "P", "magnesium": "Mg"},
-        ),
+        "table_notes": [
+            note for note in (
+                # Each note explains one cell that does not mean what it looks
+                # like. They are conditional so a plain plan carries none.
+                (
+                    "Free water from ONS is shown as oral intake but does not "
+                    "affect hydration flush calculations."
+                    if ons_totals["free_water_ml"] else ""
+                ),
+                (
+                    f"{propofol['volume_ml']:.0f} mL/day from propofol is not "
+                    "counted as free water."
+                    if propofol["volume_ml"] else ""
+                ),
+                undisclosed_note(
+                    modular_undisclosed,
+                    {"sodium": "Na", "potassium": "K", "calcium": "Ca",
+                     "phosphorus": "P", "magnesium": "Mg"},
+                ),
+            ) if note
+        ],
         "planned_total": planned_total,
         "delivery": final_planned_delivery,
         "chart_total": chart_total,
@@ -1178,8 +1224,8 @@ def render_en_workflow_setup(
     if saved_feeds.empty:
         st.caption("Add at least one product to My Formulary to create an EN plan.")
         return None
-    if total_energy_target is None or protein_target is None or water_target is None:
-        st.caption("Enter energy, protein, and water goals in Assessment or Adjust goals.")
+    if total_energy_target is None or protein_target is None:
+        st.caption("Enter energy and protein goals in Assessment or Adjust goals.")
         return None
 
     with st.container(border=True):
@@ -1196,7 +1242,8 @@ def render_en_workflow_setup(
     candidate_frame = saved_feeds.loc[saved_feeds["name"].isin(candidates)]
     return (
         candidate_frame, saved_modulars, saved_ons, candidates,
-        float(total_energy_target), float(protein_target), float(water_target),
+        float(total_energy_target), float(protein_target),
+        None if water_target is None else float(water_target),
     )
 
 
@@ -1228,8 +1275,8 @@ def show_en_plan() -> None:
             decimals=DAILY_INTAKE_DECIMALS,
             wide=True,
         )
-        if result["undisclosed_note"]:
-            st.caption(str(result["undisclosed_note"]))
+        for note in result["table_notes"]:
+            st.caption(str(note))
     with st.container(border=True):
         render_box_heading("Chart note")
         st.caption(

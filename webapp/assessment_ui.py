@@ -160,10 +160,10 @@ def show_assessment() -> None:
         adjusted_work = (f"{ibw:.1f} + ({current_weight:.1f} − {ibw:.1f}) × [[{correction_factor:g}]]"
                          if adjusted_weight is not None else "—")
         weight_calculations = pd.DataFrame([
-            {"Weight": "Current body weight", "Values used": "Entered measurement", "Result (kg)": f"{current_weight:.1f}" if current_weight is not None else "—"},
-            {"Weight": "Ideal body weight (Hamwi — SI units)", "Values used": hamwi_work, "Result (kg)": f"{ibw:.1f}" if ibw is not None else "—"},
-            {"Weight": "Ideal body weight (Devine — medication-dosing reference)", "Values used": devine_work, "Result (kg)": f"{devine_ibw:.1f}" if devine_ibw is not None else "—"},
-            {"Weight": "Adjusted body weight (Hamwi IBW)", "Values used": adjusted_work, "Result (kg)": f"{adjusted_weight:.1f}" if adjusted_weight is not None else "—"},
+            {"Weight": "Current body weight (CBW)", "Values used": "Entered measurement", "Result (kg)": f"{current_weight:.1f}" if current_weight is not None else "—"},
+            {"Weight": "Ideal body weight (IBW) — Hamwi, SI units", "Values used": hamwi_work, "Result (kg)": f"{ibw:.1f}" if ibw is not None else "—"},
+            {"Weight": "Ideal body weight — Devine, medication-dosing reference", "Values used": devine_work, "Result (kg)": f"{devine_ibw:.1f}" if devine_ibw is not None else "—"},
+            {"Weight": "Adjusted body weight (AdjBW) — from Hamwi IBW", "Values used": adjusted_work, "Result (kg)": f"{adjusted_weight:.1f}" if adjusted_weight is not None else "—"},
             {"Weight": "Estimated dry / clinician-selected weight", "Values used": "Entered weight", "Result (kg)": f"{estimated_weight:.1f}" if estimated_weight is not None else "—"},
         ])
         render_report_table(weight_calculations)
@@ -208,6 +208,30 @@ def show_assessment() -> None:
         ready_for_equations = bool(ready_for_weight and calculation_weight is not None and age is not None)
         mifflin = mifflin_st_jeor_kcal(sex, calculation_weight, height_cm, age) if ready_for_equations else None
         harris = harris_benedict_kcal(sex, calculation_weight, height_cm, age) if ready_for_equations else None
+        # Both Penn State equations were derived and validated with the Mifflin
+        # term computed on actual body weight, including in obesity — the
+        # modified 2010 form handles obesity through its own coefficients rather
+        # than through a substituted weight. Feeding it an ideal or adjusted
+        # weight applies the correction twice and understates the requirement.
+        # An entered dry weight is an acceptable actual-weight proxy in fluid
+        # overload; ideal and adjusted weights are not.
+        # Penn State needs an actual weight, so it follows the weight selected
+        # above only when that is the current or the clinician-selected weight.
+        # An ideal or adjusted weight is not an actual weight, and substituting
+        # a different one would contradict the clinician's selection, so the
+        # rows are withheld instead.
+        # Same abbreviations the chart note uses, so the two agree.
+        penn_weight_labels = {
+            "Current body weight": "CBW",
+            "Estimated dry / clinician-selected weight": "clinician-selected weight",
+        }
+        penn_weight_label = penn_weight_labels.get(weight_choice, "")
+        penn_weight = calculation_weight if penn_weight_label else None
+        penn_mifflin = (
+            mifflin_st_jeor_kcal(sex, penn_weight, height_cm, age)
+            if sex and penn_weight is not None and height_cm is not None and age is not None
+            else None
+        )
         energy_low, energy_high, energy_measure = st.columns(3)
         low_kcal_kg = energy_low.number_input(
             "Energy range, from (kcal/kg)", min_value=0.0, value=None,
@@ -235,7 +259,14 @@ def show_assessment() -> None:
             "Stress factor", min_value=0.0, max_value=5.0, step=0.05, format="%.2f",
             key="assessment_stress_factor",
         )
-        with st.expander("Ventilation and temperature", expanded=False):
+        with st.expander(
+            "Ventilation and temperature for Penn State equations", expanded=False
+        ):
+            st.caption(
+                "The Penn State equations use only the current body weight or "
+                "the clinician-selected weight. They are not shown when an ideal "
+                "or adjusted weight is selected above."
+            )
             temperature_input, minute_ventilation_input = st.columns(2)
             temperature = temperature_input.number_input(
                 "Maximum temperature (°C)", min_value=30.0, max_value=45.0, value=None,
@@ -310,27 +341,31 @@ def show_assessment() -> None:
                     ),
                 },
             ])
-            if temperature is not None and minute_ventilation is not None:
+            if (temperature is not None and minute_ventilation is not None
+                    and penn_mifflin is not None):
+                penn_basis = f"MSJ at {penn_weight_label} {penn_weight:.1f} kg"
                 energy_rows.extend([
                     {
-                        "Method": "Penn State 2003b",
+                        "Method": "Penn State 2003b — ventilated adults",
                         "Calculation": (
-                            f"0.96 × {mifflin:.0f} + 167 × {temperature:.1f} °C + "
-                            f"31 × {minute_ventilation:.1f} L/min − 6212"
+                            f"0.96 × {penn_mifflin:.0f} + 167 × {temperature:.1f} °C + "
+                            f"31 × {minute_ventilation:.1f} L/min − 6212 "
+                            f"({penn_basis})"
                         ),
                         "Energy (kcal/day)": f'{penn_state_2003b_kcal(
-                            mifflin, temperature, minute_ventilation
+                            penn_mifflin, temperature, minute_ventilation
                         ):.0f}',
                         "Activity/stress-adjusted\nenergy (kcal/day)": "—",
                     },
                     {
-                        "Method": "Modified Penn State 2010",
+                        "Method": "Modified Penn State 2010 — ventilated, age ≥60 and BMI ≥30",
                         "Calculation": (
-                            f"0.71 × {mifflin:.0f} + 85 × {temperature:.1f} °C + "
-                            f"64 × {minute_ventilation:.1f} L/min − 3085"
+                            f"0.71 × {penn_mifflin:.0f} + 85 × {temperature:.1f} °C + "
+                            f"64 × {minute_ventilation:.1f} L/min − 3085 "
+                            f"({penn_basis})"
                         ),
                         "Energy (kcal/day)": f'{penn_state_2010_kcal(
-                            mifflin, temperature, minute_ventilation
+                            penn_mifflin, temperature, minute_ventilation
                         ):.0f}',
                         "Activity/stress-adjusted\nenergy (kcal/day)": "—",
                     },

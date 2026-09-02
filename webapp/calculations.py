@@ -412,16 +412,27 @@ def hydration_flushes_per_day(schedule_format: str, schedule_value: int) -> int:
     return value
 
 
-def water_plan(water_target_ml: float, formula_free_water_ml: float,
+def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
                modular_free_water_ml: float, modular_preparation_water_ml: float,
                medication_flush_ml: float, patency_flush_ml: float,
                hydration_flushes_per_day: int) -> dict[str, float]:
-    """Calculate counted water and a practical, rounded hydration flush amount."""
+    """Calculate counted water and a practical, rounded hydration flush amount.
+
+    `water_target_ml` may be None, meaning no enteral water goal was set. That
+    is a normal state rather than a zero goal: on a patient receiving IV fluid
+    the enteral water calculation is not the one being managed. Ordered
+    medication and patency flushes still count, but no hydration flush is
+    prescribed, so nothing downstream states a flush volume the clinician did
+    not ask for.
+    """
     existing_water = (
         formula_free_water_ml + modular_free_water_ml + modular_preparation_water_ml
         + medication_flush_ml + patency_flush_ml
     )
-    hydration_total = max(water_target_ml - existing_water, 0)
+    hydration_total = (
+        0.0 if water_target_ml is None
+        else max(water_target_ml - existing_water, 0)
+    )
     each_hydration_flush = (hydration_total / hydration_flushes_per_day
                             if hydration_flushes_per_day else 0)
     # Match practical feed-volume rounding: exact half-way values round up,

@@ -143,10 +143,24 @@ def _calculation_weight(state: Mapping[str, object]) -> tuple[float | None, str]
         "Adjusted body weight (Hamwi IBW)": (adjusted, "AdjBW"),
         "Estimated dry / clinician-selected weight": (
             estimated,
-            "RD-selected weight",
+            "clinician-selected weight",
         ),
     }
     return options.get(choice, (None, "calculation weight"))
+
+
+def _penn_state_weight(state: Mapping[str, object]) -> tuple[float | None, str]:
+    """Return the actual weight Penn State should use, and how to label it.
+
+    Returns (None, "") when the selected weight is an ideal or adjusted one, so
+    the caller omits the Penn State lines entirely; see assessment_ui.
+    """
+    choice = str(state.get("assessment_weight_choice") or "")
+    if choice == "Current body weight":
+        return _entered(state, "assessment_current_weight"), "CBW"
+    if choice == "Estimated dry / clinician-selected weight":
+        return _entered(state, "assessment_estimated_weight"), "clinician-selected weight"
+    return None, ""
 
 
 def _anthropometrics_html(state: Mapping[str, object]) -> str:
@@ -158,7 +172,7 @@ def _anthropometrics_html(state: Mapping[str, object]) -> str:
     if height is not None:
         lines.append(f"Height: {_fmt(height / 100, 2)} m")
     if current is not None:
-        lines.append(f"Current body weight: {_fmt(current, 1)} kg")
+        lines.append(f"CBW: {_fmt(current, 1)} kg")
     if current is not None and height:
         lines.append(f"BMI: {_fmt(current / (height / 100) ** 2, 1)} kg/m²")
     if sex and height is not None:
@@ -233,18 +247,26 @@ def _requirements_html(state: Mapping[str, object]) -> str:
         ])
         temperature = _entered(state, "assessment_temperature")
         minute_ventilation = _entered(state, "assessment_minute_ventilation")
-        if temperature is not None and minute_ventilation is not None:
-            penn_2003b = penn_state_2003b_kcal(mifflin, temperature, minute_ventilation)
-            penn_2010 = penn_state_2010_kcal(mifflin, temperature, minute_ventilation)
+        # Penn State takes Mifflin at an actual weight. It follows the selected
+        # weight when that is a measured or clinician-selected one, and falls
+        # back to the current weight for a derived weight; see assessment_ui.
+        penn_weight, penn_weight_label = _penn_state_weight(state)
+        if (temperature is not None and minute_ventilation is not None
+                and penn_weight is not None):
+            penn_mifflin = mifflin_st_jeor_kcal(sex, penn_weight, height, age)
+            penn_2003b = penn_state_2003b_kcal(penn_mifflin, temperature, minute_ventilation)
+            penn_2010 = penn_state_2010_kcal(penn_mifflin, temperature, minute_ventilation)
             comparable_energy_values.extend([penn_2003b, penn_2010])
             inputs = (
-                f"Mifflin–St Jeor {_fmt(mifflin)} kcal/day, Tmax "
+                f"Mifflin–St Jeor {_fmt(penn_mifflin)} kcal/day at "
+                f"{penn_weight_label} {_fmt(penn_weight, 1)} kg, Tmax "
                 f"{_fmt(temperature, 1)} °C, Ve "
                 f"{_fmt(minute_ventilation, 1)} L/min"
             )
             energy_lines.extend([
-                f"Penn State 2003b: {_fmt(penn_2003b)} kcal/day ({inputs})",
-                f"Modified Penn State 2010: {_fmt(penn_2010)} kcal/day ({inputs})",
+                f"Penn State 2003b (ventilated adults): {_fmt(penn_2003b)} kcal/day ({inputs})",
+                f"Modified Penn State 2010 (ventilated, age ≥60 and BMI ≥30): "
+                f"{_fmt(penn_2010)} kcal/day ({inputs})",
             ])
 
     target = _entered(state, "assessment_energy_target")
