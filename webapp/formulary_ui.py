@@ -267,14 +267,12 @@ def show_formulary() -> None:
     st.divider()
     ons_heading, ons_actions = st.columns([4, 1], vertical_alignment="bottom")
     ons_heading.subheader("My ONS")
-    st.markdown(
-        '<div class="calculation-help-copy"><p>'
-        '<strong>For tube feeding, use My Formulary.</strong> '
-        'The ONS water content will be used to calculate water flushes. '
-        '<strong>For oral intake, use My ONS.</strong> '
-        'Its free water will appear in daily totals but will not be used to '
-        'calculate water flushes.</p></div>',
-        unsafe_allow_html=True,
+    st.caption(
+        "**For tube feeding, use My Formulary.** "
+        "The ONS water content will be used to calculate water flushes. "
+        "**For oral intake, use My ONS.** "
+        "Its free water will appear in daily totals but will not be used to "
+        "calculate water flushes."
     )
     if not st.session_state.my_ons.empty:
         with ons_actions.popover("Remove ONS", width="stretch"):
@@ -309,13 +307,13 @@ def show_formulary() -> None:
         search = st.text_input("Search ONS name or flavour", key="ons_search")
         manufacturer = st.radio(
             "Supplied reference library",
-            ["All supplied ONS", "Nestlé ONS", "Abbott ONS"],
+            ["All products", "Nestlé ONS", "Abbott ONS"],
             horizontal=True,
             key="ons_reference_brand_filter",
         )
         options = (
             master_ons
-            if manufacturer == "All supplied ONS"
+            if manufacturer == "All products"
             else master_ons[
                 master_ons["brand"].str.contains(
                     manufacturer.removesuffix(" ONS"), case=False, na=False

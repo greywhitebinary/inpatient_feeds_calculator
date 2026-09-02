@@ -42,7 +42,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         self.assertEqual(
             ons_filter.options,
-            ["All supplied ONS", "Nestlé ONS", "Abbott ONS"],
+            ["All products", "Nestlé ONS", "Abbott ONS"],
         )
         product_filter = next(
             item for item in app.selectbox
