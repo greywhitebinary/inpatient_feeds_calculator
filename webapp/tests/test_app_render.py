@@ -26,7 +26,7 @@ class AssessmentRenderTests(unittest.TestCase):
             item.key for item in app.button
             if str(item.key).startswith(("add_modular_", "saved_modular_"))
         }
-        self.assertEqual(len(modular_button_keys), 6)
+        self.assertEqual(len(modular_button_keys), 7)
         self.assertIn(
             "Scroll to view more feeds.",
             {item.value for item in app.caption},
@@ -35,7 +35,7 @@ class AssessmentRenderTests(unittest.TestCase):
             item.key for item in app.button
             if str(item.key).startswith(("add_ons_", "saved_ons_"))
         }
-        self.assertEqual(len(ons_button_keys), 46)
+        self.assertEqual(len(ons_button_keys), 52)
         ons_filter = next(
             item for item in app.radio
             if item.key == "ons_reference_brand_filter"

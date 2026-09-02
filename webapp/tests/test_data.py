@@ -71,10 +71,32 @@ class FormularyImportTests(unittest.TestCase):
 
     def test_ons_library_uses_separate_flavour_rows(self):
         ons = load_master_ons()
-        self.assertEqual(len(ons), 46)
+        self.assertEqual(len(ons), 52)
         boost = ons.loc[ons["product_name"] == "BOOST Plus Calories"]
         self.assertEqual(
             set(boost["flavour"]), {"Vanilla", "Chocolate", "Strawberry"}
+        )
+        for product in ("Ensure Regular", "Ensure Plus Calories"):
+            flavours = set(
+                ons.loc[ons["product_name"] == product, "flavour"]
+            )
+            self.assertIn("Butter Pecan", flavours)
+        glucerna = ons.loc[ons["product_name"] == "Glucerna nutritional drink"]
+        self.assertEqual(
+            set(glucerna["flavour"]),
+            {"Vanilla", "Chocolate", "Strawberry", "Mixed Berry"},
+        )
+        self.assertEqual(len(glucerna), 4)
+        glucerna_vanilla = glucerna.loc[glucerna["flavour"] == "Vanilla"].iloc[0]
+        self.assertAlmostEqual(
+            glucerna_vanilla["kcal_per_mL"] * glucerna_vanilla["container_size_ml"],
+            225,
+            places=3,
+        )
+        self.assertAlmostEqual(
+            glucerna_vanilla["protein_per_mL"] * glucerna_vanilla["container_size_ml"],
+            11.3,
+            places=3,
         )
         vanilla = boost.loc[boost["flavour"] == "Vanilla"].iloc[0]
         self.assertAlmostEqual(
@@ -165,6 +187,16 @@ class FormularyImportTests(unittest.TestCase):
         raw = pd.read_csv(MODULAR_PATH).set_index("id")
         for product_id in expected:
             self.assertTrue(pd.isna(raw.loc[product_id, "free_water_ml_per_basis"]))
+
+    def test_boost_just_protein_is_a_tube_compatible_modular(self):
+        modulars = load_master_modulars().set_index("id")
+        row = modulars.loc["nestle-boost-just-protein"]
+        self.assertEqual(row["basis_amount"], 3)
+        self.assertEqual(row["basis_description"], "3 scoops (21 g)")
+        self.assertEqual(row["kcal_per_basis"], 80)
+        self.assertEqual(row["protein_g_per_basis"], 18)
+        self.assertEqual(row["preparation_water_rule"], "rd_entered")
+        self.assertIn("2026_nestle-product-guide.pdf p.16", row["source"])
 
 
 if __name__ == "__main__":

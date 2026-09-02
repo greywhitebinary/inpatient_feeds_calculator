@@ -16,3 +16,8 @@ Manufacturer documents supporting the maintained values are stored locally in
 `reference_documents/canada/`. That folder is ignored by Git and is not needed
 to run the application. The public source register is
 `formula_sources/SOURCES.md`.
+
+The ONS table covers ready-to-use liquid products that can be ordered by
+container. Tube-compatible powders, such as BOOST Just Protein, belong in the
+modular table. Oral-only powders and puddings are outside ENCalc's
+tube-feeding product tables and will be handled in the BTF product catalog.
