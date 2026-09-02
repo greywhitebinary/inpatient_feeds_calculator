@@ -258,21 +258,15 @@ def show_formulary() -> None:
     st.divider()
     ons_heading, ons_actions = st.columns([4, 1], vertical_alignment="bottom")
     ons_heading.subheader("My ONS")
-    st.caption(
-        "Use My ONS for oral intake. Add an ONS to My Formulary when it will "
-        "be given through the feeding tube."
+    st.markdown(
+        '<div class="calculation-help-copy"><p>'
+        '<strong>For tube feeding, use My Formulary.</strong> '
+        'The ONS water content will be used to calculate water flushes. '
+        '<strong>For oral intake, use My ONS.</strong> '
+        'Its free water will appear in daily totals but will not be used to '
+        'calculate water flushes.</p></div>',
+        unsafe_allow_html=True,
     )
-    with st.expander("How ONS calculations work", expanded=False):
-        st.markdown(
-            '<div class="calculation-help-copy">'
-            '<p><strong>My Formulary</strong><br>'
-            'Water content is used when calculating water flushes.</p>'
-            '<p><strong>My ONS</strong><br>'
-            'Water appears in Planned daily intake but does not reduce '
-            'calculated water flushes.</p>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
     if not st.session_state.my_ons.empty:
         with ons_actions.popover("Remove ONS", width="stretch"):
             remove = st.multiselect(

@@ -88,18 +88,17 @@ class AssessmentRenderTests(unittest.TestCase):
             "Missing a feed? Add it to My Formulary on the Formulary tab.",
             captions,
         )
-        self.assertIn(
-            "Use My ONS for oral intake. Add an ONS to My Formulary when it "
-            "will be given through the feeding tube.",
-            captions,
-        )
         rendered_html = "\n".join(item.value for item in app.markdown)
-        self.assertIn("How ONS calculations work", {
+        self.assertNotIn("How ONS calculations work", {
             item.label for item in app.expander
         })
-        self.assertIn("<strong>My Formulary</strong>", rendered_html)
-        self.assertIn("<strong>My ONS</strong>", rendered_html)
-        self.assertNotIn("ONS selected from My Formulary", rendered_html)
+        self.assertIn(
+            "<strong>For tube feeding, use My Formulary.</strong>",
+            rendered_html,
+        )
+        self.assertIn(
+            "<strong>For oral intake, use My ONS.</strong>", rendered_html
+        )
 
     def test_assessment_footer_navigation_controls_the_active_tab(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
