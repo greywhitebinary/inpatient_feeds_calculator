@@ -56,6 +56,18 @@ class FormularyImportTests(unittest.TestCase):
             check_dtype=False,
         )
 
+    def test_legacy_ons_sheet_without_serving_columns_remains_importable(self):
+        legacy_ons = self.ons.drop(columns=[
+            "calculation_basis", "serving_size_g", "serving_unit",
+            "kcal_per_serving", "protein_g_per_serving", "fat_g_per_serving",
+            "carbohydrate_g_per_serving", "fibre_g_per_serving",
+            "sodium_mg_per_serving", "potassium_mg_per_serving",
+            "calcium_mg_per_serving", "magnesium_mg_per_serving",
+            "phosphorus_mg_per_serving", "free_water_ml_per_serving",
+        ])
+        _, _, restored_ons = validate_import(self.formulas, self.modulars, legacy_ons)
+        self.assertEqual(restored_ons.iloc[0]["calculation_basis"], "container_ml")
+
     def test_legacy_two_sheet_formulary_opens_with_an_empty_ons_list(self):
         payload = export_formulary_workbook(self.formulas, self.modulars)
         workbook = load_workbook(BytesIO(payload))
@@ -71,7 +83,7 @@ class FormularyImportTests(unittest.TestCase):
 
     def test_ons_library_uses_separate_flavour_rows(self):
         ons = load_master_ons()
-        self.assertEqual(len(ons), 52)
+        self.assertEqual(len(ons), 54)
         boost = ons.loc[ons["product_name"] == "BOOST Plus Calories"]
         self.assertEqual(
             set(boost["flavour"]), {"Vanilla", "Chocolate", "Strawberry"}
@@ -107,6 +119,20 @@ class FormularyImportTests(unittest.TestCase):
             vanilla["protein_per_mL"] * vanilla["container_size_ml"], 14,
             places=3,
         )
+        pudding = ons.loc[ons["product_name"] == "BOOST Pudding"]
+        self.assertEqual(set(pudding["flavour"]), {"Vanilla", "Chocolate"})
+        self.assertTrue((pudding["calculation_basis"] == "serving").all())
+        self.assertTrue((pudding["serving_size_g"] == 142).all())
+        self.assertTrue((pudding["free_water_ml_per_serving"] == 93).all())
+
+    def test_boost_just_protein_is_a_modular_protein_flush(self):
+        modulars = load_master_modulars().set_index("id")
+        row = modulars.loc["nestle-boost-just-protein"]
+        self.assertEqual(row["name"], "BOOST Just Protein")
+        self.assertEqual(row["dose_unit"], "scoop")
+        self.assertEqual(row["basis_amount"], 3)
+        self.assertEqual(row["protein_g_per_basis"], 18)
+        self.assertIn("protein flush", row["administration_note"])
 
     def test_rejects_a_negative_core_nutrient_value(self):
         self.formulas.loc[self.formulas.index[0], "protein_per_mL"] = -0.01

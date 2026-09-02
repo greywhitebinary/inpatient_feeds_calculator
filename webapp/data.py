@@ -30,6 +30,14 @@ MODULAR_REQUIRED_COLUMNS = {
 ONS_REQUIRED_COLUMNS = FORMULA_REQUIRED_COLUMNS | {
     "id", "product_name", "flavour", "container_size_ml", "package_unit",
 }
+ONS_SERVING_COLUMNS = {
+    "calculation_basis", "serving_size_g", "serving_unit",
+    "kcal_per_serving", "protein_g_per_serving", "fat_g_per_serving",
+    "carbohydrate_g_per_serving", "fibre_g_per_serving",
+    "sodium_mg_per_serving", "potassium_mg_per_serving",
+    "calcium_mg_per_serving", "magnesium_mg_per_serving",
+    "phosphorus_mg_per_serving", "free_water_ml_per_serving",
+}
 
 FORMULA_NUMERIC_COLUMNS = {
     "kcal_per_mL", "protein_per_mL", "fat_per_mL", "carbohydrate_per_mL",
@@ -46,7 +54,14 @@ MODULAR_OPTIONAL_NUMERIC_COLUMNS = {
     "magnesium_mg_per_basis", "phosphorus_mg_per_basis",
     "free_water_ml_per_basis",
 }
-ONS_NUMERIC_COLUMNS = FORMULA_NUMERIC_COLUMNS | {"container_size_ml"}
+ONS_NUMERIC_COLUMNS = FORMULA_NUMERIC_COLUMNS | {
+    "container_size_ml", "serving_size_g", "kcal_per_serving",
+    "protein_g_per_serving", "fat_g_per_serving",
+    "carbohydrate_g_per_serving", "fibre_g_per_serving",
+    "sodium_mg_per_serving", "potassium_mg_per_serving",
+    "calcium_mg_per_serving", "magnesium_mg_per_serving",
+    "phosphorus_mg_per_serving", "free_water_ml_per_serving",
+}
 ONS_OPTIONAL_NUMERIC_COLUMNS = FORMULA_OPTIONAL_NUMERIC_COLUMNS
 
 
@@ -77,19 +92,65 @@ def load_master_modulars() -> pd.DataFrame:
 def load_master_ons() -> pd.DataFrame:
     ons = pd.read_csv(ONS_PATH, encoding="utf-8-sig")
     validate_columns(ons, ONS_REQUIRED_COLUMNS, "Master ONS")
+    ons = _normalise_ons_schema(ons)
+    return _validate_ons_rows(ons, "Master ONS").fillna(0)
+
+
+def _normalise_ons_schema(frame: pd.DataFrame) -> pd.DataFrame:
+    """Add serving-basis fields while keeping older ONS workbooks importable."""
+    cleaned = frame.copy()
+    if "calculation_basis" not in cleaned:
+        cleaned["calculation_basis"] = "container_ml"
+    cleaned["calculation_basis"] = cleaned["calculation_basis"].fillna("container_ml")
+    if "serving_unit" not in cleaned:
+        cleaned["serving_unit"] = ""
+    if "serving_size_g" not in cleaned:
+        cleaned["serving_size_g"] = 0
+    for column in ONS_SERVING_COLUMNS - {"calculation_basis", "serving_unit", "serving_size_g"}:
+        if column not in cleaned:
+            cleaned[column] = 0
+    serving_rows = cleaned["calculation_basis"].astype(str).str.strip().str.casefold() == "serving"
+    # Serving-based products do not have a liquid container or per-millilitre
+    # values. Missing cells in those legacy fields are therefore treated as
+    # zero, while any non-numeric value is still rejected by validation.
+    for column in FORMULA_NUMERIC_COLUMNS | {"container_size_ml"}:
+        if serving_rows.any():
+            cleaned.loc[serving_rows, column] = cleaned.loc[serving_rows, column].fillna(0)
+    if serving_rows.any():
+        cleaned.loc[serving_rows, "fibre_per_mL"] = cleaned.loc[
+            serving_rows, "fibre_per_mL"
+        ].fillna(0)
+    return cleaned
+
+
+def _validate_ons_rows(frame: pd.DataFrame, label: str) -> pd.DataFrame:
     cleaned = validate_product_rows(
-        ons,
+        frame,
         ONS_NUMERIC_COLUMNS,
-        "Master ONS",
+        label,
         optional_numeric_columns=ONS_OPTIONAL_NUMERIC_COLUMNS,
-        positive_numeric_columns={"kcal_per_mL", "container_size_ml"},
     )
     for column in ("id", "product_name", "flavour", "package_unit"):
         if cleaned[column].astype(str).str.strip().replace("nan", "").eq("").any():
-            raise ValueError(f"Master ONS contains a blank {column.replace('_', ' ')}.")
+            raise ValueError(f"{label} contains a blank {column.replace('_', ' ')}.")
     if cleaned["id"].astype(str).str.strip().str.casefold().duplicated().any():
-        raise ValueError("Master ONS contains duplicate ids.")
-    return cleaned.fillna(0)
+        raise ValueError(f"{label} contains duplicate ids.")
+    basis = cleaned["calculation_basis"].astype(str).str.strip().str.casefold()
+    if (~basis.isin({"container_ml", "serving"})).any():
+        raise ValueError(f"{label} has an invalid calculation basis.")
+    container_rows = basis == "container_ml"
+    if ((cleaned.loc[container_rows, "kcal_per_mL"] <= 0)
+            | (cleaned.loc[container_rows, "container_size_ml"] <= 0)).any():
+        raise ValueError(f"{label} requires positive container size and kcal_per_mL for liquid ONS.")
+    serving_rows = basis == "serving"
+    if serving_rows.any():
+        if cleaned.loc[serving_rows, "serving_size_g"].le(0).any():
+            raise ValueError(f"{label} requires a positive serving size for serving-based ONS.")
+        if cleaned.loc[serving_rows, "kcal_per_serving"].le(0).any():
+            raise ValueError(f"{label} requires positive kcal_per_serving for serving-based ONS.")
+        if cleaned.loc[serving_rows, "serving_unit"].astype(str).str.strip().eq("").any():
+            raise ValueError(f"{label} requires a serving unit for serving-based ONS.")
+    return cleaned
 
 
 def validate_columns(frame: pd.DataFrame, required: set[str], label: str) -> None:
@@ -141,6 +202,7 @@ def validate_import(
     if ons is None:
         ons = load_master_ons().iloc[0:0].copy()
     validate_columns(ons, ONS_REQUIRED_COLUMNS, "My ONS worksheet")
+    ons = _normalise_ons_schema(ons)
     formulas = validate_product_rows(
         formulas,
         FORMULA_NUMERIC_COLUMNS,
@@ -155,22 +217,11 @@ def validate_import(
         optional_numeric_columns=MODULAR_OPTIONAL_NUMERIC_COLUMNS,
         positive_numeric_columns={"basis_amount"},
     )
-    ons = validate_product_rows(
-        ons,
-        ONS_NUMERIC_COLUMNS,
-        "My ONS worksheet",
-        optional_numeric_columns=ONS_OPTIONAL_NUMERIC_COLUMNS,
-        positive_numeric_columns={"kcal_per_mL", "container_size_ml"},
-    )
+    ons = _validate_ons_rows(ons, "My ONS worksheet")
     if modulars["id"].astype(str).str.strip().replace("nan", "").eq("").any():
         raise ValueError("My Modulars worksheet contains a blank id.")
     if modulars["id"].astype(str).str.strip().str.casefold().duplicated().any():
         raise ValueError("My Modulars worksheet contains duplicate ids.")
-    for column in ("id", "product_name", "flavour", "package_unit"):
-        if ons[column].astype(str).str.strip().replace("nan", "").eq("").any():
-            raise ValueError(f"My ONS worksheet contains a blank {column.replace('_', ' ')}.")
-    if ons["id"].astype(str).str.strip().str.casefold().duplicated().any():
-        raise ValueError("My ONS worksheet contains duplicate ids.")
     return formulas.fillna(0), modulars.fillna(0), ons.fillna(0)
 
 

@@ -140,6 +140,25 @@ class ChartNoteTests(unittest.TestCase):
         self.assertIn("Total water provided is 2,266 mL/day", note)
         self.assertIn("ONS water 366 mL", note)
 
+    def test_serving_based_ons_uses_serving_wording_in_order(self):
+        result = result_fixture()
+        result["chart_ons"] = [{
+            "name": "BOOST Pudding — Vanilla",
+            "calculation_basis": "serving",
+            "quantity_each_time": 1,
+            "quantity_unit": "cup",
+            "times_per_day": 2,
+        }]
+        result["ons_totals"] = {
+            "energy_kcal": 460,
+            "protein_g": 14,
+            "carbohydrate_g": 64,
+            "fat_g": 16,
+            "free_water_ml": 186,
+        }
+        note = build_chart_note_html(self.state, [result])
+        self.assertIn("ONS: BOOST Pudding — Vanilla, 1 cup BID.", note)
+
     def test_penn_equations_require_both_temperature_and_minute_ventilation(self):
         self.state["assessment_temperature"] = 38.2
         without_ventilation = build_chart_note_html(self.state, [result_fixture()])

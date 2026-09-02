@@ -137,6 +137,25 @@ class CalculationTests(unittest.TestCase):
         self.assertAlmostEqual(totals["fat_g"], 28)
         self.assertAlmostEqual(totals["free_water_ml"], 366)
 
+    def test_ons_delivery_scales_serving_based_oral_product(self):
+        product = {
+            "calculation_basis": "serving",
+            "serving_size_g": 142,
+            "serving_unit": "cup",
+            "kcal_per_serving": 230,
+            "protein_g_per_serving": 7,
+            "carbohydrate_g_per_serving": 32,
+            "fat_g_per_serving": 8,
+            "free_water_ml_per_serving": 93,
+        }
+        order = ons_delivery(product, containers_each_time=1, times_per_day=2)
+        totals = total_ons_delivery([order])
+        self.assertEqual(totals["daily_servings"], 2)
+        self.assertEqual(totals["daily_volume_ml"], 0)
+        self.assertEqual(totals["energy_kcal"], 460)
+        self.assertEqual(totals["protein_g"], 14)
+        self.assertEqual(totals["free_water_ml"], 186)
+
     def test_practical_continuous_delivery_rounds_the_pump_rate_to_five_ml(self):
         formula = {"kcal_per_mL": 1.5, "protein_per_mL": 0.07, "free_water_per_mL": 0.766}
         result = practical_feed_delivery(formula, 1900, 20)

@@ -292,7 +292,35 @@ def ons_delivery(
     containers_each_time: float,
     times_per_day: float,
 ) -> dict[str, float]:
-    """Calculate planned daily ONS provision from the labelled container."""
+    """Calculate planned daily ONS provision from its labelled basis.
+
+    Liquid ONS products use the existing container-and-millilitre basis. Oral
+    products such as pudding use a labelled serving basis, while retaining the
+    same output keys so they can be included in the existing summary tables.
+    """
+    basis = str(product.get("calculation_basis", "container_ml")).strip().casefold()
+    if basis == "serving":
+        daily_servings = containers_each_time * times_per_day
+        output = {
+            "daily_containers": 0.0,
+            "daily_servings": daily_servings,
+            "daily_volume_ml": 0.0,
+        }
+        for result_key, column in {
+            "energy_kcal": "kcal_per_serving",
+            "protein_g": "protein_g_per_serving",
+            "carbohydrate_g": "carbohydrate_g_per_serving",
+            "fat_g": "fat_g_per_serving",
+            "fibre_g": "fibre_g_per_serving",
+            "free_water_ml": "free_water_ml_per_serving",
+            "sodium_mg": "sodium_mg_per_serving",
+            "potassium_mg": "potassium_mg_per_serving",
+            "calcium_mg": "calcium_mg_per_serving",
+            "magnesium_mg": "magnesium_mg_per_serving",
+            "phosphorus_mg": "phosphorus_mg_per_serving",
+        }.items():
+            output[result_key] = daily_servings * float(product.get(column, 0) or 0)
+        return output
     container_size_ml = float(product.get("container_size_ml", 0) or 0)
     if container_size_ml <= 0:
         raise ValueError("ONS container_size_ml must be greater than zero.")
@@ -300,6 +328,7 @@ def ons_delivery(
     daily_volume_ml = daily_containers * container_size_ml
     output = {
         "daily_containers": daily_containers,
+        "daily_servings": 0.0,
         "daily_volume_ml": daily_volume_ml,
     }
     for result_key, column in {
@@ -321,7 +350,7 @@ def ons_delivery(
 
 def total_ons_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
     keys = {
-        "daily_containers", "daily_volume_ml", "energy_kcal", "protein_g",
+        "daily_containers", "daily_servings", "daily_volume_ml", "energy_kcal", "protein_g",
         "carbohydrate_g", "fat_g", "fibre_g", "free_water_ml", "sodium_mg",
         "potassium_mg", "calcium_mg", "magnesium_mg", "phosphorus_mg",
     }

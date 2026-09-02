@@ -17,7 +17,8 @@ Manufacturer documents supporting the maintained values are stored locally in
 to run the application. The public source register is
 `formula_sources/SOURCES.md`.
 
-The ONS table covers ready-to-use liquid products that can be ordered by
-container. Tube-compatible powders, such as BOOST Just Protein, belong in the
-modular table. Oral-only powders and puddings are outside ENCalc's
-tube-feeding product tables and will be handled in the BTF product catalog.
+The ONS table covers ready-to-use liquids and oral products that have a labelled
+serving basis. Tube-compatible powders, such as BOOST Just Protein, belong in
+the modular table. BOOST Powder remains outside ENCalc because it is labelled
+for oral use and requires preparation with milk. Serving-based oral products
+are available through My ONS, but they are not offered as tube-feed formulas.

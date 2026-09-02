@@ -330,10 +330,17 @@ def _source_breakdown(sources: Sequence[tuple[float, str]], unit: str) -> str:
 
 
 def _ons_order_text(item: Mapping[str, object]) -> str:
-    containers = _number(item.get("containers_each_time"))
+    quantity = _number(
+        item.get("quantity_each_time", item.get("containers_each_time", 0))
+    )
     times = _number(item.get("times_per_day"))
-    unit = str(item.get("package_unit", "container"))
-    if containers != 1:
+    unit = str(
+        item.get(
+            "quantity_unit",
+            item.get("serving_unit", item.get("package_unit", "container")),
+        )
+    )
+    if quantity != 1:
         unit += "s"
     frequency = {
         1: "daily",
@@ -341,7 +348,7 @@ def _ons_order_text(item: Mapping[str, object]) -> str:
         3: "TID",
         4: "QID",
     }.get(int(times) if times.is_integer() else -1, f"{_fmt(times)} times/day")
-    return f"{item['name']}, {_fmt(containers)} {unit} {frequency}"
+    return f"{item['name']}, {_fmt(quantity)} {unit} {frequency}"
 
 
 def _intervention_html(result: Mapping[str, object], include_label: bool) -> str:

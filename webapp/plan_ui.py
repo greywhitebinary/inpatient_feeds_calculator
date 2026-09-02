@@ -620,20 +620,39 @@ def render_en_scenario(
                     product = saved_ons.loc[
                         saved_ons["name"] == ons_name
                     ].iloc[0].to_dict()
+                    serving_based = (
+                        str(product.get("calculation_basis", "container_ml"))
+                        .strip().casefold() == "serving"
+                    )
+                    if serving_based:
+                        basis_description = (
+                            f"{number(product['serving_size_g']):g} g per "
+                            f"{escape(str(product['serving_unit']))}"
+                        )
+                        quantity_label = "Servings each time"
+                        quantity_prefix = "ons_servings_"
+                        quantity_caption = "servings"
+                    else:
+                        basis_description = (
+                            f"{number(product['container_size_ml']):g} mL "
+                            f"{escape(str(product['package_unit']))}"
+                        )
+                        quantity_label = "Containers each time"
+                        quantity_prefix = "ons_containers_"
+                        quantity_caption = "containers"
                     st.markdown(
                         f"**{escape(ons_name)}** — "
-                        f"{number(product['container_size_ml']):g} mL "
-                        f"{escape(str(product['package_unit']))}"
+                        f"{basis_description}"
                     )
                     a, b = st.columns(2)
                     product_id = str(product["id"])
-                    containers_each_time = a.number_input(
-                        "Containers each time",
+                    quantity_each_time = a.number_input(
+                        quantity_label,
                         min_value=0.0,
                         step=0.5,
                         format="%.1f",
                         key=scenario_key(
-                            scenario_id, f"ons_containers_{product_id}"
+                            scenario_id, f"{quantity_prefix}{product_id}"
                         ),
                     )
                     times_per_day = b.number_input(
@@ -644,12 +663,12 @@ def render_en_scenario(
                         key=scenario_key(scenario_id, f"ons_times_{product_id}"),
                     )
                     order_is_complete = (
-                        number(containers_each_time) > 0
+                        number(quantity_each_time) > 0
                         and number(times_per_day) > 0
                     )
                     order = ons_delivery(
                         product,
-                        number(containers_each_time) if order_is_complete else 0,
+                        number(quantity_each_time) if order_is_complete else 0,
                         number(times_per_day) if order_is_complete else 0,
                     )
                     ons_orders.append(order)
@@ -659,13 +678,26 @@ def render_en_scenario(
                             "product_name": product["product_name"],
                             "flavour": product["flavour"],
                             "package_unit": product["package_unit"],
-                            "containers_each_time": number(containers_each_time),
+                            "quantity_each_time": number(quantity_each_time),
+                            "quantity_unit": (
+                                product["serving_unit"]
+                                if serving_based else product["package_unit"]
+                            ),
+                            "calculation_basis": (
+                                "serving" if serving_based else "container_ml"
+                            ),
+                            "containers_each_time": (
+                                number(quantity_each_time) if not serving_based else 0
+                            ),
+                            "servings_each_time": (
+                                number(quantity_each_time) if serving_based else 0
+                            ),
                             "times_per_day": number(times_per_day),
                             **order,
                         })
                     else:
                         st.caption(
-                            "Enter both the number of containers and frequency "
+                            f"Enter both the number of {quantity_caption} and frequency "
                             "to include this ONS."
                         )
     ons_totals = total_ons_delivery(ons_orders)

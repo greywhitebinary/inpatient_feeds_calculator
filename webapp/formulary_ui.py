@@ -51,10 +51,16 @@ def render_reference_list(options: pd.DataFrame, saved_names: set[str], kind: st
             elif kind == "modular":
                 description = f"{item['brand']} · {item['basis_description']}"
             else:
-                description = (
-                    f"{item['brand']} · {number(item['container_size_ml']):g} mL "
-                    f"{item['package_unit']}"
-                )
+                if str(item.get("calculation_basis", "container_ml")).casefold() == "serving":
+                    description = (
+                        f"{item['brand']} · {number(item['serving_size_g']):g} g per "
+                        f"{item['serving_unit']}"
+                    )
+                else:
+                    description = (
+                        f"{item['brand']} · {number(item['container_size_ml']):g} mL "
+                        f"{item['package_unit']}"
+                    )
             with st.container(key=f"reference_row_{kind}_{row_position}"):
                 description_column, button_column = st.columns([3, 2], vertical_alignment="center")
                 description_column.markdown(
@@ -186,6 +192,9 @@ def show_formulary() -> None:
 
     with st.expander("Find a feed", expanded=False):
         search = st.text_input("Search formula name", key="feed_search")
+        tube_ons = master_ons.loc[
+            master_ons["calculation_basis"].astype(str).str.casefold() == "container_ml"
+        ]
         product_group = st.selectbox(
             "Supplied product library",
             [
@@ -199,12 +208,12 @@ def show_formulary() -> None:
         )
         if product_group == "All products":
             options = pd.concat(
-                [master_formulas, master_ons], ignore_index=True, sort=False
+                [master_formulas, tube_ons], ignore_index=True, sort=False
             ).drop_duplicates(subset=["name"], keep="first")
         elif product_group.endswith("ONS"):
             manufacturer = product_group.removesuffix(" ONS")
-            options = master_ons[
-                master_ons["brand"].str.contains(
+            options = tube_ons[
+                tube_ons["brand"].str.contains(
                     manufacturer, case=False, na=False
                 )
             ]
@@ -282,14 +291,18 @@ def show_formulary() -> None:
                 args=("ons",),
                 use_container_width=True,
             )
+        ons_table = st.session_state.my_ons.copy()
+        ons_table["Basis"] = ons_table.apply(
+            lambda item: (
+                f"{number(item['serving_size_g']):g} g per {item['serving_unit']}"
+                if str(item.get("calculation_basis", "container_ml")).casefold() == "serving"
+                else f"{number(item['container_size_ml']):g} mL {item['package_unit']}"
+            ), axis=1,
+        )
         render_report_table(
-            st.session_state.my_ons[[
-                "name", "brand", "container_size_ml", "package_unit",
-            ]].rename(columns={
+            ons_table[["name", "brand", "Basis"]].rename(columns={
                 "name": "Product",
                 "brand": "Manufacturer",
-                "container_size_ml": "Container (mL)",
-                "package_unit": "Package",
             })
         )
     with st.expander("Find an ONS", expanded=False):

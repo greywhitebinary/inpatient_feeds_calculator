@@ -38,8 +38,10 @@ the other listed flavours as having a similar nutritional profile.
 The Nestlé guide also lists BOOST Just Protein, BOOST Powder, and BOOST
 Pudding. BOOST Just Protein is recorded in `modular_products_working.csv`
 because the guide identifies it as a modular that can be used as a protein
-flush. BOOST Powder and BOOST Pudding are labelled for oral use and are not
-included in ENCalc's liquid ONS or tube-modular tables.
+flush. BOOST Pudding is recorded in `ons_products_working.csv` as a serving-
+based oral ONS, with separate Vanilla and Chocolate rows. BOOST Powder remains
+outside ENCalc because it is labelled for oral use and requires preparation
+with milk.
 
 ## Nestlé Health Science Canada
 
@@ -53,6 +55,7 @@ Source: `2026_nestle-product-guide.pdf`.
 | BOOST Original — Vanilla, Chocolate, Strawberry, Chocolate Latte | 18 | 237 mL | 230 | 10 | 34 | 6 | 0 | 265 | 410 | 308 | 90 | 265 | 200 mL |
 | BOOST Plus Calories — Vanilla, Chocolate, Strawberry | 20 | 237 mL | 360 | 14 | 45 | 14 | 3 | 200 | 360 | 350 | 100 | 300 | 183 mL |
 | BOOST Protein+ — Chocolate | 24 | 325 mL | 270 | 27 | 22 | 8 | 2 | 265 | 700 | 450 | 100 | 400 | 280 mL |
+| BOOST Pudding — Vanilla, Chocolate | 26 | 1 cup (142 g) | 230 | 7 | 32 | 8 | not listed | 115 | 250 | 250 | 60 | 250 | 93 mL |
 | BOOST Soothe — Strawberry-Kiwi | 28 | 237 mL | 300 | 10 | 65 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 186 mL |
 | BOOST 1.5 — Vanilla, Chocolate, Strawberry | 30 | 237 mL | 360 | 13 | 52 | 11 | 0 | 310 | 460 | 300 | 100 | 250 | 180 mL |
 | BOOST 2.24 — Vanilla, Chocolate, Strawberry | 32 | 237 mL | 530 | 22 | 52 | 26 | 0 | 280 | 420 | 250 | 80 | 250 | 159 mL |

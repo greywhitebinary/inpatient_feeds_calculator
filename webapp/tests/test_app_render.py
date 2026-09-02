@@ -35,7 +35,7 @@ class AssessmentRenderTests(unittest.TestCase):
             item.key for item in app.button
             if str(item.key).startswith(("add_ons_", "saved_ons_"))
         }
-        self.assertEqual(len(ons_button_keys), 52)
+        self.assertEqual(len(ons_button_keys), 54)
         ons_filter = next(
             item for item in app.radio
             if item.key == "ons_reference_brand_filter"
@@ -1077,6 +1077,7 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.multiselect if item.key == "feed_candidates"
         )
         self.assertNotIn("BOOST Plus Calories — Vanilla", candidates.options)
+        self.assertNotIn("BOOST Pudding — Vanilla", candidates.options)
         next(
             item for item in app.button
             if item.key == "add_feed_BOOST Plus Calories — Vanilla"
