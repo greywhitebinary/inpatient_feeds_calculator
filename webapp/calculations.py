@@ -171,6 +171,31 @@ def mg_to_mmol(element: str, milligrams: float) -> float:
     return milligrams / ATOMIC_WEIGHTS_MG_PER_MMOL[element]
 
 
+def disclosed_value(raw: object) -> tuple[float, bool]:
+    """Split a product cell into its value and whether the label declared it.
+
+    A blank cell means the manufacturer did not disclose the figure, which is
+    not the same as a declared zero. An undisclosed value contributes nothing to
+    a total, but it is reported separately so the total can be shown as a lower
+    bound rather than a measured amount. See
+    formula_sources/DATA_CONVENTIONS.md section 1.
+    """
+    if raw is None:
+        return 0.0, False
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return 0.0, False
+        raw = text
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return 0.0, False
+    if value != value:  # NaN, which is how pandas carries a blank cell
+        return 0.0, False
+    return value, True
+
+
 def feed_delivery(formula: Mapping[str, object], en_energy_target_kcal: float,
                   hours_per_day: float, achieved_percent: float = 100) -> dict[str, float]:
     """Calculate formula volume, rate, and nutrient delivery for one day."""
@@ -254,13 +279,14 @@ def ordered_feed_delivery(formula: Mapping[str, object], ordered_amount_ml: floa
 
 
 def modular_delivery(product: Mapping[str, object], units_per_dose: float,
-                     doses_per_day: float, preparation_water_ml_per_dose: float = 0) -> dict[str, float]:
+                     doses_per_day: float, preparation_water_ml_per_dose: float = 0) -> dict[str, object]:
     """Calculate daily modular delivery from its labelled product basis."""
     basis = float(product.get("basis_amount", 0) or 0)
     if basis <= 0:
         raise ValueError("Modular basis_amount must be greater than zero.")
     multiplier = units_per_dose * doses_per_day / basis
     output = {"preparation_water_ml": preparation_water_ml_per_dose * doses_per_day}
+    disclosed: dict[str, int] = {}
     for result_key, column in {
         "energy_kcal": "kcal_per_basis",
         "protein_g": "protein_g_per_basis",
@@ -274,17 +300,34 @@ def modular_delivery(product: Mapping[str, object], units_per_dose: float,
         "magnesium_mg": "magnesium_mg_per_basis",
         "phosphorus_mg": "phosphorus_mg_per_basis",
     }.items():
-        output[result_key] = multiplier * float(product.get(column, 0) or 0)
+        value, known = disclosed_value(product.get(column))
+        output[result_key] = multiplier * value
+        disclosed[result_key] = int(known)
+    # A product with no dose entered is not part of the plan, so it must not
+    # affect the coverage denominator or be reported as an undisclosed source.
+    ordered = units_per_dose > 0 and doses_per_day > 0
+    output["disclosed"] = disclosed if ordered else dict.fromkeys(disclosed, 0)
+    output["product_count"] = 1 if ordered else 0
     return output
 
 
-def total_modular_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
+def total_modular_delivery(orders: list[dict[str, object]]) -> dict[str, object]:
     keys = {
         "energy_kcal", "protein_g", "carbohydrate_g", "fat_g", "fibre_g",
         "free_water_ml", "preparation_water_ml", "sodium_mg", "potassium_mg",
         "calcium_mg", "magnesium_mg", "phosphorus_mg",
     }
-    return {key: sum(order.get(key, 0) for order in orders) for key in keys}
+    totals: dict[str, object] = {
+        key: sum(order.get(key, 0) for order in orders) for key in keys
+    }
+    # Coverage travels with the totals so a table can say how many of the
+    # ordered products actually declared each nutrient.
+    totals["disclosed"] = {
+        key: sum(order.get("disclosed", {}).get(key, 0) for order in orders)
+        for key in keys - {"preparation_water_ml"}
+    }
+    totals["product_count"] = sum(order.get("product_count", 0) for order in orders)
+    return totals
 
 
 def ons_delivery(

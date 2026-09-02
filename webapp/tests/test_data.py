@@ -225,5 +225,37 @@ class FormularyImportTests(unittest.TestCase):
         self.assertIn("2026_nestle-product-guide.pdf p.16", row["source"])
 
 
+
+class UndisclosedColumnTests(unittest.TestCase):
+    """Blanks that mean "not disclosed" must survive loading and round-tripping."""
+
+    def test_modular_mineral_blanks_load_as_null(self):
+        modulars = load_master_modulars()
+        row = modulars[modulars["id"] == "medtrition-prosource-nocarb"].iloc[0]
+        self.assertTrue(pd.isna(row["phosphorus_mg_per_basis"]))
+        self.assertTrue(pd.isna(row["magnesium_mg_per_basis"]))
+        self.assertEqual(row["sodium_mg_per_basis"], 40, "declared values are unchanged")
+
+    def test_formula_fibre_blank_still_zero_filled(self):
+        # A blank fibre cell means the panel has no fibre row because the
+        # product is fibre-free, which is a declared absence, not a missing
+        # figure. Flagging those would raise a false alarm on ten products.
+        formulas = load_master_formulas()
+        row = formulas[formulas["name"] == "Isosource 1.2"].iloc[0]
+        self.assertEqual(row["fibre_per_mL"], 0)
+
+    def test_workbook_round_trip_preserves_undisclosed(self):
+        formulas = load_master_formulas()
+        modulars = load_master_modulars()
+        ons = load_master_ons()
+        payload = export_formulary_workbook(formulas, modulars, ons)
+        _, restored, _ = import_formulary_workbook(BytesIO(payload))
+        row = restored[restored["id"] == "medtrition-prosource-nocarb"].iloc[0]
+        self.assertTrue(
+            pd.isna(row["phosphorus_mg_per_basis"]),
+            "a saved formulary must not turn an unknown into a zero on reload",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

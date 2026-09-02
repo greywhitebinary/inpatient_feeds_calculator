@@ -17,7 +17,7 @@ document itself.
 |---|---|---|
 | `formulary_working/canada_formulas_working.csv` | `2026_nestle-product-guide.pdf` | [Nestlé Health Science Canada](https://www.nestlehealthscience.ca/) |
 | `formulary_working/canada_formulas_working.csv` | `2024_abbott-adult-product-guide.pdf` | [Abbott Nutrition Canada](https://www.nutrition.abbott/ca/en/home.html) |
-| `formulary_working/canada_formulas_working.csv` | Jevity 1.2 Cal, Jevity 1.5 Cal, Osmolite 1.2 Cal, and TwoCal HN product information sheets | [Abbott Nutrition Canada](https://www.nutrition.abbott/ca/en/home.html) |
+| `formulary_working/canada_formulas_working.csv` | Jevity 1.2 Cal, Jevity 1.5 Cal, Osmolite 1.2 Cal, TwoCal HN, and Pivot 1.5 Cal product information sheets | [Abbott Nutrition Canada](https://www.nutrition.abbott/ca/en/home.html) |
 | `formulary_working/modular_products_working.csv` | Nestlé and Abbott documents above | [Nestlé Health Science Canada](https://www.nestlehealthscience.ca/) and [Abbott Nutrition Canada](https://www.nutrition.abbott/ca/en/home.html) |
 | `formulary_working/ons_products_working.csv` | `2026_nestle-product-guide.pdf` and `2024_abbott-adult-product-guide.pdf` | [Nestlé Health Science Canada](https://www.nestlehealthscience.ca/) and [Abbott Nutrition Canada](https://www.nutrition.abbott/ca/en/home.html) |
 | `formulary_working/modular_products_working.csv` | `medtrition/ProSource-NoCarb_CMI-Canada_p2.jpg`, `medtrition/HiFibre_CMI-Canada_p2.jpg`, and `medtrition/BanatrAll-with-GOS_CMI-Canada_p2.jpg` | [CMI Canada](https://cmi-canada.com/) |
@@ -26,6 +26,11 @@ document itself.
 The row-level `source` column is the authoritative map to document and page.
 An official source-site link alone does not show that a value is current;
 verify the local product information and update `verified` after each review.
+
+See `DATA_CONVENTIONS.md` for the blank-versus-zero rule, what each class of
+source document is capable of disclosing, the jurisdiction rule, and the two
+cross-checks that catch transcription errors. Outstanding work and the record
+of the 2026-09-02 full verification are in `VERIFICATION_BACKLOG.md`.
 
 ## Local review workflow
 

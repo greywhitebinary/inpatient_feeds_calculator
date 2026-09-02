@@ -44,6 +44,8 @@ from ui_common import (
     number,
     render_box_heading,
     render_report_table,
+    mmol_if_disclosed,
+    undisclosed_note,
 )
 
 
@@ -494,6 +496,11 @@ def render_en_scenario(
 
     modular_orders: list[dict[str, float]] = []
     modular_note_parts: list[str] = []
+    # Products whose label does not publish a figure for each electrolyte, so
+    # the intake table can say so instead of implying a measured zero.
+    modular_undisclosed: dict[str, list[str]] = {
+        "sodium": [], "potassium": [], "calcium": [], "phosphorus": [], "magnesium": [],
+    }
     modular_protein_sources: list[str] = []
     modular_fat_sources: list[str] = []
     chart_modulars: list[dict[str, object]] = []
@@ -560,6 +567,10 @@ def render_en_scenario(
                 )
                 modular_orders.append(order)
                 if order_is_complete:
+                    for nutrient in ("sodium", "potassium", "calcium",
+                                     "phosphorus", "magnesium"):
+                        if not order["disclosed"][f"{nutrient}_mg"]:
+                            modular_undisclosed[nutrient].append(modular_name)
                     daily_amount = modular_daily_amount(
                         product, number(units), number(doses)
                     )
@@ -1016,11 +1027,11 @@ def render_en_scenario(
             "Fat (g)": modular_totals["fat_g"],
             "Free water (mL)": modular_totals["free_water_ml"],
             "Water flushes (mL)": modular_preparation_water,
-            "Na (mmol)": mg_to_mmol("sodium", modular_totals["sodium_mg"]),
-            "K (mmol)": mg_to_mmol("potassium", modular_totals["potassium_mg"]),
-            "Ca (mmol)": mg_to_mmol("calcium", modular_totals["calcium_mg"]),
-            "P (mmol)": mg_to_mmol("phosphorus", modular_totals["phosphorus_mg"]),
-            "Mg (mmol)": mg_to_mmol("magnesium", modular_totals["magnesium_mg"]),
+            "Na (mmol)": mmol_if_disclosed(modular_totals, "sodium"),
+            "K (mmol)": mmol_if_disclosed(modular_totals, "potassium"),
+            "Ca (mmol)": mmol_if_disclosed(modular_totals, "calcium"),
+            "P (mmol)": mmol_if_disclosed(modular_totals, "phosphorus"),
+            "Mg (mmol)": mmol_if_disclosed(modular_totals, "magnesium"),
         },
         {
             "Source": "Water flushes", "Energy (kcal)": 0, "Protein (g)": 0,
@@ -1120,6 +1131,11 @@ def render_en_scenario(
         "formula": formula, "formula_energy_target": final_formula_energy_target,
         "schedule_description": schedule_description, "modulars": modular_note,
         "source_frame": source_frame, "total": total,
+        "undisclosed_note": undisclosed_note(
+            modular_undisclosed,
+            {"sodium": "Na", "potassium": "K", "calcium": "Ca",
+             "phosphorus": "P", "magnesium": "Mg"},
+        ),
         "planned_total": planned_total,
         "delivery": final_planned_delivery,
         "chart_total": chart_total,
@@ -1212,6 +1228,8 @@ def show_en_plan() -> None:
             decimals=DAILY_INTAKE_DECIMALS,
             wide=True,
         )
+        if result["undisclosed_note"]:
+            st.caption(str(result["undisclosed_note"]))
     with st.container(border=True):
         render_box_heading("Chart note")
         st.caption(

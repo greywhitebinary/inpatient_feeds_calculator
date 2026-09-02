@@ -64,6 +64,27 @@ ONS_NUMERIC_COLUMNS = FORMULA_NUMERIC_COLUMNS | {
 }
 ONS_OPTIONAL_NUMERIC_COLUMNS = FORMULA_OPTIONAL_NUMERIC_COLUMNS
 
+# Columns where a blank cell means "the manufacturer did not disclose it" rather
+# than "the value is zero". These are kept null so the calculation layer can
+# report them as undisclosed instead of silently counting them as absent. See
+# formula_sources/DATA_CONVENTIONS.md section 1.
+#
+# Deliberately excludes formula and ONS `fibre_per_mL`. A blank there means the
+# panel has no fibre row because the product is fibre-free, which is a declared
+# absence, not a missing figure. Marking those undisclosed would raise a flag on
+# ten products where nothing is unknown.
+UNDISCLOSED_WHEN_BLANK_MODULAR = {
+    "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
+    "magnesium_mg_per_basis", "phosphorus_mg_per_basis", "free_water_ml_per_basis",
+}
+
+
+def _fill_zeros_except(frame: pd.DataFrame, keep_null: set[str]) -> pd.DataFrame:
+    """Zero-fill every column except those where blank carries meaning."""
+    fill_columns = [column for column in frame.columns if column not in keep_null]
+    frame[fill_columns] = frame[fill_columns].fillna(0)
+    return frame
+
 
 def load_master_formulas() -> pd.DataFrame:
     formulas = pd.read_csv(FORMULA_PATH, encoding="utf-8-sig")
@@ -80,13 +101,14 @@ def load_master_formulas() -> pd.DataFrame:
 def load_master_modulars() -> pd.DataFrame:
     modulars = pd.read_csv(MODULAR_PATH, encoding="utf-8-sig")
     validate_columns(modulars, MODULAR_REQUIRED_COLUMNS, "Master modulars")
-    return validate_product_rows(
+    validated = validate_product_rows(
         modulars,
         MODULAR_NUMERIC_COLUMNS,
         "Master modulars",
         optional_numeric_columns=MODULAR_OPTIONAL_NUMERIC_COLUMNS,
         positive_numeric_columns={"basis_amount"},
-    ).fillna(0)
+    )
+    return _fill_zeros_except(validated, UNDISCLOSED_WHEN_BLANK_MODULAR)
 
 
 def load_master_ons() -> pd.DataFrame:
@@ -222,7 +244,11 @@ def validate_import(
         raise ValueError("My Modulars worksheet contains a blank id.")
     if modulars["id"].astype(str).str.strip().str.casefold().duplicated().any():
         raise ValueError("My Modulars worksheet contains duplicate ids.")
-    return formulas.fillna(0), modulars.fillna(0), ons.fillna(0)
+    return (
+        formulas.fillna(0),
+        _fill_zeros_except(modulars, UNDISCLOSED_WHEN_BLANK_MODULAR),
+        ons.fillna(0),
+    )
 
 
 def export_formulary_workbook(

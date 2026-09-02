@@ -13,6 +13,7 @@ from calculations import (
     height_to_cm,
     harris_benedict_kcal,
     hydration_flushes_per_day,
+    disclosed_value,
     mg_to_mmol,
     mifflin_st_jeor_kcal,
     modular_delivery,
@@ -24,6 +25,7 @@ from calculations import (
     practical_feed_delivery,
     propofol_intake,
     suggested_conditional_formula_rate,
+    total_modular_delivery,
     total_propofol_intake,
     total_ons_delivery,
     water_plan,
@@ -282,6 +284,67 @@ class CalculationTests(unittest.TestCase):
         # to, rather than mathematically identical to, the unrounded target.
         self.assertAlmostEqual(delivery["planned_volume_ml"], 1063.75)
         self.assertAlmostEqual(combined_energy, 1727.625)
+
+
+
+class UndisclosedValueTests(unittest.TestCase):
+    """A blank label figure must stay distinguishable from a declared zero."""
+
+    def test_disclosed_value_reads_real_numbers(self):
+        self.assertEqual(disclosed_value(40), (40.0, True))
+        self.assertEqual(disclosed_value("40"), (40.0, True))
+        self.assertEqual(disclosed_value(0), (0.0, True))
+
+    def test_disclosed_value_treats_blanks_as_undisclosed(self):
+        for blank in (None, "", "   ", float("nan")):
+            value, known = disclosed_value(blank)
+            self.assertEqual(value, 0.0)
+            self.assertFalse(known, f"{blank!r} should be undisclosed")
+
+    def test_modular_delivery_reports_undisclosed_columns(self):
+        product = {
+            "basis_amount": 30, "kcal_per_basis": 60, "protein_g_per_basis": 15,
+            "carbohydrate_g_per_basis": 0, "fat_g_per_basis": 0,
+            "fibre_g_per_basis": 0, "sodium_mg_per_basis": 40,
+            "potassium_mg_per_basis": 10, "calcium_mg_per_basis": 0,
+            "magnesium_mg_per_basis": None, "phosphorus_mg_per_basis": None,
+            "free_water_ml_per_basis": None,
+        }
+        order = modular_delivery(product, 30, 3)
+        self.assertEqual(order["sodium_mg"], 120)
+        self.assertEqual(order["disclosed"]["sodium_mg"], 1)
+        self.assertEqual(order["disclosed"]["calcium_mg"], 1, "a declared 0 is disclosed")
+        self.assertEqual(order["disclosed"]["phosphorus_mg"], 0)
+        self.assertEqual(order["phosphorus_mg"], 0, "undisclosed contributes nothing")
+        self.assertEqual(order["product_count"], 1)
+
+    def test_unordered_product_is_not_a_coverage_source(self):
+        product = {
+            "basis_amount": 30, "kcal_per_basis": 60, "protein_g_per_basis": 15,
+            "carbohydrate_g_per_basis": 0, "fat_g_per_basis": 0,
+            "fibre_g_per_basis": 0, "sodium_mg_per_basis": 40,
+            "potassium_mg_per_basis": 10, "calcium_mg_per_basis": 0,
+            "magnesium_mg_per_basis": None, "phosphorus_mg_per_basis": None,
+            "free_water_ml_per_basis": None,
+        }
+        order = modular_delivery(product, 0, 0)
+        self.assertEqual(order["product_count"], 0)
+        self.assertEqual(order["disclosed"]["sodium_mg"], 0)
+
+    def test_total_modular_delivery_accumulates_coverage(self):
+        disclosed_order = {
+            "sodium_mg": 100, "phosphorus_mg": 50,
+            "disclosed": {"sodium_mg": 1, "phosphorus_mg": 1}, "product_count": 1,
+        }
+        partial_order = {
+            "sodium_mg": 40, "phosphorus_mg": 0,
+            "disclosed": {"sodium_mg": 1, "phosphorus_mg": 0}, "product_count": 1,
+        }
+        totals = total_modular_delivery([disclosed_order, partial_order])
+        self.assertEqual(totals["product_count"], 2)
+        self.assertEqual(totals["sodium_mg"], 140)
+        self.assertEqual(totals["disclosed"]["sodium_mg"], 2)
+        self.assertEqual(totals["disclosed"]["phosphorus_mg"], 1)
 
 
 if __name__ == "__main__":

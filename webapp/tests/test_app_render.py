@@ -88,17 +88,14 @@ class AssessmentRenderTests(unittest.TestCase):
             "Missing a feed? Add it to My Formulary on the Formulary tab.",
             captions,
         )
-        rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertNotIn("How ONS calculations work", {
             item.label for item in app.expander
         })
-        self.assertIn(
-            "<strong>For tube feeding, use My Formulary.</strong>",
-            rendered_html,
-        )
-        self.assertIn(
-            "<strong>For oral intake, use My ONS.</strong>", rendered_html
-        )
+        # These two sit in a caption, and AppTest reports caption text as the
+        # markdown source rather than rendered HTML.
+        ons_guidance = "\n".join(captions)
+        self.assertIn("**For tube feeding, use My Formulary.**", ons_guidance)
+        self.assertIn("**For oral intake, use My ONS.**", ons_guidance)
 
     def test_assessment_footer_navigation_controls_the_active_tab(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

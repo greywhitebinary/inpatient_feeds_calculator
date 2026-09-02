@@ -178,3 +178,37 @@ def modular_chart_amount(product: dict[str, object], units: float, doses: float)
 
 def mmol_from_delivery(delivery: dict[str, float], nutrient: str) -> float:
     return mg_to_mmol(nutrient, delivery.get(f"{nutrient}_mg", 0))
+
+
+def mmol_if_disclosed(totals: Mapping[str, object], nutrient: str) -> float | None:
+    """Return mmol/day, or None when no contributing product declared a figure.
+
+    Returning None makes the table render an em dash rather than a confident
+    zero. A zero would read as a measured absence and would be indistinguishable
+    from a product that genuinely contains none of the nutrient.
+    """
+    disclosed = totals.get("disclosed") or {}
+    if not disclosed.get(f"{nutrient}_mg", 0):
+        return None
+    return mg_to_mmol(nutrient, totals.get(f"{nutrient}_mg", 0))
+
+
+def undisclosed_note(
+    undisclosed_sources: Mapping[str, list[str]],
+    labels: Mapping[str, str],
+) -> str:
+    """Describe which nutrients are missing a figure, and from which products."""
+    parts = []
+    for nutrient, products in undisclosed_sources.items():
+        if not products:
+            continue
+        names = ", ".join(sorted(set(products)))
+        parts.append(f"{labels.get(nutrient, nutrient)} not declared by {names}")
+    if not parts:
+        return ""
+    return (
+        "Totals exclude values the manufacturer does not publish: "
+        + "; ".join(parts)
+        + ". A dash means no ordered product declared a figure, which is not the "
+        "same as zero."
+    )
