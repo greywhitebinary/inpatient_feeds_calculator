@@ -25,7 +25,12 @@ from calculations import (
     water_plan,
 )
 from case_record_ui import render_save_record
-from constants import DAILY_INTAKE_DECIMALS, FORMULA_COMPARISON_DECIMALS, PLAN_CHECK_DECIMALS
+from constants import (
+    DAILY_INTAKE_DECIMALS,
+    FORMULA_COMPARISON_DECIMALS,
+    PLAN_CHECK_DECIMALS,
+    WATER_MODE_CHART_ONLY,
+)
 from session_state import (
     mark_order_as_edited,
     propofol_widget_key,
@@ -33,6 +38,8 @@ from session_state import (
     reset_new_modular_orders,
     scenario_key,
     seed_scenario_state,
+    iv_fluid_orders,
+    iv_fluid_totals,
     sync_propofol_widget,
     show_partial_formula_delivery,
 )
@@ -45,6 +52,7 @@ from ui_common import (
     render_box_heading,
     render_report_table,
     mmol_if_disclosed,
+    uncounted_volume_note,
     undisclosed_note,
 )
 
@@ -167,7 +175,14 @@ def render_en_scenario(
         scenario_id, conditional_mode, energy_requirement
     )
 
-    comparison_energy_target = max(total_energy_target - propofol["kcal"], 0)
+    # Intravenous dextrose supplies energy the feed no longer has to, so it
+    # reduces the EN target the same way propofol does. Volume is not
+    # subtracted anywhere: the goals are entered net of intravenous fluid.
+    iv_orders = iv_fluid_orders()
+    iv_fluids = iv_fluid_totals()
+    comparison_energy_target = max(
+        total_energy_target - propofol["kcal"] - iv_fluids["energy_kcal"], 0
+    )
     comparison_rows = []
     for _, candidate in candidate_frame.iterrows():
         candidate_dict = candidate.to_dict()
@@ -806,14 +821,29 @@ def render_en_scenario(
             + modular_totals["free_water_ml"]
             + modular_totals["preparation_water_ml"]
         )
-        if water_target is None:
+        chart_water_only = (
+            st.session_state.get("assessment_water_mode") == WATER_MODE_CHART_ONLY
+        )
+        # A water goal can exist without a flush schedule following from
+        # it: with a line running the requirement is charted, not filled
+        # enterally. Flushes need both a goal and the intention to give them.
+        plan_hydration_flushes = water_target is not None and not chart_water_only
+        if not plan_hydration_flushes:
+            goal_text = (
+                "not set" if water_target is None
+                else f"{water_target:,.0f} mL/day, charted only"
+            )
             st.markdown(
-                '<p class="summary-line">Water goal: <strong>not set</strong> '
+                f'<p class="summary-line">Water goal: <strong>{goal_text}</strong> '
                 '&nbsp;|&nbsp; Water from formula and modulars: '
                 f'<strong>{free_water_before_flushes:.0f} mL/day</strong></p>',
                 unsafe_allow_html=True,
             )
             st.caption(
+                "Fluid needs are charted; no hydration flushes are calculated. "
+                "Change the water setting in Assessment if flushes are being "
+                "prescribed."
+                if chart_water_only else
                 "No hydration flushes are calculated or charted without a water "
                 "goal. Enter one in Assessment or Adjust goals if enteral water "
                 "is being managed for this patient."
@@ -845,9 +875,9 @@ def render_en_scenario(
             key=scenario_key(scenario_id, "patency_flushes"),
         )
         # The hydration schedule exists only to distribute a goal-driven volume,
-        # so it is hidden when no water goal is set. Medication and patency
-        # flushes above are ordered independently and still apply.
-        if water_target is None:
+        # so it is hidden whenever flushes are not being prescribed. Medication
+        # and patency flushes above are ordered independently and still apply.
+        if not plan_hydration_flushes:
             flushes = 0
             hydration_schedule_text = ""
             hydration_chart_schedule_text = ""
@@ -883,14 +913,14 @@ def render_en_scenario(
                 hydration_schedule_text = f"{flushes} times daily"
                 hydration_chart_schedule_text = f"{flushes} times daily"
         hydration = water_plan(
-            water_target, final_planned_delivery["free_water_ml"], modular_totals["free_water_ml"],
+            water_target if plan_hydration_flushes else None, final_planned_delivery["free_water_ml"], modular_totals["free_water_ml"],
             modular_totals["preparation_water_ml"], medication, patency, flushes,
         )
         modular_preparation_water = modular_totals["preparation_water_ml"]
         other_water_flushes = max(
             hydration["water_flushes_total_ml"] - modular_preparation_water, 0
         )
-        if water_target is not None:
+        if plan_hydration_flushes:
             st.markdown(
                 '<p class="summary-line">Calculated hydration flush schedule: '
                 f'<strong>{hydration["hydration_flush_each_ml"]:.0f} mL '
@@ -958,6 +988,7 @@ def render_en_scenario(
             displayed_delivery["energy_kcal"]
             + modular_totals["energy_kcal"]
             + propofol["kcal"]
+            + iv_fluids["energy_kcal"]
             + ons_totals["energy_kcal"]
         )
         if view_percent < 100:
@@ -1029,6 +1060,10 @@ def render_en_scenario(
                         if propofol["kcal"] else ""
                     )
                     + (
+                        f"; {iv_fluids['energy_kcal']:,.0f} kcal from IV fluids"
+                        if iv_fluids["energy_kcal"] else ""
+                    )
+                    + (
                         f"; {ons_totals['energy_kcal']:.0f} kcal from ONS"
                         if ons_totals["energy_kcal"] else ""
                     )
@@ -1055,7 +1090,13 @@ def render_en_scenario(
                 "From feed": displayed_delivery["free_water_ml"],
                 "From other sources": water_sources_text,
                 total_column: displayed_total_water,
-                difference_column: signed_difference(water_difference),
+                # When the requirement is charted rather than filled enterally,
+                # enteral falls short by design, so a difference here would read
+                # as a miss rather than as the plan working as intended.
+                difference_column: (
+                    None if chart_water_only
+                    else signed_difference(water_difference)
+                ),
             })
         final_checks = pd.DataFrame(check_rows)
         render_report_table(final_checks, decimals=PLAN_CHECK_DECIMALS)
@@ -1109,6 +1150,15 @@ def render_en_scenario(
             "P (mmol)": mg_to_mmol("phosphorus", ons_totals["phosphorus_mg"]),
             "Mg (mmol)": mg_to_mmol("magnesium", ons_totals["magnesium_mg"]),
         })
+    if iv_fluids["energy_kcal"] > 0 or iv_fluids["volume_ml"] > 0:
+        source_rows.insert(2, {
+            "Source": "IV fluids", "Energy (kcal)": iv_fluids["energy_kcal"],
+            "Protein (g)": 0,
+            "Carbohydrate (g)": iv_fluids["carbohydrate_g"], "Fat (g)": 0,
+            "Free water (mL)": 0, "Water flushes (mL)": 0,
+            "Na (mmol)": 0, "K (mmol)": 0, "Ca (mmol)": 0, "P (mmol)": 0,
+            "Mg (mmol)": 0,
+        })
     if propofol["kcal"] > 0:
         source_rows.insert(2, {
             "Source": "Propofol", "Energy (kcal)": propofol["kcal"], "Protein (g)": 0,
@@ -1126,6 +1176,7 @@ def render_en_scenario(
             final_planned_delivery["energy_kcal"]
             + modular_totals["energy_kcal"]
             + propofol["kcal"]
+            + iv_fluids["energy_kcal"]
             + ons_totals["energy_kcal"]
         ),
         "Protein (g)": (
@@ -1145,6 +1196,7 @@ def render_en_scenario(
             final_planned_delivery["energy_kcal"]
             + modular_totals["energy_kcal"]
             + propofol["kcal"]
+            + iv_fluids["energy_kcal"]
             + ons_totals["energy_kcal"]
         ),
         "Protein (g)": (
@@ -1155,6 +1207,7 @@ def render_en_scenario(
         "Carbohydrate (g)": (
             final_planned_delivery["carbohydrate_g"]
             + modular_totals["carbohydrate_g"]
+            + iv_fluids["carbohydrate_g"]
             + ons_totals["carbohydrate_g"]
         ),
         "Fat (g)": (
@@ -1174,6 +1227,8 @@ def render_en_scenario(
         "label": label,
         "propofol_rate": propofol_rate, "propofol_hours": propofol_hours,
         "propofol": propofol,
+        "iv_fluids": iv_fluids,
+        "iv_orders": iv_orders,
         "propofol_method": propofol_method,
         "propofol_conditions": conditions,
         "conditional_orders": conditional_orders,
@@ -1187,18 +1242,18 @@ def render_en_scenario(
         "source_frame": source_frame, "total": total,
         "table_notes": [
             note for note in (
-                # Each note explains one cell that does not mean what it looks
-                # like. They are conditional so a plain plan carries none.
+                # Each note explains something on the table that does not mean
+                # what it looks like. They are conditional, so a plain plan
+                # carries none.
                 (
                     "Free water from ONS is shown as oral intake but does not "
                     "affect hydration flush calculations."
                     if ons_totals["free_water_ml"] else ""
                 ),
-                (
-                    f"{propofol['volume_ml']:.0f} mL/day from propofol is not "
-                    "counted as free water."
-                    if propofol["volume_ml"] else ""
-                ),
+                uncounted_volume_note([
+                    (iv_fluids["volume_ml"], "IV fluids"),
+                    (propofol["volume_ml"], "propofol"),
+                ]),
                 undisclosed_note(
                     modular_undisclosed,
                     {"sodium": "Na", "potassium": "K", "calcium": "Ca",

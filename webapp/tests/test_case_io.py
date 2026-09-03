@@ -371,3 +371,47 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(restored["assessment_height_cm"], 165.0)
         self.assertNotIn("assessment_height_unit", restored)
         self.assertNotIn("assessment_height_m", restored)
+
+
+class IVFluidRecordTests(unittest.TestCase):
+    """An entered IV must survive save and reload, and a bad one must be refused."""
+
+    def test_iv_entries_round_trip(self):
+        state = {
+            "case_record_label": "IV case",
+            "assessment_iv_fluid_0": "D5 1/2 NS",
+            "assessment_iv_rate_0": 100.0,
+            "assessment_iv_fluid_1": "",
+            "assessment_iv_rate_1": None,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+        self.assertEqual(restored["assessment_iv_fluid_0"], "D5 1/2 NS")
+        self.assertEqual(restored["assessment_iv_rate_0"], 100.0)
+
+    def test_unknown_fluid_is_refused(self):
+        state = {
+            "case_record_label": "IV case",
+            "assessment_iv_fluid_0": "Something this build does not know",
+            "assessment_iv_rate_0": 100.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+        with self.assertRaises(ValueError):
+            import_case_record_workbook(BytesIO(payload))
+
+    def test_negative_rate_is_refused(self):
+        state = {
+            "case_record_label": "IV case",
+            "assessment_iv_fluid_0": "D5W",
+            "assessment_iv_rate_0": -10.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+        with self.assertRaises(ValueError):
+            import_case_record_workbook(BytesIO(payload))
+

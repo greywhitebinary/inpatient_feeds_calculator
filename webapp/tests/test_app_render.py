@@ -277,7 +277,7 @@ class AssessmentRenderTests(unittest.TestCase):
 
         self.assertFalse(app.exception)
         self.assertTrue(any(
-            "Calculated protein range" in item.value and "77 g/day" in item.value
+            "Calculated protein requirement range" in item.value and "77 g/day" in item.value
             for item in app.markdown
         ))
 
@@ -325,7 +325,7 @@ class AssessmentRenderTests(unittest.TestCase):
 
         self.assertFalse(app.exception)
         rendered_html = "\n".join(item.value for item in app.markdown)
-        self.assertIn("Energy calculations", rendered_html)
+        self.assertIn("Energy requirement calculations", rendered_html)
         self.assertIn("Weight-based range", rendered_html)
         self.assertIn("64.0 kg × 25–30 kcal/kg", rendered_html)
         self.assertIn("1600–1920", rendered_html)

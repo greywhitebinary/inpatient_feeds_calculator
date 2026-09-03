@@ -2,7 +2,7 @@
 
 `formulary_working/ons_products_working.csv` was reviewed on 2026-09-01
 against the local Canadian manufacturer guides listed below. The public CSV
-contains 52 selectable rows, with one row per flavour. The guides present one nutrient panel
+contains 54 selectable rows, with one row per flavour. The guides present one nutrient panel
 for each product and list the available flavours separately, rather than
 providing a separate nutrient panel for every flavour. The CSV therefore
 repeats the product-level guide values for each listed flavour; it does not

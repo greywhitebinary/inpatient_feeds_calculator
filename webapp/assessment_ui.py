@@ -11,12 +11,22 @@ from calculations import (
     hamwi_ibw_kg,
     harris_benedict_kcal,
     height_to_cm,
+    iv_fluid_delivery,
     mifflin_st_jeor_kcal,
     open_abdomen_protein_loss_g,
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
+    total_iv_fluid_delivery,
 )
-from constants import KG_PER_LB, PLAN_GOALS, PROTEIN_WEIGHT_SAME_AS_ENERGY
+from constants import (
+    IV_FLUIDS,
+    KG_PER_LB,
+    MAX_IV_FLUID_ORDERS,
+    PLAN_GOALS,
+    PROTEIN_WEIGHT_SAME_AS_ENERGY,
+    WATER_MODES,
+    WEIGHT_ACRONYMS,
+)
 from session_state import (
     sync_height_from_cm_entry,
     sync_height_from_feet_inches,
@@ -276,7 +286,7 @@ def show_assessment() -> None:
                 "Minute ventilation (L/min)", min_value=0.0, value=None, step=0.1,
                 format="%.1f", key="assessment_minute_ventilation", placeholder="Optional",
             )
-        st.markdown("**Energy calculations**")
+        st.markdown("**Energy requirement calculations**")
         energy_rows: list[dict[str, object]] = []
         if calculation_weight is not None and (
             low_kcal_kg is not None or high_kcal_kg is not None
@@ -378,88 +388,149 @@ def show_assessment() -> None:
             step=25.0, format="%.0f", key="assessment_energy_target", placeholder="Enter goal",
         )
 
-    with st.container(border=True):
-        st.subheader("Protein and water goal ranges")
-        st.caption(
-            "Review the calculated ranges and any additional protein losses, "
-            "then enter the goals used in the EN plan."
+    iv_orders: list[dict[str, float]] = []
+    with st.container(border=True, key="protein_target_box"):
+        st.subheader("Protein assessment")
+        # Protein gets its own weight because practice routinely
+        # prescribes it on a different basis than energy -- commonly
+        # IBW for protein against CBW or AdjBW for energy. The default
+        # follows the energy weight, so a case that never touches this
+        # behaves as it did when one selector drove every figure.
+        def protein_weight_option(value: str) -> str:
+            # The default names the energy weight rather than showing a
+            # figure of its own, so resolve it here. Otherwise the one
+            # option most cases sit on is the only one without a
+            # kilogram value, and the weight driving the protein range
+            # is stated only in a different section of the page.
+            if value != PROTEIN_WEIGHT_SAME_AS_ENERGY:
+                return f"{value} ({weight_options[value]:.1f} kg)"
+            if calculation_weight is None:
+                return value
+            return f"{value} ({calculation_weight:.1f} kg)"
+
+        protein_weight_choice = st.selectbox(
+            "Weight used for protein calculations",
+            [PROTEIN_WEIGHT_SAME_AS_ENERGY] + available_choices,
+            key="assessment_protein_weight_choice",
+            format_func=protein_weight_option,
         )
-        protein_panel, water_panel = st.columns(2, gap="small")
-        with protein_panel:
-            with st.container(border=True, key="protein_target_box"):
-                st.markdown('<div class="target-box-heading"><strong>Protein</strong></div>', unsafe_allow_html=True)
-                # Protein gets its own weight because practice routinely
-                # prescribes it on a different basis than energy -- commonly
-                # IBW for protein against CBW or AdjBW for energy. The default
-                # follows the energy weight, so a case that never touches this
-                # behaves as it did when one selector drove every figure.
-                protein_weight_choice = st.selectbox(
-                    "Weight used for protein calculations",
-                    [PROTEIN_WEIGHT_SAME_AS_ENERGY] + available_choices,
-                    key="assessment_protein_weight_choice",
-                    format_func=lambda value: (
-                        value if value == PROTEIN_WEIGHT_SAME_AS_ENERGY
-                        else f"{value} ({weight_options[value]:.1f} kg)"
-                    ),
+        protein_weight = (
+            calculation_weight
+            if protein_weight_choice == PROTEIN_WEIGHT_SAME_AS_ENERGY
+            else weight_options.get(protein_weight_choice)
+        )
+        protein_low, protein_high = st.columns(2)
+        low_gkg = protein_low.number_input("Lower (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_low_gkg", placeholder="Optional")
+        high_gkg = protein_high.number_input("Upper (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_high_gkg", placeholder="Optional")
+        render_worked_bounds("Calculated protein requirement range", protein_weight, low_gkg, high_gkg, "g/day")
+        with st.expander("Additional protein losses", expanded=False):
+            st.caption(
+                "Open abdomen: exudate volume × protein factor. Suggested factor: "
+                "**15–30 g/L**; use a measured or local value when available."
+            )
+            volume, factor = st.columns(2)
+            exudate_ml = volume.number_input(
+                "Exudate volume (mL/day)", min_value=0.0, value=None, step=25.0,
+                format="%.0f", key="assessment_exudate_ml", placeholder="Optional",
+            )
+            loss_factor = factor.number_input(
+                "Chosen protein factor (g/L)", min_value=0.0, value=None, step=1.0,
+                format="%.0f", key="assessment_protein_loss_factor", placeholder="15–30",
+            )
+            exudate_loss = (
+                open_abdomen_protein_loss_g(exudate_ml, loss_factor)
+                if exudate_ml is not None and loss_factor is not None else None
+            )
+            exudate_result = f"{exudate_loss:.0f} g/day" if exudate_loss is not None else "—"
+            st.markdown(
+                '<p class="worked-bounds">Estimated additional protein loss: '
+                f'<strong>{exudate_result}</strong></p>',
+                unsafe_allow_html=True,
+            )
+            other_loss = st.number_input(
+                "Other clinician-estimated protein loss (g/day)", min_value=0.0, value=None,
+                step=1.0, format="%.0f", key="assessment_other_protein_loss", placeholder="Optional",
+            )
+            entered_losses = [
+                loss for loss in (exudate_loss, other_loss) if loss is not None
+            ]
+            if entered_losses:
+                st.markdown(
+                    f'<p class="worked-bounds">Total additional protein loss: '
+                    f'<strong>{sum(entered_losses):.0f} g/day</strong></p>',
+                    unsafe_allow_html=True,
                 )
-                protein_weight = (
-                    calculation_weight
-                    if protein_weight_choice == PROTEIN_WEIGHT_SAME_AS_ENERGY
-                    else weight_options.get(protein_weight_choice)
+        target_protein = st.number_input("Protein goal for EN plan (g/day)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_protein_target", placeholder="Enter goal")
+
+    with st.container(border=True):
+        st.subheader("Water and IV assessment")
+        st.caption(
+            "Enter any intravenous fluids, then choose whether hydration "
+            "flushes are being prescribed and enter the water goal."
+        )
+        with st.expander("Intravenous fluids", expanded=False):
+            st.caption(
+                "Enter maintenance infusions running over the day. Dextrose "
+                "energy is subtracted from what enteral nutrition must supply. "
+                "Volume is shown so the goals below can account for it; it is "
+                "not subtracted, because the goals are entered net of anything "
+                "given intravenously."
+            )
+            for index in range(MAX_IV_FLUID_ORDERS):
+                fluid_column, rate_column, tkvo_column = st.columns(
+                    [2, 1, 1], vertical_alignment="bottom"
                 )
-                protein_low, protein_high = st.columns(2)
-                low_gkg = protein_low.number_input("Lower (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_low_gkg", placeholder="Optional")
-                high_gkg = protein_high.number_input("Upper (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_high_gkg", placeholder="Optional")
-                render_worked_bounds("Calculated protein range", protein_weight, low_gkg, high_gkg, "g/day")
-                with st.expander("Additional protein losses", expanded=False):
-                    st.caption(
-                        "Open abdomen: exudate volume × protein factor. Suggested factor: "
-                        "**15–30 g/L**; use a measured or local value when available."
-                    )
-                    volume, factor = st.columns(2)
-                    exudate_ml = volume.number_input(
-                        "Exudate volume (mL/day)", min_value=0.0, value=None, step=25.0,
-                        format="%.0f", key="assessment_exudate_ml", placeholder="Optional",
-                    )
-                    loss_factor = factor.number_input(
-                        "Chosen protein factor (g/L)", min_value=0.0, value=None, step=1.0,
-                        format="%.0f", key="assessment_protein_loss_factor", placeholder="15–30",
-                    )
-                    exudate_loss = (
-                        open_abdomen_protein_loss_g(exudate_ml, loss_factor)
-                        if exudate_ml is not None and loss_factor is not None else None
-                    )
-                    exudate_result = f"{exudate_loss:.0f} g/day" if exudate_loss is not None else "—"
-                    st.markdown(
-                        '<p class="worked-bounds">Estimated additional protein loss: '
-                        f'<strong>{exudate_result}</strong></p>',
-                        unsafe_allow_html=True,
-                    )
-                    other_loss = st.number_input(
-                        "Other clinician-estimated protein loss (g/day)", min_value=0.0, value=None,
-                        step=1.0, format="%.0f", key="assessment_other_protein_loss", placeholder="Optional",
-                    )
-                    entered_losses = [
-                        loss for loss in (exudate_loss, other_loss) if loss is not None
-                    ]
-                    if entered_losses:
-                        st.markdown(
-                            f'<p class="worked-bounds">Total additional protein loss: '
-                            f'<strong>{sum(entered_losses):.0f} g/day</strong></p>',
-                            unsafe_allow_html=True,
-                        )
-                target_protein = st.number_input("Protein goal for EN plan (g/day)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_protein_target", placeholder="Enter goal")
-        with water_panel:
-            with st.container(border=True, key="water_target_box"):
-                st.markdown('<div class="target-box-heading"><strong>Water</strong></div>', unsafe_allow_html=True)
-                water_low, water_high = st.columns(2)
-                low_mlkg = water_low.number_input("Lower (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_low_mlkg", placeholder="Optional")
-                high_mlkg = water_high.number_input("Upper (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_high_mlkg", placeholder="Optional")
-                render_worked_bounds(
-                    "Calculated water range", calculation_weight, low_mlkg,
-                    high_mlkg, "mL/day", weight_basis=weight_choice or None,
+                fluid_name = fluid_column.selectbox(
+                    "IV" if index == 0 else f"IV {index + 1}",
+                    [""] + list(IV_FLUIDS),
+                    key=f"assessment_iv_fluid_{index}",
+                    format_func=lambda value: value or "None",
                 )
-                target_water = st.number_input("Water goal for EN plan (mL/day)", min_value=0.0, value=None, step=25.0, format="%.0f", key="assessment_water_target", placeholder="Enter goal")
+                # A line kept open supplies nothing and has no rate worth
+                # entering, so TKVO replaces the rate rather than sitting
+                # beside it. Read before the widget so the rate can be
+                # disabled rather than silently ignored.
+                tkvo = bool(st.session_state.get(f"assessment_iv_tkvo_{index}"))
+                rate = rate_column.number_input(
+                    "Rate (mL/hour)", min_value=0.0, step=5.0, format="%.0f",
+                    value=None, key=f"assessment_iv_rate_{index}",
+                    placeholder="TKVO" if tkvo else "Optional",
+                    disabled=tkvo,
+                )
+                tkvo_column.checkbox("TKVO", key=f"assessment_iv_tkvo_{index}")
+                if fluid_name and not tkvo and rate:
+                    iv_orders.append(iv_fluid_delivery(IV_FLUIDS[fluid_name], number(rate)))
+            if iv_orders:
+                iv_totals = total_iv_fluid_delivery(iv_orders)
+                st.markdown(
+                    '<p class="summary-line">From IVs: Fluids '
+                    f'<strong>{iv_totals["volume_ml"]:,.0f} mL/day</strong>, energy '
+                    f'<strong>{iv_totals["energy_kcal"]:,.0f} kcal/day</strong>, CHO '
+                    f'<strong>{iv_totals["carbohydrate_g"]:,.0f} g/day</strong>'
+                    '</p>',
+                    unsafe_allow_html=True,
+                )
+
+        with st.container(border=True, key="water_target_box"):
+            st.markdown('<div class="target-box-heading"><strong>Water</strong></div>', unsafe_allow_html=True)
+            # Charting the requirement and prescribing flushes are separate
+            # decisions. With a line running the requirement is still
+            # charted, as protein is, but no flush schedule follows from it.
+            st.radio(
+                "Water management", WATER_MODES,
+                key="assessment_water_mode",
+                label_visibility="collapsed",
+            )
+            water_low, water_high = st.columns(2)
+            low_mlkg = water_low.number_input("Lower (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_low_mlkg", placeholder="Optional")
+            high_mlkg = water_high.number_input("Upper (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_high_mlkg", placeholder="Optional")
+            render_worked_bounds(
+                "Calculated water requirement range", calculation_weight, low_mlkg,
+                high_mlkg, "mL/day",
+                weight_basis=WEIGHT_ACRONYMS.get(weight_choice, weight_choice) or None,
+            )
+            target_water = st.number_input("Water goal for EN plan (mL/day)", min_value=0.0, value=None, step=25.0, format="%.0f", key="assessment_water_target", placeholder="Enter goal")
+
 
     st.session_state.assessment_handoff = {
         "energy_target": target_energy, "protein_target": target_protein, "water_target": target_water,

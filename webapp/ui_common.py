@@ -205,6 +205,23 @@ def mmol_if_disclosed(totals: Mapping[str, object], nutrient: str) -> float | No
     return mg_to_mmol(nutrient, totals.get(f"{nutrient}_mg", 0))
 
 
+def uncounted_volume_note(sources: "list[tuple[float, str]]") -> str:
+    """List the infusions whose volume is deliberately outside the water total.
+
+    Both intravenous fluids and propofol are real volume the patient receives,
+    but the water goal is entered net of anything given intravenously, so
+    counting them here would subtract them twice. One heading with a list keeps
+    that from becoming a separate sentence per infusion.
+    """
+    listed = [
+        f"- {volume:,.0f} mL/day from {name}"
+        for volume, name in sources if volume
+    ]
+    if not listed:
+        return ""
+    return "Not counted as free water:\n\n" + "\n".join(listed)
+
+
 def undisclosed_note(
     undisclosed_sources: Mapping[str, list[str]],
     labels: Mapping[str, str],

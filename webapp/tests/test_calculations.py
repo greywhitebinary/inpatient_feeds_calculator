@@ -14,6 +14,7 @@ from calculations import (
     harris_benedict_kcal,
     hydration_flushes_per_day,
     disclosed_value,
+    iv_fluid_delivery,
     mg_to_mmol,
     mifflin_st_jeor_kcal,
     modular_delivery,
@@ -25,11 +26,13 @@ from calculations import (
     practical_feed_delivery,
     propofol_intake,
     suggested_conditional_formula_rate,
+    total_iv_fluid_delivery,
     total_modular_delivery,
     total_propofol_intake,
     total_ons_delivery,
     water_plan,
 )
+from constants import IV_FLUIDS
 
 
 class CalculationTests(unittest.TestCase):
@@ -368,6 +371,80 @@ class OptionalWaterGoalTests(unittest.TestCase):
         real_goal = water_plan(2000, 1150, 0, 0, 0, 0, 4)
         self.assertEqual(no_goal["hydration_flush_each_ml"], 0)
         self.assertGreater(real_goal["hydration_flush_each_ml"], 0)
+
+
+
+class IVFluidTests(unittest.TestCase):
+    """Only dextrose fluids carry energy; every fluid carries volume and most sodium."""
+
+    def test_dextrose_energy_uses_monohydrate_value(self):
+        # 5% is 50 g/L of dextrose monohydrate at 3.4 kcal/g, so 170 kcal/L.
+        delivery = iv_fluid_delivery(IV_FLUIDS["D5W"], 100)
+        self.assertEqual(delivery["volume_ml"], 2400)
+        self.assertAlmostEqual(delivery["energy_kcal"], 408, places=6)
+        self.assertAlmostEqual(delivery["carbohydrate_g"], 120, places=6)
+
+    def test_saline_carries_no_energy_but_a_large_sodium_load(self):
+        delivery = iv_fluid_delivery(IV_FLUIDS["NS"], 100)
+        self.assertEqual(delivery["energy_kcal"], 0)
+        self.assertEqual(delivery["carbohydrate_g"], 0)
+        self.assertAlmostEqual(mg_to_mmol("sodium", delivery["sodium_mg"]), 369.6, places=1)
+
+    def test_lactated_ringers_energy_is_small_but_reported(self):
+        delivery = iv_fluid_delivery(IV_FLUIDS["LR"], 100)
+        self.assertAlmostEqual(delivery["energy_kcal"], 21.6, places=6)
+        self.assertAlmostEqual(mg_to_mmol("potassium", delivery["potassium_mg"]), 9.6, places=1)
+        self.assertAlmostEqual(mg_to_mmol("calcium", delivery["calcium_mg"]), 3.36, places=2)
+
+    def test_partial_day_and_zero_rate(self):
+        fluid = IV_FLUIDS["D5W"]
+        self.assertAlmostEqual(iv_fluid_delivery(fluid, 100, 12)["energy_kcal"], 204, places=6)
+        self.assertEqual(iv_fluid_delivery(fluid, 0)["volume_ml"], 0)
+        self.assertEqual(iv_fluid_delivery(fluid, -50)["volume_ml"], 0)
+
+    def test_concurrent_lines_are_summed(self):
+        totals = total_iv_fluid_delivery([
+            iv_fluid_delivery(IV_FLUIDS["D5W"], 50),
+            iv_fluid_delivery(IV_FLUIDS["NS"], 50),
+        ])
+        self.assertEqual(totals["volume_ml"], 2400)
+        self.assertAlmostEqual(totals["energy_kcal"], 204, places=6)
+        self.assertAlmostEqual(mg_to_mmol("sodium", totals["sodium_mg"]), 184.8, places=1)
+
+    def test_every_listed_fluid_returns_a_complete_shape(self):
+        required = {"volume_ml", "energy_kcal", "carbohydrate_g",
+                    "sodium_mg", "potassium_mg", "calcium_mg", "magnesium_mg"}
+        for name, fluid in IV_FLUIDS.items():
+            with self.subTest(fluid=name):
+                self.assertEqual(set(iv_fluid_delivery(fluid, 100)), required)
+
+    def test_only_dextrose_fluids_carry_energy(self):
+        for name, fluid in IV_FLUIDS.items():
+            with self.subTest(fluid=name):
+                has_dextrose = fluid["dextrose_g_per_l"] > 0
+                # Ringer's carries a little energy from lactate rather
+                # than dextrose, so it is the one exception.
+                is_ringers = name in {"LR", "D5LR"}
+                if not has_dextrose and not is_ringers:
+                    self.assertEqual(fluid["kcal_per_l"], 0, f"{name} should carry no energy")
+
+
+
+class WaterModeTests(unittest.TestCase):
+    """Charting a fluid requirement and prescribing flushes are separate."""
+
+    def test_charted_requirement_prescribes_no_flushes(self):
+        # The plan passes None once the clinician says flushes are not being
+        # given, even though a water goal exists and is still charted.
+        plan = water_plan(None, 880, 0, 120, 120, 0, 6)
+        self.assertEqual(plan["hydration_flush_each_ml"], 0)
+        self.assertEqual(plan["hydration_flush_total_ml"], 0)
+        self.assertEqual(plan["water_flushes_total_ml"], 240)
+
+    def test_same_inputs_with_flushes_requested(self):
+        plan = water_plan(1900, 880, 0, 120, 120, 0, 6)
+        self.assertGreater(plan["hydration_flush_each_ml"], 0)
+        self.assertGreater(plan["total_water_ml"], 1800)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,8 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from calculations import iv_fluid_delivery
+from constants import IV_FLUIDS
 from chart_note import build_chart_note_html
 
 
@@ -280,6 +282,44 @@ class ChartNoteTests(unittest.TestCase):
         note = build_chart_note_html(self.state, [result_fixture()])
         self.assertIn("kcal/day ≈", note)
         self.assertNotIn("kcal/day =", note)
+
+
+
+class IVChartNoteTests(unittest.TestCase):
+    """The note has to say what is running, not only what it supplies."""
+
+    def _note(self, orders):
+        result = result_fixture()
+        result["iv_orders"] = orders
+        return build_chart_note_html(self.state, [result])
+
+    def setUp(self):
+        super().setUp()
+        if not hasattr(self, "state"):
+            self.state = {}
+
+    def test_fluid_is_named_with_its_rate_and_daily_totals(self):
+        order = [{
+            "name": "D5 1/2 NS", "rate_ml_hr": 85.0,
+            "delivery": iv_fluid_delivery(IV_FLUIDS["D5 1/2 NS"], 85),
+        }]
+        note = self._note(order)
+        self.assertIn("D5 1/2 NS at 85 mL/hour", note)
+        self.assertIn("2,040 mL/day", note)
+        self.assertIn("347 kcal/day", note)
+
+    def test_tkvo_names_the_fluid_without_inventing_a_rate(self):
+        order = [{
+            "name": "D5W", "rate_ml_hr": 0.0, "tkvo": True,
+            "delivery": iv_fluid_delivery(IV_FLUIDS["D5W"], 0),
+        }]
+        note = self._note(order)
+        self.assertIn("IV: D5W, TKVO.", note)
+        # A line kept open supplies nothing, so no providing clause follows.
+        self.assertNotIn("providing", note.split("TKVO")[1][:40])
+
+    def test_no_iv_produces_no_line(self):
+        self.assertNotIn("IV:", self._note([]))
 
 
 if __name__ == "__main__":

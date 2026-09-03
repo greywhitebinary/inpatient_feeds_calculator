@@ -211,21 +211,35 @@ column for the three Medtrition modulars will be a structural blank.
 
 ## 4. Smaller items
 
-- **Jevity 1.2 Cal `free_water_per_mL`** is 0.807333, taken from the product
-  sheet's Per 1500 mL column (1211 g). The same sheet's per-100 mL column
-  implies 0.810, and the general guide says 810 g/L. This sheet omits the
-  `Water (g/L)` row the other three carry, so it offers no tiebreaker. The
-  stored value is defensible; the gap is about 2.6 mL of water per litre.
-- **Fibre representation is inconsistent between files.** Where a panel has no
-  fibre row, `canada_formulas_working.csv` leaves the cell blank while
-  `ons_products_working.csv` stores 0.
-- **"Not a significant source of" is a labelling threshold, not a zero.**
-  BOOST Soothe's potassium, calcium, magnesium and phosphorus, and several
-  Beneprotein and MCT Oil fields, are stored as 0 on the strength of that
-  phrase. Under §1 these are arguably unknowns.
+### Done 2026-09-02
+
+- **Fibre representation is now consistent.** 13 formula rows carried a blank
+  where the panel has no fibre row; they now carry an explicit `0`, matching the
+  37 ONS rows and the one formula row (Osmolite 1.2 Cal) that already did. All
+  13 were verified fibre-free, so `0` states a declared absence rather than
+  guessing. This is the precondition `DATA_CONVENTIONS.md` section 1 names
+  before formula fibre blanks could ever be treated as undisclosed.
+- **BanatrAll** `dose_unit` and `basis_description` now say "package", matching
+  the label.
+- **`ONS_VERIFICATION.md`** row count corrected from 52 to 54.
+
+### Still open — each needs an owner decision, not a fix
+
+- **Jevity 1.2 Cal `free_water_per_mL`** is 0.807333, from the product sheet's
+  Per 1500 mL column (1211 g). The same sheet's per-100 mL column implies 0.810,
+  and the general guide says 810 g/L. That sheet omits the `Water (g/L)` row the
+  other three carry, so it has no tiebreaker. The stored value is defensible;
+  the gap is about 2.6 mL of water per litre of feed. Changing it means picking
+  which column of a self-inconsistent document to believe.
+- **"Not a significant source of" is a labelling threshold, not a zero.** BOOST
+  Soothe's potassium, calcium, magnesium and phosphorus, and several Beneprotein
+  and MCT Oil fields, are stored as 0 on the strength of that phrase. Under
+  section 1 these are arguably undisclosed. Storing 0 slightly understates a
+  real but sub-threshold amount; storing a blank would render them as a dash and
+  lose the information that the amount is known to be small. Neither is clearly
+  right.
 - **Flavour rows inherit one panel.** Multi-flavour ONS products carry a single
-  manufacturer panel measured on one flavour. Abbott states explicitly that
-  other Glucerna flavours have "a similar nutritional profile", so three of the
-  four Glucerna rows assert more than the guide supports.
-- **`ONS_VERIFICATION.md` says 52 selectable rows**; the CSV has 54.
-- **BanatrAll `dose_unit`** says "packet"; the label says "package".
+  manufacturer panel measured on one flavour, and Abbott states only that other
+  Glucerna flavours have "a similar nutritional profile". There is no better
+  data to substitute, so this is a question of whether to annotate the rows
+  rather than to correct them. `ONS_VERIFICATION.md` already records it.

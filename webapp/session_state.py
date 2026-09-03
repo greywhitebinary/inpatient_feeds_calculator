@@ -8,16 +8,55 @@ from zipfile import BadZipFile
 import pandas as pd
 import streamlit as st
 
-from calculations import height_to_cm
+from calculations import height_to_cm, iv_fluid_delivery, total_iv_fluid_delivery
 from case_io import CASE_DYNAMIC_PREFIXES, CASE_STATE_KEYS, import_case_record_workbook
 from constants import (
+    IV_FLUIDS,
     KG_PER_LB,
+    MAX_IV_FLUID_ORDERS,
     MEASUREMENT_ENTRY_KEYS,
     PLAN_GOALS,
     PROTEIN_WEIGHT_SAME_AS_ENERGY,
+    WATER_MODE_FLUSHES,
 )
 from data import load_master_formulas, load_master_modulars, load_master_ons
 from ui_common import number
+
+def iv_fluid_orders() -> list[dict[str, object]]:
+    """Each intravenous fluid entered in Assessment, with its rate and delivery.
+
+    Read from session state rather than passed through the assessment handoff,
+    because the plan needs these on every rerun and the handoff is not read
+    outside Assessment. The rate and name travel with the delivery so the chart
+    note can state what is running, not only what it supplies.
+    """
+    orders: list[dict[str, object]] = []
+    for index in range(MAX_IV_FLUID_ORDERS):
+        name = st.session_state.get(f"assessment_iv_fluid_{index}")
+        if name not in IV_FLUIDS:
+            continue
+        tkvo = bool(st.session_state.get(f"assessment_iv_tkvo_{index}"))
+        rate = 0.0 if tkvo else number(
+            st.session_state.get(f"assessment_iv_rate_{index}")
+        )
+        # A line kept open is recorded but supplies nothing, so its delivery is
+        # computed at a zero rate rather than special-cased downstream.
+        if tkvo or rate > 0:
+            orders.append({
+                "name": name,
+                "rate_ml_hr": rate,
+                "tkvo": tkvo,
+                "delivery": iv_fluid_delivery(IV_FLUIDS[name], rate),
+            })
+    return orders
+
+
+def iv_fluid_totals() -> dict[str, float]:
+    """Daily contribution of every intravenous fluid entered in Assessment."""
+    return total_iv_fluid_delivery(
+        [order["delivery"] for order in iv_fluid_orders()]
+    )
+
 
 @st.cache_data
 def master_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -33,6 +72,7 @@ def initialise_state() -> None:
     if "my_ons" not in st.session_state:
         st.session_state.my_ons = ons.iloc[0:0].copy()
     st.session_state.setdefault("case_record_label", "My EN record")
+    st.session_state.setdefault("assessment_water_mode", WATER_MODE_FLUSHES)
     st.session_state.setdefault("_chart_note_case_token", uuid4().hex)
     for goal in PLAN_GOALS:
         assessment_key = str(goal["assessment_key"])

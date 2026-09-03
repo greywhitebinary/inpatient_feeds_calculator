@@ -520,12 +520,41 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             f"{escape(str(result['hydration_chart_schedule_text']))}."
         )
 
+    iv_orders = list(result.get("iv_orders") or [])
+    if iv_orders:
+        described = "; ".join(
+            f"{escape(str(order['name']))}, TKVO" if order.get("tkvo")
+            else (
+                f"{escape(str(order['name']))} at "
+                f"{_fmt(_number(order['rate_ml_hr']))} mL/hour"
+            )
+            for order in iv_orders
+        )
+        iv_volume = sum(
+            _number(dict(order["delivery"]).get("volume_ml")) for order in iv_orders
+        )
+        iv_energy = sum(
+            _number(dict(order["delivery"]).get("energy_kcal")) for order in iv_orders
+        )
+        # A line kept open supplies nothing, so the providing clause is
+        # omitted when every entered line is TKVO.
+        supplied = (
+            f", providing {_fmt(iv_volume)} mL/day"
+            + (f" and {_fmt(iv_energy)} kcal/day" if iv_energy else "")
+            if iv_volume else ""
+        )
+        lines.append(f"IV: {described}{supplied}.")
+
     total = dict(result["chart_total"])
     energy_sources = [(delivery["energy_kcal"], "Formula")]
     energy_sources.extend(
         (_number(item["energy_kcal"]), str(item["name"])) for item in modulars
     )
     energy_sources.append((_number(propofol.get("kcal")), "Propofol"))
+    # chart_total counts intravenous dextrose, so the breakdown has to name
+    # it too or the parts will not sum to the total the sentence states.
+    iv_fluids = dict(result.get("iv_fluids") or {})
+    energy_sources.append((_number(iv_fluids.get("energy_kcal")), "IV fluids"))
     protein_sources = [(delivery["protein_g"], "Formula")]
     protein_sources.extend(
         (_number(item["protein_g"]), str(item["name"])) for item in modulars

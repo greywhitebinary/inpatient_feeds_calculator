@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 
 import pandas as pd
 
+from constants import IV_FLUIDS, WATER_MODES
 from data import load_master_ons, validate_import
 
 
@@ -50,6 +51,7 @@ CASE_STATE_KEYS = {
     "assessment_estimated_weight",
     "assessment_weight_choice",
     "assessment_protein_weight_choice",
+    "assessment_water_mode",
     "assessment_energy_low_kcal_kg",
     "assessment_energy_high_kcal_kg",
     "assessment_indirect_calorimetry",
@@ -97,6 +99,9 @@ CASE_STATE_KEYS = {
 }
 
 CASE_DYNAMIC_PREFIXES = (
+    "assessment_iv_fluid_",
+    "assessment_iv_rate_",
+    "assessment_iv_tkvo_",
     "modular_units_",
     "modular_doses_",
     "modular_water_",
@@ -128,7 +133,7 @@ CASE_BOOL_KEYS = {"assessment_mechanical_ventilation", "en_has_alternate_plan"}
 CASE_STRING_KEYS = {
     "case_record_label", "assessment_sex", "assessment_weight_unit",
     "assessment_height_unit", "assessment_weight_choice",
-    "assessment_protein_weight_choice",
+    "assessment_protein_weight_choice", "assessment_water_mode",
     "assessment_additional_loss_mode", "icu_planned_daily_intake_scenario",
     "en_selected_formula", "en_schedule_type", "en_delivery_view",
     "en_hydration_schedule_format", "planned_daily_intake_scenario",
@@ -142,6 +147,7 @@ CASE_ENUM_VALUES = {
     "en_schedule_type": {"Continuous", "Continuous / cyclic", "Intermittent"},
     "en_delivery_view": {"Full planned EN", "Achieved delivery"},
     "en_hydration_schedule_format": {"times/day", "qXh"},
+    "assessment_water_mode": set(WATER_MODES),
 }
 CASE_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "assessment_age": (18, 120, True),
@@ -257,6 +263,22 @@ def _validate_case_state_value(key: str, value: Any) -> None:
         if key.startswith(prefix):
             _validate_number(key, value, 0)
             return
+
+    if key.startswith("assessment_iv_rate_"):
+        _validate_number(key, value, 0)
+        return
+    if key.startswith("assessment_iv_tkvo_"):
+        if not isinstance(value, bool):
+            raise ValueError(f"Case record requires true or false for {key}.")
+        return
+    if key.startswith("assessment_iv_fluid_"):
+        # An empty string is the selectbox's "no fluid" state. Anything else
+        # must name a fluid this build knows, so a record written by a later
+        # version cannot restore a composition this one cannot cost.
+        _validate_string(key, value)
+        if value not in (None, "") and value not in IV_FLUIDS:
+            raise ValueError(f"Case record names an unknown intravenous fluid: {value}.")
+        return
 
     match = SCENARIO_FIELD_PATTERN.fullmatch(key)
     if match is None:

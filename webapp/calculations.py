@@ -400,6 +400,38 @@ def total_ons_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
     return {key: sum(order.get(key, 0) for order in orders) for key in keys}
 
 
+def iv_fluid_delivery(fluid: Mapping[str, float], rate_ml_hr: float,
+                      hours_per_day: float = 24) -> dict[str, float]:
+    """Calculate what one intravenous fluid contributes over a day.
+
+    Only the dextrose-containing fluids carry energy, but every fluid carries
+    volume and most carry sodium, so the same shape is returned for all of them.
+    Electrolytes are converted from the mmol/L the bag is labelled in to the
+    milligrams the daily intake table sums, so an IV reaches that table through
+    the same path as a formula, a modular, or an ONS.
+    """
+    volume_ml = max(float(rate_ml_hr), 0) * max(float(hours_per_day), 0)
+    litres = volume_ml / 1000
+    result = {
+        "volume_ml": volume_ml,
+        "energy_kcal": litres * float(fluid.get("kcal_per_l", 0) or 0),
+        "carbohydrate_g": litres * float(fluid.get("dextrose_g_per_l", 0) or 0),
+    }
+    for nutrient in ("sodium", "potassium", "calcium", "magnesium"):
+        mmol = litres * float(fluid.get(f"{nutrient}_mmol_per_l", 0) or 0)
+        result[f"{nutrient}_mg"] = mmol * ATOMIC_WEIGHTS_MG_PER_MMOL[nutrient]
+    return result
+
+
+def total_iv_fluid_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
+    """Sum several concurrent intravenous lines."""
+    keys = {
+        "volume_ml", "energy_kcal", "carbohydrate_g",
+        "sodium_mg", "potassium_mg", "calcium_mg", "magnesium_mg",
+    }
+    return {key: sum(order.get(key, 0) for order in orders) for key in keys}
+
+
 def hydration_flushes_per_day(schedule_format: str, schedule_value: int) -> int:
     """Resolve a hydration-flush frequency over a full 24-hour day."""
     value = int(schedule_value)
