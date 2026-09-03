@@ -384,7 +384,7 @@ def show_assessment() -> None:
             with st.container(key="energy_calculations_table"):
                 render_report_table(pd.DataFrame(energy_rows).round(0))
         target_energy = st.number_input(
-            "Energy goal for EN plan (kcal/day)", min_value=0.0, value=None,
+            "Energy goal (kcal/day)", min_value=0.0, value=None,
             step=25.0, format="%.0f", key="assessment_energy_target", placeholder="Enter goal",
         )
 
@@ -460,7 +460,7 @@ def show_assessment() -> None:
                     f'<strong>{sum(entered_losses):.0f} g/day</strong></p>',
                     unsafe_allow_html=True,
                 )
-        target_protein = st.number_input("Protein goal for EN plan (g/day)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_protein_target", placeholder="Enter goal")
+        target_protein = st.number_input("Protein goal (g/day)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_protein_target", placeholder="Enter goal")
 
     with st.container(border=True):
         st.subheader("Water and IV assessment")
@@ -539,7 +539,7 @@ def show_assessment() -> None:
                 high_mlkg, "mL/day",
                 weight_basis=WEIGHT_ACRONYMS.get(weight_choice, weight_choice) or None,
             )
-            target_water = st.number_input("Water goal for EN plan (mL/day)", min_value=0.0, value=None, step=25.0, format="%.0f", key="assessment_water_target", placeholder="Enter goal")
+            target_water = st.number_input("Water goal (mL/day)", min_value=0.0, value=None, step=25.0, format="%.0f", key="assessment_water_target", placeholder="Enter goal")
 
 
     st.session_state.assessment_handoff = {
