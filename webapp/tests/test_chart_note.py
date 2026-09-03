@@ -259,6 +259,23 @@ class ChartNoteTests(unittest.TestCase):
         self.assertIn("(clinician-selected weight 62.0 kg × 25–30 kcal/kg)", note)
         self.assertIn("(clinician-selected weight 62.0 kg × 1.2–1.5 g/kg)", note)
 
+    def test_protein_can_use_a_different_weight_than_energy_and_water(self):
+        """Energy on CBW with protein on IBW is routine practice."""
+        self.state["assessment_protein_weight_choice"] = (
+            "Ideal body weight (Hamwi — SI units)"
+        )
+        note = build_chart_note_html(self.state, [result_fixture()])
+        self.assertIn("(CBW 64.0 kg × 25–30 kcal/kg)", note)
+        self.assertIn("(IBW 56.4 kg × 1.2–1.5 g/kg)", note)
+        # Water deliberately has no selector and follows the energy weight.
+        self.assertIn("(CBW 64.0 kg × 25–30 mL/kg)", note)
+
+    def test_protein_weight_falls_back_to_the_energy_weight(self):
+        """A case saved before protein had its own basis must read unchanged."""
+        self.assertNotIn("assessment_protein_weight_choice", self.state)
+        note = build_chart_note_html(self.state, [result_fixture()])
+        self.assertIn("(CBW 64.0 kg × 1.2–1.5 g/kg)", note)
+
     def test_rounded_energy_equations_are_marked_as_approximate(self):
         note = build_chart_note_html(self.state, [result_fixture()])
         self.assertIn("kcal/day ≈", note)

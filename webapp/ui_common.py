@@ -23,9 +23,15 @@ def number(value: object) -> float:
 
 def render_worked_bounds(
     label: str, calculation_weight: float | None, lower: float | None,
-    upper: float | None, unit: str,
+    upper: float | None, unit: str, weight_basis: str | None = None,
 ) -> None:
-    """Render a complete range or one entered weight-based target value."""
+    """Render a complete range or one entered weight-based target value.
+
+    Pass `weight_basis` where the weight in play is not visible next to the
+    figure. Water has no selector of its own and silently follows the energy
+    weight, so naming the weight is the only way the reader can tell which one
+    produced the range.
+    """
     if calculation_weight is None:
         return
     values = []
@@ -35,8 +41,14 @@ def render_worked_bounds(
         values.append(f"{upper * calculation_weight:.0f}")
     if values:
         result = "–".join(values)
+        basis = (
+            f' <span class="calculated-range-basis">using {calculation_weight:.1f} kg'
+            f' ({weight_basis})</span>'
+            if weight_basis else ""
+        )
         st.markdown(
-            f'<p class="calculated-range">{label}: <strong>{result} {unit}</strong></p>',
+            f'<p class="calculated-range">{label}: '
+            f'<strong>{result} {unit}</strong>{basis}</p>',
             unsafe_allow_html=True,
         )
 

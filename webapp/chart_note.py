@@ -16,6 +16,7 @@ from calculations import (
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
 )
+from constants import PROTEIN_WEIGHT_SAME_AS_ENERGY
 
 
 CHART_NOTE_EDITOR_HTML = """
@@ -121,11 +122,13 @@ def _compact_range(values: Sequence[float]) -> str:
     return "–".join(f"{value:g}" for value in values)
 
 
-def _calculation_weight(state: Mapping[str, object]) -> tuple[float | None, str]:
+def _weight_options(
+    state: Mapping[str, object],
+) -> dict[str, tuple[float | None, str]]:
+    """Every selectable weight, keyed by the label Assessment stores."""
     current = _entered(state, "assessment_current_weight")
     height = _entered(state, "assessment_height_cm")
     sex = str(state.get("assessment_sex") or "")
-    choice = str(state.get("assessment_weight_choice") or "")
     ibw = hamwi_ibw_kg(sex, height) if sex and height is not None else None
     factor = _entered(state, "assessment_adjusted_weight_factor")
     adjusted = (
@@ -146,7 +149,26 @@ def _calculation_weight(state: Mapping[str, object]) -> tuple[float | None, str]
             "clinician-selected weight",
         ),
     }
-    return options.get(choice, (None, "calculation weight"))
+    return options
+
+
+def _calculation_weight(state: Mapping[str, object]) -> tuple[float | None, str]:
+    """The weight driving energy and water, and how to label it."""
+    choice = str(state.get("assessment_weight_choice") or "")
+    return _weight_options(state).get(choice, (None, "calculation weight"))
+
+
+def _protein_weight(state: Mapping[str, object]) -> tuple[float | None, str]:
+    """The weight driving protein, which may differ from the energy weight.
+
+    Falls back to the energy weight when the case predates the protein
+    selector or the clinician left it on its default, so an older saved case
+    reads exactly as it did before protein gained its own basis.
+    """
+    choice = str(state.get("assessment_protein_weight_choice") or "")
+    if not choice or choice == PROTEIN_WEIGHT_SAME_AS_ENERGY:
+        return _calculation_weight(state)
+    return _weight_options(state).get(choice, (None, "calculation weight"))
 
 
 def _penn_state_weight(state: Mapping[str, object]) -> tuple[float | None, str]:
@@ -203,6 +225,7 @@ def _anthropometrics_html(state: Mapping[str, object]) -> str:
 
 def _requirements_html(state: Mapping[str, object]) -> str:
     weight, weight_label = _calculation_weight(state)
+    protein_weight, protein_weight_label = _protein_weight(state)
     sex = str(state.get("assessment_sex") or "")
     height = _entered(state, "assessment_height_cm")
     age = _entered(state, "assessment_age")
@@ -288,11 +311,11 @@ def _requirements_html(state: Mapping[str, object]) -> str:
     protein_low = _entered(state, "assessment_protein_low_gkg")
     protein_high = _entered(state, "assessment_protein_high_gkg")
     protein_bounds = [value for value in (protein_low, protein_high) if value is not None]
-    if weight is not None and protein_bounds:
-        protein_results = [weight * value for value in protein_bounds]
+    if protein_weight is not None and protein_bounds:
+        protein_results = [protein_weight * value for value in protein_bounds]
         protein_parts.append(
             f"{_range(protein_results)} g/day "
-            f"({weight_label} {_fmt(weight, 1)} kg × "
+            f"({protein_weight_label} {_fmt(protein_weight, 1)} kg × "
             f"{_compact_range(protein_bounds)} g/kg)"
         )
     else:

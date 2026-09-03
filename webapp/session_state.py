@@ -10,7 +10,12 @@ import streamlit as st
 
 from calculations import height_to_cm
 from case_io import CASE_DYNAMIC_PREFIXES, CASE_STATE_KEYS, import_case_record_workbook
-from constants import KG_PER_LB, MEASUREMENT_ENTRY_KEYS, PLAN_GOALS
+from constants import (
+    KG_PER_LB,
+    MEASUREMENT_ENTRY_KEYS,
+    PLAN_GOALS,
+    PROTEIN_WEIGHT_SAME_AS_ENERGY,
+)
 from data import load_master_formulas, load_master_modulars, load_master_ons
 from ui_common import number
 
@@ -183,6 +188,7 @@ def load_example_record() -> None:
         "assessment_adjusted_weight_factor": 0.25,
         "assessment_estimated_weight": 62.0,
         "assessment_weight_choice": "Current body weight",
+        "assessment_protein_weight_choice": PROTEIN_WEIGHT_SAME_AS_ENERGY,
         "assessment_indirect_calorimetry": None,
         "assessment_activity_factor": 1.2,
         "assessment_stress_factor": 1.0,

@@ -91,3 +91,12 @@ DAILY_INTAKE_DECIMALS = {
     "P (mmol)": 1,
     "Mg (mmol)": 1,
 }
+
+
+# Energy and protein are routinely set on different weights: practice commonly
+# runs energy on current or adjusted body weight while protein is prescribed on
+# ideal body weight. Assessment therefore offers protein its own weight
+# selector, defaulting to this sentinel so an untouched case behaves exactly as
+# it did when one weight drove all three figures. Water deliberately has no
+# selector of its own and always follows the energy weight.
+PROTEIN_WEIGHT_SAME_AS_ENERGY = "Same as energy weight"

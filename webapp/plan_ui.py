@@ -49,6 +49,13 @@ from ui_common import (
 )
 
 
+# Shared by the header row and every condition row, so the columns line up.
+# The condition column is kept narrow so the Propofol rate sits close to the
+# suggested formula rate it drives; a wide first column reads as two unrelated
+# halves rather than as cause and effect.
+CONDITION_ROW_WIDTHS = [0.8, 0.8, 1, 0.95]
+
+
 def _render_en_prescription(
     scenario_id: str,
     conditional_mode: bool,
@@ -287,6 +294,23 @@ def render_en_scenario(
     if conditional_mode:
         with formula_container:
             st.markdown("**Formula rates by Propofol condition**")
+            # Each column names itself. A heading spanning the pair had to be
+            # centred across two sub-columns that Streamlit separates with a
+            # gap, so it never sat over both, and "Adjust as needed" is an
+            # instruction that does not inherit a noun heading the way
+            # "Suggested" does.
+            header_columns = st.columns(
+                CONDITION_ROW_WIDTHS, vertical_alignment="bottom"
+            )
+            header_columns[1].markdown(
+                '<p class="inline-field-label">Suggested formula rate'
+                '<br><span>(mL/hour)</span></p>',
+                unsafe_allow_html=True,
+            )
+            header_columns[2].markdown(
+                '<p class="inline-field-label"><span>Adjust as needed</span></p>',
+                unsafe_allow_html=True,
+            )
             for condition in conditions:
                 condition_id = str(condition.get("id", "condition"))
                 condition_label = str(condition.get("label", "Propofol condition"))
@@ -318,7 +342,7 @@ def render_en_scenario(
                 elif widget_key not in st.session_state:
                     st.session_state[widget_key] = st.session_state[order_key]
                 condition_columns = st.columns(
-                    [1.55, 0.9, 1, 0.95], vertical_alignment="bottom"
+                    CONDITION_ROW_WIDTHS, vertical_alignment="center"
                 )
                 condition_columns[0].markdown(
                     f'<p class="inline-field-label">{escape(condition_label)}<br>'
@@ -326,13 +350,13 @@ def render_en_scenario(
                     unsafe_allow_html=True,
                 )
                 condition_columns[1].markdown(
-                    '<p class="worked-bounds">Suggested rate:<br>'
-                    f'<strong>{suggestion:.0f} mL/hour</strong></p>',
+                    f'<p class="worked-bounds"><strong>{suggestion:.0f}</strong></p>',
                     unsafe_allow_html=True,
                 )
                 ordered_condition_rate = condition_columns[2].number_input(
-                    "Formula rate (mL/hour)",
+                    f"Formula rate for {condition_label} (mL/hour)",
                     min_value=0.0, step=5.0, format="%.0f", key=widget_key,
+                    label_visibility="collapsed",
                     on_change=sync_propofol_widget,
                     args=(widget_key, order_key, edited_key),
                 )

@@ -16,7 +16,7 @@ from calculations import (
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
 )
-from constants import KG_PER_LB, PLAN_GOALS
+from constants import KG_PER_LB, PLAN_GOALS, PROTEIN_WEIGHT_SAME_AS_ENERGY
 from session_state import (
     sync_height_from_cm_entry,
     sync_height_from_feet_inches,
@@ -197,7 +197,7 @@ def show_assessment() -> None:
     with st.container(border=True):
         st.subheader("Energy assessment")
         weight_choice = st.selectbox(
-            "Weight used for energy, protein, and water calculations",
+            "Weight used for energy and water calculations",
             [""] + available_choices,
             key="assessment_weight_choice",
             format_func=lambda value: (
@@ -388,10 +388,29 @@ def show_assessment() -> None:
         with protein_panel:
             with st.container(border=True, key="protein_target_box"):
                 st.markdown('<div class="target-box-heading"><strong>Protein</strong></div>', unsafe_allow_html=True)
+                # Protein gets its own weight because practice routinely
+                # prescribes it on a different basis than energy -- commonly
+                # IBW for protein against CBW or AdjBW for energy. The default
+                # follows the energy weight, so a case that never touches this
+                # behaves as it did when one selector drove every figure.
+                protein_weight_choice = st.selectbox(
+                    "Weight used for protein calculations",
+                    [PROTEIN_WEIGHT_SAME_AS_ENERGY] + available_choices,
+                    key="assessment_protein_weight_choice",
+                    format_func=lambda value: (
+                        value if value == PROTEIN_WEIGHT_SAME_AS_ENERGY
+                        else f"{value} ({weight_options[value]:.1f} kg)"
+                    ),
+                )
+                protein_weight = (
+                    calculation_weight
+                    if protein_weight_choice == PROTEIN_WEIGHT_SAME_AS_ENERGY
+                    else weight_options.get(protein_weight_choice)
+                )
                 protein_low, protein_high = st.columns(2)
                 low_gkg = protein_low.number_input("Lower (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_low_gkg", placeholder="Optional")
                 high_gkg = protein_high.number_input("Upper (g/kg)", min_value=0.0, value=None, step=0.1, format="%.1f", key="assessment_protein_high_gkg", placeholder="Optional")
-                render_worked_bounds("Calculated protein range", calculation_weight, low_gkg, high_gkg, "g/day")
+                render_worked_bounds("Calculated protein range", protein_weight, low_gkg, high_gkg, "g/day")
                 with st.expander("Additional protein losses", expanded=False):
                     st.caption(
                         "Open abdomen: exudate volume × protein factor. Suggested factor: "
@@ -436,12 +455,16 @@ def show_assessment() -> None:
                 water_low, water_high = st.columns(2)
                 low_mlkg = water_low.number_input("Lower (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_low_mlkg", placeholder="Optional")
                 high_mlkg = water_high.number_input("Upper (mL/kg)", min_value=0.0, value=None, step=1.0, format="%.0f", key="assessment_water_high_mlkg", placeholder="Optional")
-                render_worked_bounds("Calculated water range", calculation_weight, low_mlkg, high_mlkg, "mL/day")
+                render_worked_bounds(
+                    "Calculated water range", calculation_weight, low_mlkg,
+                    high_mlkg, "mL/day", weight_basis=weight_choice or None,
+                )
                 target_water = st.number_input("Water goal for EN plan (mL/day)", min_value=0.0, value=None, step=25.0, format="%.0f", key="assessment_water_target", placeholder="Enter goal")
 
     st.session_state.assessment_handoff = {
         "energy_target": target_energy, "protein_target": target_protein, "water_target": target_water,
         "calculation_weight": calculation_weight,
+        "protein_weight": protein_weight,
     }
 
 

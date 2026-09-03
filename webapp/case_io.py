@@ -49,6 +49,7 @@ CASE_STATE_KEYS = {
     "assessment_adjusted_weight_factor",
     "assessment_estimated_weight",
     "assessment_weight_choice",
+    "assessment_protein_weight_choice",
     "assessment_energy_low_kcal_kg",
     "assessment_energy_high_kcal_kg",
     "assessment_indirect_calorimetry",
@@ -127,6 +128,7 @@ CASE_BOOL_KEYS = {"assessment_mechanical_ventilation", "en_has_alternate_plan"}
 CASE_STRING_KEYS = {
     "case_record_label", "assessment_sex", "assessment_weight_unit",
     "assessment_height_unit", "assessment_weight_choice",
+    "assessment_protein_weight_choice",
     "assessment_additional_loss_mode", "icu_planned_daily_intake_scenario",
     "en_selected_formula", "en_schedule_type", "en_delivery_view",
     "en_hydration_schedule_format", "planned_daily_intake_scenario",
