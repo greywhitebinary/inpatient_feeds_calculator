@@ -39,14 +39,19 @@ def iv_fluid_orders() -> list[dict[str, object]]:
         rate = 0.0 if tkvo else number(
             st.session_state.get(f"assessment_iv_rate_{index}")
         )
+        # An infusion that runs part of the day supplies proportionally less;
+        # counting 12 hours of D5W as 24 would double its energy.
+        stored_hours = st.session_state.get(f"assessment_iv_hours_{index}")
+        hours = 24.0 if stored_hours is None else number(stored_hours)
         # A line kept open is recorded but supplies nothing, so its delivery is
         # computed at a zero rate rather than special-cased downstream.
         if tkvo or rate > 0:
             orders.append({
                 "name": name,
                 "rate_ml_hr": rate,
+                "hours": hours,
                 "tkvo": tkvo,
-                "delivery": iv_fluid_delivery(IV_FLUIDS[name], rate),
+                "delivery": iv_fluid_delivery(IV_FLUIDS[name], rate, hours),
             })
     return orders
 

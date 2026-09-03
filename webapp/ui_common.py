@@ -219,7 +219,7 @@ def uncounted_volume_note(sources: "list[tuple[float, str]]") -> str:
     ]
     if not listed:
         return ""
-    return "Not counted as free water:\n\n" + "\n".join(listed)
+    return "Not counted as free water:\n" + "\n".join(listed)
 
 
 def undisclosed_note(
@@ -242,7 +242,7 @@ def undisclosed_note(
     if not grouped:
         return ""
     parts = [
-        f"{_join_words(nutrients)} not declared by {', '.join(products)}"
+        f"No {_join_words(nutrients)} reported for {', '.join(products)}"
         for products, nutrients in grouped.items()
     ]
     return "; ".join(parts) + "."

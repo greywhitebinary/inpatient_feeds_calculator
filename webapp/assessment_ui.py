@@ -470,15 +470,15 @@ def show_assessment() -> None:
         )
         with st.expander("Intravenous fluids", expanded=False):
             st.caption(
-                "Enter maintenance infusions running over the day. Dextrose "
-                "energy is subtracted from what enteral nutrition must supply. "
-                "Volume is shown so the goals below can account for it; it is "
-                "not subtracted, because the goals are entered net of anything "
-                "given intravenously."
+                "Enter maintenance IVs here with their rate and hours per day. "
+                "Dextrose from these counts toward energy and CHO, changing the "
+                "suggested EN volume and rate. IV fluids here do not count "
+                "toward daily water requirements — Clinician to lower the water "
+                "goal below to avoid over-hydration."
             )
             for index in range(MAX_IV_FLUID_ORDERS):
-                fluid_column, rate_column, tkvo_column = st.columns(
-                    [2, 1, 1], vertical_alignment="bottom"
+                fluid_column, rate_column, hours_column, tkvo_column = st.columns(
+                    [2, 1, 1, 1], vertical_alignment="bottom"
                 )
                 fluid_name = fluid_column.selectbox(
                     "IV" if index == 0 else f"IV {index + 1}",
@@ -497,9 +497,19 @@ def show_assessment() -> None:
                     placeholder="TKVO" if tkvo else "Optional",
                     disabled=tkvo,
                 )
+                hours = hours_column.number_input(
+                    "Hours", min_value=0.0, max_value=24.0, step=1.0,
+                    format="%.0f", value=24.0,
+                    key=f"assessment_iv_hours_{index}",
+                    disabled=tkvo,
+                )
                 tkvo_column.checkbox("TKVO", key=f"assessment_iv_tkvo_{index}")
                 if fluid_name and not tkvo and rate:
-                    iv_orders.append(iv_fluid_delivery(IV_FLUIDS[fluid_name], number(rate)))
+                    iv_orders.append(
+                        iv_fluid_delivery(
+                            IV_FLUIDS[fluid_name], number(rate), number(hours)
+                        )
+                    )
             if iv_orders:
                 iv_totals = total_iv_fluid_delivery(iv_orders)
                 st.markdown(

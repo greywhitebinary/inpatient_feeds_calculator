@@ -527,6 +527,11 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             else (
                 f"{escape(str(order['name']))} at "
                 f"{_fmt(_number(order['rate_ml_hr']))} mL/hour"
+                # A full day needs no saying; a part day does.
+                + (
+                    f" for {_fmt(_number(order.get('hours')))} hours"
+                    if _number(order.get("hours", 24)) not in (0, 24) else ""
+                )
             )
             for order in iv_orders
         )

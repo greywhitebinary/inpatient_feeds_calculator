@@ -58,11 +58,16 @@ care.
 ```sh
 git clone https://github.com/greywhitebinary/inpatient_feeds_calculator.git
 cd inpatient_feeds_calculator
-cd webapp
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/streamlit run app.py
+python3 -m venv webapp/.venv
+webapp/.venv/bin/pip install -r webapp/requirements.txt
+webapp/.venv/bin/streamlit run webapp/app.py
 ```
+
+Run from the repository root, not from `webapp/`. Streamlit reads
+`.streamlit/config.toml` relative to the working directory, and that file — which
+carries the shared colour palette — lives at the root. Starting from inside
+`webapp/` loads no theme, so Streamlit paints its own default red wherever the
+stylesheet does not override it.
 
 The local app opens at `http://localhost:8501` unless you set another port.
 

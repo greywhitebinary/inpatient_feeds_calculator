@@ -222,8 +222,11 @@ def show_icu_propofol() -> None:
             decimals=DAILY_INTAKE_DECIMALS,
             wide=True,
         )
-        for note in result["table_notes"]:
-            st.caption(str(note))
+        # One caption rather than one per note: separate captions each carry
+        # their own block spacing, which reads as a gap between unrelated
+        # remarks when they belong together under the same table.
+        if result["table_notes"]:
+            st.caption("  \n".join(str(note) for note in result["table_notes"]))
 
     with st.container(border=True):
         render_box_heading("Chart note")

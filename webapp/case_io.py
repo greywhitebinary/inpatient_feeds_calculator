@@ -101,6 +101,7 @@ CASE_STATE_KEYS = {
 CASE_DYNAMIC_PREFIXES = (
     "assessment_iv_fluid_",
     "assessment_iv_rate_",
+    "assessment_iv_hours_",
     "assessment_iv_tkvo_",
     "modular_units_",
     "modular_doses_",
@@ -266,6 +267,9 @@ def _validate_case_state_value(key: str, value: Any) -> None:
 
     if key.startswith("assessment_iv_rate_"):
         _validate_number(key, value, 0)
+        return
+    if key.startswith("assessment_iv_hours_"):
+        _validate_number(key, value, 0, 24)
         return
     if key.startswith("assessment_iv_tkvo_"):
         if not isinstance(value, bool):

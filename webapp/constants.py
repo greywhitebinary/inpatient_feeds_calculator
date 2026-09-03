@@ -186,8 +186,8 @@ MAX_IV_FLUID_ORDERS = 3
 # schedule out of it. A blank water goal cannot express that, because it hides
 # the requirement as well as the flushes.
 WATER_MODE_FLUSHES = (
-    "Chart water requirement range and use the water goal for EN plan "
-    "to calculate hydration flushes"
+    "Chart water requirement range and use the water goal to calculate "
+    "required hydration flushes"
 )
 WATER_MODE_CHART_ONLY = (
     "IV fluids running — chart water requirement range only"
