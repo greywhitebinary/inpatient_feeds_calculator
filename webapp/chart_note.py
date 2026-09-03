@@ -490,6 +490,13 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             f"Initiate trickle EN with {escape(str(formula['name']))} at "
             f"{escape(str(result['schedule_description']))}."
         )
+    elif bool(result.get("regimen_already_running")):
+        # A note for a regimen already running should say so, rather than
+        # reading as though the feed were being started today.
+        lines.append(
+            f"Continue enteral nutrition: {escape(str(formula['name']))} at "
+            f"{escape(str(result['schedule_description']))}."
+        )
     else:
         lines.append(
             f"Enteral nutrition plan: {escape(str(formula['name']))} at "
@@ -514,10 +521,29 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
         )
 
     hydration_each = _number(hydration.get("hydration_flush_each_ml"))
-    if hydration_each > 0:
+    hydration_ordered_total = _number(hydration.get("hydration_flush_total_ml"))
+    as_ordered = bool(result.get("hydration_entered_as_ordered"))
+    # Gate on the total rather than the per-flush amount. An order mixing two
+    # volumes has a real total and no single each-amount, and testing the
+    # each-amount silently dropped the whole hydration sentence from the note.
+    if as_ordered and hydration_ordered_total > 0:
+        # The ordered wording already names each volume and its frequency, so
+        # quoting a per-flush amount in front of it would say the volume twice.
+        lines.append(
+            "Hydration: Provide "
+            f"{escape(str(result['hydration_chart_schedule_text']))}, "
+            f"totalling {_fmt(hydration_ordered_total)} mL daily."
+        )
+    elif hydration_each > 0:
         lines.append(
             f"Hydration: Provide {_fmt(hydration_each)} mL water flushes "
             f"{escape(str(result['hydration_chart_schedule_text']))}."
+        )
+    elif hydration_ordered_total > 0:
+        lines.append(
+            "Hydration: Provide "
+            f"{escape(str(result['hydration_chart_schedule_text']))}, "
+            f"totalling {_fmt(hydration_ordered_total)} mL daily."
         )
 
     iv_orders = list(result.get("iv_orders") or [])
@@ -595,12 +621,21 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     if patency:
         water_sources.append(f"Patency flushes {_fmt(patency)} mL")
     if hydration_total:
-        water_sources.append(
-            f"Hydration flushes {_fmt(hydration_each)} mL "
-            f"{result['hydration_chart_schedule_text']}"
-        )
+        # An ordered schedule names its own volumes, and a mixed order has no
+        # single each-amount, so both state the daily total rather than quote a
+        # per-flush figure that would either repeat or be invented.
+        if as_ordered or hydration_each <= 0:
+            water_sources.append(
+                f"Hydration flushes {_fmt(hydration_total)} mL daily "
+                f"({result['hydration_chart_schedule_text']})"
+            )
+        else:
+            water_sources.append(
+                f"Hydration flushes {_fmt(hydration_each)} mL "
+                f"{result['hydration_chart_schedule_text']}"
+            )
 
-    total_water = _number(total["Free water (mL)"]) + _number(total["Water flushes (mL)"])
+    total_water = _number(total["Water (mL)"])
     if ons:
         ons_energy = _number(ons_totals.get("energy_kcal"))
         ons_protein = _number(ons_totals.get("protein_g"))

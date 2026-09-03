@@ -164,6 +164,132 @@ class CaseRecordTests(unittest.TestCase):
         self.assertIn("assessment_energy_target", restored)
         self.assertIsNone(restored["assessment_energy_target"])
 
+    def test_round_trip_preserves_an_ordered_flush_schedule(self):
+        state = {
+            "case_record_label": "Running flush order",
+            "scenario_standard_regimen_source": "Reviewing a feed already running",
+            "scenario_standard_hydration_entry_mode": "Enter flushes as ordered",
+            "scenario_standard_peri_feed_flush_pattern": "Before and after each feed",
+            "scenario_standard_peri_feed_flush_volume_ml": 150.0,
+            "scenario_standard_ordered_flush_times_per_day": 1,
+            "scenario_standard_ordered_flush_volume_ml": 150.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_round_trip_preserves_a_rate_and_duration_order(self):
+        state = {
+            "case_record_label": "Bolus by rate",
+            "scenario_standard_schedule_type": "Intermittent",
+            "scenario_standard_order_entry_form": "A rate in mL/hour, run for a set time each feed",
+            "scenario_standard_ordered_entry_form": "A rate in mL/hour, run for a set time each feed",
+            "scenario_standard_hours_per_feed": 2.0,
+            "scenario_standard_feeds_per_day": 3,
+            "scenario_standard_ordered_rate_ml_hr": 180.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_round_trip_preserves_a_reviewed_running_order(self):
+        # A record saved while reviewing carries the running-shape field. It was
+        # unregistered at first, so saving in that mode produced a file that
+        # would not reopen.
+        state = {
+            "case_record_label": "Reviewed on admission",
+            "scenario_standard_regimen_source": "Reviewing a feed already running",
+            "scenario_standard_running_shape": (
+                "In separate feeds, each run at a rate for a set time"
+            ),
+            "scenario_standard_hours_per_feed": 2.0,
+            "scenario_standard_feeds_per_day": 3,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_round_trip_preserves_a_daily_total_order(self):
+        state = {
+            "case_record_label": "Written as a daily total",
+            "scenario_standard_order_entry_form": "A total volume in mL per day",
+            "scenario_standard_ordered_daily_volume_ml": 1080.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_import_rejects_an_invalid_order_entry_form(self):
+        payload = export_case_record_workbook(
+            {"scenario_standard_order_entry_form": "A rate in mL/hour"},
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+        workbook = load_workbook(BytesIO(payload))
+        workbook["Case inputs"]["B2"] = '"Any old way"'
+        edited = BytesIO()
+        workbook.save(edited)
+
+        with self.assertRaisesRegex(ValueError, "unsupported order entry form"):
+            import_case_record_workbook(BytesIO(edited.getvalue()))
+
+    def test_record_saved_before_the_new_flush_fields_still_opens(self):
+        # A record written before this work simply lacks the new fields. It must
+        # open unchanged, with the defaults supplied at seeding time rather than
+        # by any conversion step here.
+        payload = export_case_record_workbook(
+            {
+                "case_record_label": "Pre-change record",
+                "assessment_age": 67,
+                "scenario_standard_schedule_type": "Continuous / cyclic",
+                "scenario_standard_feeding_hours": 23.0,
+                "scenario_standard_hydration_flushes": 6,
+            },
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        self.assertEqual(restored["scenario_standard_feeding_hours"], 23.0)
+        self.assertEqual(restored["scenario_standard_hydration_flushes"], 6)
+        self.assertNotIn("scenario_standard_regimen_source", restored)
+        self.assertNotIn("scenario_standard_hydration_entry_mode", restored)
+
+    def test_import_rejects_an_invalid_hydration_entry_mode(self):
+        payload = export_case_record_workbook(
+            {"scenario_standard_hydration_entry_mode": "Enter flushes as ordered"},
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+        workbook = load_workbook(BytesIO(payload))
+        workbook["Case inputs"]["B2"] = '"Guess the flushes"'
+        edited = BytesIO()
+        workbook.save(edited)
+
+        with self.assertRaisesRegex(ValueError, "unsupported hydration entry mode"):
+            import_case_record_workbook(BytesIO(edited.getvalue()))
+
     def test_download_excludes_generated_and_edited_chart_note_state(self):
         payload = export_case_record_workbook(
             {

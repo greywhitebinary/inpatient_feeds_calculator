@@ -231,24 +231,25 @@ def practical_feed_delivery(formula: Mapping[str, object], en_energy_target_kcal
                             hours_per_day: float, achieved_percent: float = 100,
                             schedule_type: str = "Continuous / cyclic",
                             feeds_per_day: int = 1) -> dict[str, float]:
-    """Calculate delivery from a pump- or feed-volume order rounded to 5 mL."""
-    unrounded = feed_delivery(formula, en_energy_target_kcal, hours_per_day, 100)
-    kcal_per_ml = float(formula["kcal_per_mL"])
-    if schedule_type == "Continuous / cyclic":
-        ordered_rate = floor(unrounded["rate_ml_hr"] / 5 + 0.5) * 5
-        ordered_volume = ordered_rate * hours_per_day
-        result = feed_delivery(formula, ordered_volume * kcal_per_ml, hours_per_day, achieved_percent)
-        result["ordered_rate_ml_hr"] = ordered_rate
-        result["ordered_volume_per_feed_ml"] = 0.0
-        return result
+    """Calculate delivery from a pump- or feed-volume order rounded to 5 mL.
 
-    safe_feeds = max(int(feeds_per_day), 1)
-    ordered_volume_per_feed = floor(unrounded["planned_volume_ml"] / safe_feeds / 5 + 0.5) * 5
-    ordered_volume = ordered_volume_per_feed * safe_feeds
-    result = feed_delivery(formula, ordered_volume * kcal_per_ml, hours_per_day, achieved_percent)
-    result["ordered_rate_ml_hr"] = 0.0
-    result["ordered_volume_per_feed_ml"] = ordered_volume_per_feed
-    return result
+    The rounded amount is handed straight to `ordered_feed_delivery`, so a
+    suggestion and the same figure typed by hand cannot disagree. Rounding is
+    applied to whichever quantity the clinician actually sets: the pump rate on
+    a continuous schedule, and the volume per feed on an intermittent one.
+    """
+    unrounded = feed_delivery(formula, en_energy_target_kcal, hours_per_day, 100)
+    if schedule_type == "Continuous / cyclic":
+        ordered_amount = floor(unrounded["rate_ml_hr"] / 5 + 0.5) * 5
+    else:
+        safe_feeds = max(int(feeds_per_day), 1)
+        ordered_amount = floor(
+            unrounded["planned_volume_ml"] / safe_feeds / 5 + 0.5
+        ) * 5
+    return ordered_feed_delivery(
+        formula, ordered_amount, hours_per_day, achieved_percent,
+        schedule_type, feeds_per_day,
+    )
 
 
 def ordered_feed_delivery(formula: Mapping[str, object], ordered_amount_ml: float,
@@ -444,10 +445,42 @@ def hydration_flushes_per_day(schedule_format: str, schedule_value: int) -> int:
     return value
 
 
+def ordered_flush_schedule(lines: list[Mapping[str, float]]) -> dict[str, float]:
+    """Total hydration flushes exactly as they are written on the chart.
+
+    An order such as "150 mL before and after each of three feeds, plus 150 mL
+    overnight" is two lines: 150 mL six times, and 150 mL once. Nothing is
+    derived from a water goal, so the total is what was ordered rather than what
+    would have met a target.
+
+    `hydration_flush_each_ml` is the shared volume when every ordered line uses
+    one, and 0.0 when the order mixes volumes. Callers must therefore report the
+    total, not the per-flush amount, when deciding whether an order exists at
+    all: a mixed order has a real total and no single each-amount.
+    """
+    total_ml = 0.0
+    count = 0
+    volumes: set[float] = set()
+    for line in lines:
+        times_per_day = int(max(float(line.get("times_per_day", 0) or 0), 0))
+        volume_each_ml = max(float(line.get("volume_each_ml", 0) or 0), 0)
+        if times_per_day <= 0 or volume_each_ml <= 0:
+            continue
+        total_ml += volume_each_ml * times_per_day
+        count += times_per_day
+        volumes.add(volume_each_ml)
+    return {
+        "hydration_flush_total_ml": total_ml,
+        "hydration_flush_count": count,
+        "hydration_flush_each_ml": volumes.pop() if len(volumes) == 1 else 0.0,
+    }
+
+
 def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
                modular_free_water_ml: float, modular_preparation_water_ml: float,
                medication_flush_ml: float, patency_flush_ml: float,
-               hydration_flushes_per_day: int) -> dict[str, float]:
+               hydration_flushes_per_day: int,
+               ordered_flushes: Mapping[str, float] | None = None) -> dict[str, float]:
     """Calculate counted water and a practical, rounded hydration flush amount.
 
     `water_target_ml` may be None, meaning no enteral water goal was set. That
@@ -456,21 +489,42 @@ def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
     medication and patency flushes still count, but no hydration flush is
     prescribed, so nothing downstream states a flush volume the clinician did
     not ask for.
+
+    `ordered_flushes` inverts the calculation for a patient already on a flush
+    regimen. Pass the result of `ordered_flush_schedule`: the volume is known,
+    so the total is reported as written rather than derived from a goal, and it
+    is deliberately not rounded to 5 mL because rounding a figure the clinician
+    typed would misreport the order. It also applies without a water goal, since
+    a running flush order is a fact whether or not an enteral water target is
+    being managed.
+
+    The per-flush amount is taken from that schedule rather than recomputed
+    here. Dividing the total by the count would invent a figure for an order
+    mixing two volumes, reporting 160 mL for an order of 200 mL three times and
+    100 mL twice, when no flush is 160 mL.
     """
     existing_water = (
         formula_free_water_ml + modular_free_water_ml + modular_preparation_water_ml
         + medication_flush_ml + patency_flush_ml
     )
-    hydration_total = (
-        0.0 if water_target_ml is None
-        else max(water_target_ml - existing_water, 0)
-    )
-    each_hydration_flush = (hydration_total / hydration_flushes_per_day
-                            if hydration_flushes_per_day else 0)
-    # Match practical feed-volume rounding: exact half-way values round up,
-    # rather than following Python's bankers-rounding rule.
-    rounded_each = floor(each_hydration_flush / 5 + 0.5) * 5
-    rounded_total = rounded_each * hydration_flushes_per_day
+    if ordered_flushes is not None:
+        rounded_total = max(
+            float(ordered_flushes.get("hydration_flush_total_ml", 0) or 0), 0
+        )
+        rounded_each = max(
+            float(ordered_flushes.get("hydration_flush_each_ml", 0) or 0), 0
+        )
+    else:
+        hydration_total = (
+            0.0 if water_target_ml is None
+            else max(water_target_ml - existing_water, 0)
+        )
+        each_hydration_flush = (hydration_total / hydration_flushes_per_day
+                                if hydration_flushes_per_day else 0)
+        # Match practical feed-volume rounding: exact half-way values round up,
+        # rather than following Python's bankers-rounding rule.
+        rounded_each = floor(each_hydration_flush / 5 + 0.5) * 5
+        rounded_total = rounded_each * hydration_flushes_per_day
     return {
         "counted_before_hydration_ml": existing_water,
         "hydration_flush_total_ml": rounded_total,

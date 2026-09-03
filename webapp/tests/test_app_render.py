@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 import sys
 import unittest
@@ -847,6 +848,514 @@ class AssessmentRenderTests(unittest.TestCase):
             r"Hydration: Provide \d+ mL water flushes q4h\.",
         )
 
+    def _volume_per_feed_from_summary(self, app):
+        # Every intermittent form names the volume per feed, whichever pair of
+        # numbers was typed, so it is the invariant to compare across them.
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        match = re.search(
+            r"<strong>([\d,]+) mL per feed</strong>", rendered_html
+        )
+        self.assertIsNotNone(match, "no order summary rendered")
+        return int(match.group(1).replace(",", ""))
+
+    def _daily_volume_from_summary(self, app):
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        match = re.search(
+            r"<strong>([\d,]+) mL</strong> formula/day", rendered_html
+        )
+        self.assertIsNotNone(match, "no order summary rendered")
+        return int(match.group(1).replace(",", ""))
+
+    def test_every_entry_form_for_the_same_order_agrees_on_the_daily_volume(self):
+        # The central guarantee of the entry forms. 180 mL/hour for 2 hours
+        # three times daily, 360 mL per feed three times daily, and 1080 mL a
+        # day across three feeds are the same order written three ways.
+        volumes = {}
+
+        for form, setup in (
+            ("A volume in mL per feed", {"scenario_standard_ordered_volume_per_feed_ml": 360}),
+            ("A rate in mL/hour, run for a set time each feed", {"scenario_standard_ordered_rate_ml_hr": 180}),
+            ("A total volume in mL per day", {"scenario_standard_ordered_daily_volume_ml": 1080}),
+        ):
+            app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+            next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+            next(
+                item for item in app.radio
+                if item.key == "scenario_standard_schedule_type"
+            ).set_value("Intermittent").run(timeout=30)
+            next(
+                item for item in app.radio
+                if item.key == "scenario_standard_order_entry_form"
+            ).set_value(form).run(timeout=30)
+            next(
+                item for item in app.number_input
+                if item.key == "scenario_standard_feeds_per_day"
+            ).set_value(3).run(timeout=30)
+            if form == "A rate in mL/hour, run for a set time each feed":
+                next(
+                    item for item in app.number_input
+                    if item.key == "scenario_standard_hours_per_feed"
+                ).set_value(2.0).run(timeout=30)
+            for key, value in setup.items():
+                next(
+                    item for item in app.number_input if item.key == key
+                ).set_value(value).run(timeout=30)
+
+            self.assertFalse(app.exception, f"{form} raised")
+            volumes[form] = self._volume_per_feed_from_summary(app)
+
+        self.assertEqual(set(volumes.values()), {360}, volumes)
+
+    def test_the_presenting_case_charts_correctly_end_to_end(self):
+        # Isosource Fibre 1.5 at 180 mL/hour for 2 hours three times daily,
+        # with 150 mL flushes before and after each feed plus 150 mL overnight.
+        # Entered exactly as the chart writes it, with the assessment untouched.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.text_input if item.key == "feed_search"
+        ).set_value("Isosource Fibre 1.5").run(timeout=30)
+        next(
+            item for item in app.button
+            if str(item.key).startswith("add_feed_")
+        ).click().run(timeout=30)
+        next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        ).set_value(["Isosource Fibre 1.5"]).run(timeout=30)
+
+        for key, value in (
+            ("scenario_standard_regimen_source", "Reviewing a feed already running"),
+            (
+                "scenario_standard_running_shape",
+                "In separate feeds, each run at a rate for a set time",
+            ),
+            ("scenario_standard_hydration_entry_mode", "Enter flushes as ordered"),
+        ):
+            next(
+                item for item in app.radio if item.key == key
+            ).set_value(value).run(timeout=30)
+        next(
+            item for item in app.selectbox
+            if item.key == "scenario_standard_peri_feed_flush_pattern"
+        ).select("Before and after each feed").run(timeout=30)
+        for key, value in (
+            ("scenario_standard_hours_per_feed", 2.0),
+            ("scenario_standard_feeds_per_day", 3),
+            ("scenario_standard_ordered_rate_ml_hr", 180),
+            ("scenario_standard_peri_feed_flush_volume_ml", 150),
+            ("scenario_standard_ordered_flush_times_per_day", 1),
+            ("scenario_standard_ordered_flush_volume_ml", 150),
+            ("scenario_standard_medication_flushes", 0),
+        ):
+            next(
+                item for item in app.number_input if item.key == key
+            ).set_value(value).run(timeout=30)
+        next(
+            item for item in app.multiselect
+            if item.key == "scenario_standard_chosen_modulars"
+        ).set_value([]).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn(
+            "Continue enteral nutrition: Isosource Fibre 1.5 at 180 mL/hour "
+            "over 2 hours per feed, 3 feeds daily (360 mL per feed).",
+            note,
+        )
+        self.assertIn(
+            "Hydration: Provide 150 mL before and after each feed and 150 mL "
+            "once daily, totalling 1,050 mL daily.",
+            note,
+        )
+        self.assertIn("energy 1,620 kcal", note)
+        self.assertIn("Total water provided is 1,877 mL/day", note)
+        # The volume must never be said twice, which the first wording did.
+        self.assertNotIn("150 mL water flushes 150 mL", note)
+
+    def test_rate_and_time_per_feed_is_charted_the_way_it_was_entered(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_schedule_type"
+        ).set_value("Intermittent").run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_order_entry_form"
+        ).set_value("A rate in mL/hour, run for a set time each feed").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_feeds_per_day"
+        ).set_value(3).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_hours_per_feed"
+        ).set_value(2.0).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        ).set_value(180).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("180 mL/hour over 2 hours per feed, 3 feeds daily", chart_note)
+
+    def test_feeding_hours_beyond_a_day_warn_without_changing_the_arithmetic(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_schedule_type"
+        ).set_value("Intermittent").run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_order_entry_form"
+        ).set_value("A rate in mL/hour, run for a set time each feed").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_feeds_per_day"
+        ).set_value(6).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_hours_per_feed"
+        ).set_value(5.0).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        ).set_value(100).run(timeout=30)
+
+        # 5 hours across 6 feeds is 30 hours. The tool warns rather than
+        # refusing, and still reports what was entered.
+        self.assertFalse(app.exception)
+        self.assertTrue(any("more than a day" in item.value for item in app.warning))
+        self.assertEqual(self._daily_volume_from_summary(app), 3000)
+
+    def test_conditional_propofol_mode_offers_no_entry_form_picker(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_en_plan_propofol"
+        ).click().run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_propofol_method"
+        ).set_value("Changing Propofol rates").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        # Feeding hours are split across the sedation conditions, so a per-feed
+        # form has nothing to mean and the picker is withheld.
+        self.assertNotIn(
+            "scenario_propofol_order_entry_form",
+            {item.key for item in app.radio},
+        )
+
+    def test_intake_table_keeps_one_water_column_with_iv_fluids_running(self):
+        # The IV row was left on the old two-column shape, which gave the table
+        # stray columns and left that row with no water value at all. Nothing
+        # exercised the intake table with a line running, so it passed.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.selectbox if item.key == "assessment_iv_fluid_0"
+        ).select("D5W").run(timeout=30)
+        next(
+            item for item in app.number_input if item.key == "assessment_iv_rate_0"
+        ).set_value(100).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("Water (mL)", rendered_html)
+        self.assertNotIn("Free water (mL)<", rendered_html)
+        self.assertNotIn("Water flushes (mL)<", rendered_html)
+        # The fluid's volume is reported even though it is not counted as water.
+        self.assertIn("IV fluids", rendered_html)
+        self.assertIn(">2400<", rendered_html)
+
+    def test_ordered_flushes_count_while_iv_fluids_are_running(self):
+        # The intensive care case. With a line running, fluid needs are charted
+        # rather than filled enterally, which used to zero the flushes out of
+        # the totals even when they were genuinely ordered.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        water_mode = next(
+            item for item in app.radio if item.key == "assessment_water_mode"
+        )
+        chart_only = next(
+            option for option in water_mode.options if "IV fluids running" in option
+        )
+        water_mode.set_value(chart_only).run(timeout=30)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_hydration_entry_mode"
+        ).set_value("Enter flushes as ordered").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_times_per_day"
+        ).set_value(6).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_volume_ml"
+        ).set_value(100).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("600 mL/day", rendered_html)
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("Hydration", chart_note)
+
+    def test_chart_note_says_continue_for_a_regimen_already_running(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        before = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("Enteral nutrition plan:", before)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        after = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("Continue enteral nutrition:", after)
+        self.assertNotIn("Enteral nutrition plan:", after)
+
+    def test_starting_a_feed_shows_the_comparison_and_reviewing_does_not(self):
+        # The two jobs get different screens. Choosing a feed is a browsing job
+        # and the comparison is the point of it. Reviewing a running order is a
+        # transcription job, where suggested rates for feeds nobody asked about
+        # are noise, so the whole order sits in one box instead.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        # Both plan tabs render on every run, so count rather than search: the
+        # Propofol tab keeps its own comparison while the EN plan loses one.
+        def counts(app):
+            headings = "\n".join(item.value for item in app.markdown)
+            captions = "\n".join(str(item.value) for item in app.caption)
+            return (
+                headings.count("Formula comparison"),
+                headings.count("Select formula</"),
+                headings.count("The order that is running"),
+                # The pointer to another box must go with the box it names.
+                captions.count("in the **Select formula** box below"),
+            )
+
+        self.assertEqual(counts(app), (2, 2, 0, 2))
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(counts(app), (1, 1, 1, 1))
+        # One question replaces the schedule radio and the form radio nested
+        # inside it, because transcribing an order does not need both.
+        review_radios = {item.key for item in app.radio}
+        self.assertIn("scenario_standard_running_shape", review_radios)
+        self.assertNotIn("scenario_standard_schedule_type", review_radios)
+        self.assertNotIn("scenario_standard_order_entry_form", review_radios)
+        # No prescription target either: the goal is the assessed requirement.
+        self.assertNotIn(
+            "scenario_standard_prescription_target_pct",
+            {item.key for item in app.number_input},
+        )
+        self.assertIn(
+            "scenario_standard_selected_formula",
+            {item.key for item in app.selectbox},
+        )
+
+    def test_existing_regimen_rate_is_not_overwritten_by_the_suggestion(self):
+        # The running order is the fact. Entering it must survive a rerun that
+        # the clinician did not cause, which is what the suggestion used to win.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        ).set_value(180).run(timeout=30)
+
+        # An unrelated change elsewhere reruns the whole page.
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_medication_flushes"
+        ).set_value(60).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(
+            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
+        )
+
+    def test_existing_regimen_entry_survives_a_formula_change(self):
+        # Comparing an alternative feed is not abandoning the order. The rate
+        # keeps its units, so it stays and drives the comparison.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        ).set_value(["Isosource 1.5", "Peptamen 1.5"]).run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        ).set_value(180).run(timeout=30)
+
+        next(
+            item for item in app.selectbox
+            if item.key == "scenario_standard_selected_formula"
+        ).select("Peptamen 1.5").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(
+            app.session_state["scenario_standard_selected_formula"], "Peptamen 1.5"
+        )
+        self.assertEqual(
+            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
+        )
+
+    def test_starting_a_new_feed_still_discards_a_rate_on_a_formula_change(self):
+        # The contrasting half of the test above. The default direction of work
+        # must keep its existing behaviour, where a manually entered rate is
+        # dropped and the suggestion returns once the feed changes.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        self.assertEqual(
+            app.session_state["scenario_standard_regimen_source"],
+            "Starting a new feed",
+        )
+        next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        ).set_value(["Isosource 1.5", "Peptamen 1.5"]).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        ).set_value(180).run(timeout=30)
+        self.assertEqual(
+            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
+        )
+
+        next(
+            item for item in app.selectbox
+            if item.key == "scenario_standard_selected_formula"
+        ).select("Peptamen 1.5").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertNotEqual(
+            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
+        )
+
+    def test_ordered_flushes_are_totalled_as_written_and_leave_the_goal_alone(self):
+        # The presenting case: a patient already running 150 mL flushes before
+        # and after each of three feeds, plus 150 mL overnight, which totals
+        # 1050 mL. None of that is derivable from a water goal.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        water_goal_before = app.session_state["assessment_water_target"]
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_schedule_type"
+        ).set_value("Intermittent").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_feeds_per_day"
+        ).set_value(3).run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_hydration_entry_mode"
+        ).set_value("Enter flushes as ordered").run(timeout=30)
+        next(
+            item for item in app.selectbox
+            if item.key == "scenario_standard_peri_feed_flush_pattern"
+        ).select("Before and after each feed").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_peri_feed_flush_volume_ml"
+        ).set_value(150).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_times_per_day"
+        ).set_value(1).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_volume_ml"
+        ).set_value(150).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("Ordered hydration flushes:", rendered_html)
+        self.assertIn("1,050 mL/day", rendered_html)
+        # The assessed requirement must survive untouched, which is the whole
+        # point of entering the order rather than back-solving the goal.
+        self.assertEqual(
+            app.session_state["assessment_water_target"], water_goal_before
+        )
+
+    def test_ordered_flush_entry_does_not_round_away_the_entered_volume(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_hydration_entry_mode"
+        ).set_value("Enter flushes as ordered").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_times_per_day"
+        ).set_value(7).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_volume_ml"
+        ).set_value(149).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        # 149 x 7 = 1043, which the goal-driven path would have rounded.
+        self.assertIn("1,043 mL/day", rendered_html)
+
+    def test_switching_hydration_entry_mode_keeps_the_calculated_schedule_usable(self):
+        # The two modes hold their counts in separate keys, because the ordered
+        # mode allows zero and the calculated one does not.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+
+        mode = next(
+            item for item in app.radio
+            if item.key == "scenario_standard_hydration_entry_mode"
+        )
+        mode.set_value("Enter flushes as ordered").run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_ordered_flush_times_per_day"
+        ).set_value(0).run(timeout=30)
+        self.assertFalse(app.exception)
+
+        next(
+            item for item in app.radio
+            if item.key == "scenario_standard_hydration_entry_mode"
+        ).set_value("Calculate flushes from the water goal").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("Calculated hydration flush schedule:", rendered_html)
+
     def test_patency_flush_change_updates_generated_chart_note(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
         next(
@@ -1133,7 +1642,8 @@ class AssessmentRenderTests(unittest.TestCase):
         rendered_html = "\n".join(item.value for item in app.markdown)
         planned_order = (
             "Full planned formula order (100%): Isosource 1.5 at "
-            "50 mL/hour for 23 hours daily."
+            "50 mL/hour for 23 hours daily "
+            "&nbsp;|&nbsp; <strong>1,150 mL/day</strong>."
         )
         partial_notice = (
             "Showing estimated intake at <strong>50% formula delivery</strong>. "
@@ -1223,7 +1733,11 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         rendered_html = "\n".join(item.value for item in app.markdown)
         self.assertIn("5 mL from modulars", rendered_html)
-        self.assertIn(">885<", rendered_html)
+        # The feed row keeps its own 880 mL. The liquid modular's 5 mL lands on
+        # the Modulars row instead, alongside 120 mL of preparation water.
+        self.assertIn(">880<", rendered_html)
+        self.assertIn(">125<", rendered_html)
+        self.assertNotIn(">885<", rendered_html)
 
     def test_example_rates_and_modular_totals_use_the_regular_calculations(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)

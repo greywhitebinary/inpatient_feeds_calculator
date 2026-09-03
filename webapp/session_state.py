@@ -11,12 +11,17 @@ import streamlit as st
 from calculations import height_to_cm, iv_fluid_delivery, total_iv_fluid_delivery
 from case_io import CASE_DYNAMIC_PREFIXES, CASE_STATE_KEYS, import_case_record_workbook
 from constants import (
+    HYDRATION_ENTRY_CALCULATED,
     IV_FLUIDS,
     KG_PER_LB,
     MAX_IV_FLUID_ORDERS,
     MEASUREMENT_ENTRY_KEYS,
+    ORDER_FORM_RATE_AND_HOURS,
+    RUNNING_CONTINUOUS,
+    PERI_FEED_FLUSH_NONE,
     PLAN_GOALS,
     PROTEIN_WEIGHT_SAME_AS_ENERGY,
+    REGIMEN_SOURCE_NEW,
     WATER_MODE_FLUSHES,
 )
 from data import load_master_formulas, load_master_modulars, load_master_ons
@@ -437,6 +442,16 @@ def seed_scenario_state(
         "describe_as_trickle": "en_describe_as_trickle",
         "prescription_target_pct": "en_prescription_target_pct",
         "prescription_interruption_note": "en_prescription_interruption_note",
+        "regimen_source": "en_regimen_source",
+        "hydration_entry_mode": "en_hydration_entry_mode",
+        "peri_feed_flush_pattern": "en_peri_feed_flush_pattern",
+        "peri_feed_flush_volume_ml": "en_peri_feed_flush_volume_ml",
+        "ordered_flush_volume_ml": "en_ordered_flush_volume_ml",
+        "ordered_flush_times_per_day": "en_ordered_flush_times_per_day",
+        "order_entry_form": "en_order_entry_form",
+        "running_shape": "en_running_shape",
+        "hours_per_feed": "en_hours_per_feed",
+        "ordered_daily_volume_ml": "en_ordered_daily_volume_ml",
     }
     defaults: dict[str, object] = {
         "selected_formula": candidates[0],
@@ -457,6 +472,19 @@ def seed_scenario_state(
         "describe_as_trickle": False,
         "prescription_target_pct": 100.0,
         "prescription_interruption_note": False,
+        # Records saved before these fields existed simply lack them, so the
+        # defaults below apply and every older record reopens with identical
+        # numbers. No conversion step is needed.
+        "regimen_source": REGIMEN_SOURCE_NEW,
+        "hydration_entry_mode": HYDRATION_ENTRY_CALCULATED,
+        "peri_feed_flush_pattern": PERI_FEED_FLUSH_NONE,
+        "peri_feed_flush_volume_ml": 0.0,
+        "ordered_flush_volume_ml": 0.0,
+        "ordered_flush_times_per_day": 0,
+        "order_entry_form": ORDER_FORM_RATE_AND_HOURS,
+        "running_shape": RUNNING_CONTINUOUS,
+        "hours_per_feed": 2.0,
+        "ordered_daily_volume_ml": None,
     }
     for field, legacy_key in legacy_fields.items():
         key = scenario_key(scenario_id, field)

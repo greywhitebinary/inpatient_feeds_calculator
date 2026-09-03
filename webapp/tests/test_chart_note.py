@@ -49,8 +49,7 @@ def result_fixture():
             "Protein (g)": 90,
             "Carbohydrate (g)": 202,
             "Fat (g)": 69,
-            "Free water (mL)": 880,
-            "Water flushes (mL)": 1020,
+            "Water (mL)": 1900,
         },
     }
 
@@ -101,6 +100,42 @@ class ChartNoteTests(unittest.TestCase):
         self.assertNotIn("Usual weight:", note)
         self.assertIn("(CBW 64.0 kg × 1.2–1.5 g/kg)", note)
 
+    def test_mixed_flush_volumes_still_produce_a_hydration_line(self):
+        # An order of 200 mL three times and 100 mL twice has a real total and
+        # no shared per-flush volume. Gating the sentence on the per-flush
+        # amount dropped hydration from the note entirely, without warning.
+        result = result_fixture()
+        result["hydration"] = {
+            "hydration_flush_each_ml": 0,
+            "hydration_flush_total_ml": 800,
+        }
+        result["hydration_chart_schedule_text"] = (
+            "200 mL before and after each feed and 100 mL twice overnight"
+        )
+        note = build_chart_note_html(self.state, [result])
+        self.assertIn("Hydration: Provide", note)
+        self.assertIn("200 mL before and after each feed", note)
+        self.assertIn("totalling 800 mL daily", note)
+
+    def test_mixed_flush_volumes_never_quote_a_per_flush_amount(self):
+        result = result_fixture()
+        result["hydration"] = {
+            "hydration_flush_each_ml": 0,
+            "hydration_flush_total_ml": 800,
+        }
+        note = build_chart_note_html(self.state, [result])
+        self.assertNotIn("Hydration flushes 0 mL", note)
+        self.assertIn("Hydration flushes 800 mL daily", note)
+
+    def test_no_hydration_order_still_omits_the_hydration_line(self):
+        result = result_fixture()
+        result["hydration"] = {
+            "hydration_flush_each_ml": 0,
+            "hydration_flush_total_ml": 0,
+        }
+        note = build_chart_note_html(self.state, [result])
+        self.assertNotIn("Hydration:", note)
+
     def test_ons_order_has_separate_en_and_ons_macro_subtotals(self):
         result = result_fixture()
         result["chart_ons"] = [{
@@ -121,7 +156,7 @@ class ChartNoteTests(unittest.TestCase):
             "Protein (g)": 118,
             "Carbohydrate (g)": 292,
             "Fat (g)": 97,
-            "Free water (mL)": 1246,
+            "Water (mL)": 2266,
         })
 
         note = build_chart_note_html(self.state, [result])

@@ -19,7 +19,15 @@ from urllib.parse import urlparse
 
 import pandas as pd
 
-from constants import IV_FLUIDS, WATER_MODES
+from constants import (
+    HYDRATION_ENTRY_MODES,
+    IV_FLUIDS,
+    ORDER_FORMS,
+    PERI_FEED_FLUSH_PATTERNS,
+    REGIMEN_SOURCES,
+    RUNNING_SHAPES,
+    WATER_MODES,
+)
 from data import load_master_ons, validate_import
 
 
@@ -178,7 +186,9 @@ SCENARIO_FIELD_PATTERN = re.compile(
 SCENARIO_STRING_FIELDS = {
     "selected_formula", "ordered_formula_name", "schedule_type",
     "ordered_schedule_type", "delivery_view", "hydration_schedule_format",
-    "propofol_method",
+    "propofol_method", "regimen_source", "hydration_entry_mode",
+    "peri_feed_flush_pattern", "order_entry_form", "ordered_entry_form",
+    "running_shape",
 }
 SCENARIO_LIST_FIELDS = {"chosen_modulars", "chosen_ons"}
 SCENARIO_BOOL_FIELDS = {
@@ -196,6 +206,13 @@ SCENARIO_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "patency_flushes": (0, None, False),
     "hydration_flushes": (1, 24, True),
     "hydration_interval_hours": (1, 24, True),
+    # The ordered-flush count allows zero, unlike the calculated schedule above,
+    # because an order may have no clock-scheduled line at all.
+    "ordered_flush_times_per_day": (0, 24, True),
+    "ordered_flush_volume_ml": (0, None, False),
+    "peri_feed_flush_volume_ml": (0, None, False),
+    "hours_per_feed": (0.5, 24, False),
+    "ordered_daily_volume_ml": (0, None, False),
     "propofol_rate": (0, None, False),
     "propofol_hours": (0, 24, False),
     "lower_propofol_rate": (0, None, False),
@@ -312,6 +329,30 @@ def _validate_case_state_value(key: str, value: Any) -> None:
             "Single daily EN rate", "Conditional EN rates", None,
         }:
             raise ValueError(f"Case record has an unsupported Propofol method for {key}.")
+        if field == "regimen_source" and value not in set(REGIMEN_SOURCES) | {None}:
+            raise ValueError(f"Case record has an unsupported regimen source for {key}.")
+        if field == "hydration_entry_mode" and value not in (
+            set(HYDRATION_ENTRY_MODES) | {None}
+        ):
+            raise ValueError(
+                f"Case record has an unsupported hydration entry mode for {key}."
+            )
+        if field == "peri_feed_flush_pattern" and value not in (
+            set(PERI_FEED_FLUSH_PATTERNS) | {None}
+        ):
+            raise ValueError(
+                f"Case record has an unsupported peri-feed flush pattern for {key}."
+            )
+        if field == "running_shape" and value not in set(RUNNING_SHAPES) | {None}:
+            raise ValueError(
+                f"Case record has an unsupported running shape for {key}."
+            )
+        if field in {"order_entry_form", "ordered_entry_form"} and value not in (
+            set(ORDER_FORMS) | {None}
+        ):
+            raise ValueError(
+                f"Case record has an unsupported order entry form for {key}."
+            )
     elif field in SCENARIO_NUMERIC_RANGES:
         minimum, maximum, integer = SCENARIO_NUMERIC_RANGES[field]
         _validate_number(key, value, minimum, maximum, integer)
