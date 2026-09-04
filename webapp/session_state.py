@@ -451,7 +451,6 @@ def seed_scenario_state(
         "order_entry_form": "en_order_entry_form",
         "running_shape": "en_running_shape",
         "hours_per_feed": "en_hours_per_feed",
-        "ordered_daily_volume_ml": "en_ordered_daily_volume_ml",
     }
     defaults: dict[str, object] = {
         "selected_formula": candidates[0],
@@ -484,7 +483,6 @@ def seed_scenario_state(
         "order_entry_form": ORDER_FORM_RATE_AND_HOURS,
         "running_shape": RUNNING_CONTINUOUS,
         "hours_per_feed": 2.0,
-        "ordered_daily_volume_ml": None,
     }
     for field, legacy_key in legacy_fields.items():
         key = scenario_key(scenario_id, field)

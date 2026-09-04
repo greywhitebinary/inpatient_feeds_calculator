@@ -225,9 +225,9 @@ ORDER_FORMS = (
 # Transcribing an order that already exists asks one question rather than a
 # schedule and then a form nested inside it. These three cover every way an
 # order is written, and each decides both facts at once.
-RUNNING_CONTINUOUS = "Continuously, at a rate over so many hours"
-RUNNING_RATE_PER_FEED = "In separate feeds, each run at a rate for a set time"
-RUNNING_VOLUME_PER_FEED = "In separate feeds, each a set volume"
+RUNNING_CONTINUOUS = "Continuous, at a rate over so many hours"
+RUNNING_RATE_PER_FEED = "Intermittent, each feed run at a rate for a set time"
+RUNNING_VOLUME_PER_FEED = "Intermittent, each feed a set volume"
 RUNNING_SHAPES = (
     RUNNING_CONTINUOUS, RUNNING_RATE_PER_FEED, RUNNING_VOLUME_PER_FEED,
 )

@@ -6,7 +6,7 @@ import streamlit as st
 
 from case_io import export_case_record_workbook
 from session_state import load_example_record, open_uploaded_case_record
-from ui_common import render_box_heading
+from ui_common import render_alert, render_box_heading
 
 def render_case_record_actions() -> str:
     """Use the BTF-style top bar for a label and returning-user action."""
@@ -40,10 +40,7 @@ def render_case_record_actions() -> str:
     notice = st.session_state.pop("_case_record_notice", None)
     if notice is not None:
         level, message = notice
-        if level == "success":
-            st.success(message)
-        else:
-            st.error(message)
+        render_alert("success" if level == "success" else "error", message)
     return label
 
 

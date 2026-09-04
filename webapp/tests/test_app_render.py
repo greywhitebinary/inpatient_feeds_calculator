@@ -247,7 +247,11 @@ class AssessmentRenderTests(unittest.TestCase):
         )
 
         self.assertFalse(app.exception)
-        self.assertTrue(app.error)
+        # Alerts are the project's own markup, not Streamlit's, so they arrive
+        # as markdown rather than in app.error.
+        self.assertIn(
+            "app-alert--error", "\n".join(item.value for item in app.markdown)
+        )
 
     def test_sex_can_be_selected_before_height(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -488,8 +492,9 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn("Propofol", tab_labels)
         self.assertNotIn("Lower/no propofol", tab_labels)
         self.assertNotIn("Higher propofol", tab_labels)
-        self.assertIn("scenario_standard_schedule_type", {item.key for item in app.radio})
-        self.assertIn("scenario_propofol_schedule_type", {item.key for item in app.radio})
+        radio_keys = {item.key for item in app.radio}
+        self.assertIn("scenario_standard_running_shape", radio_keys)
+        self.assertIn("scenario_propofol_running_shape", radio_keys)
         self.assertEqual(app.session_state["scenario_standard_propofol_rate"], 0.0)
         self.assertEqual(app.session_state["icu_total_energy_target"], 1800.0)
 
@@ -500,10 +505,10 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(app.session_state["scenario_standard_feeding_hours"], 16)
         self.assertEqual(app.session_state["scenario_propofol_feeding_hours"], 23.0)
 
-        propofol_schedule = next(
-            item for item in app.radio if item.key == "scenario_propofol_schedule_type"
-        )
-        propofol_schedule.set_value("Intermittent").run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_running_shape"
+        ).set_value("Intermittent, each feed a set volume").run(timeout=30)
 
         self.assertFalse(app.exception)
         number_input_keys = {item.key for item in app.number_input}
@@ -873,19 +878,20 @@ class AssessmentRenderTests(unittest.TestCase):
         volumes = {}
 
         for form, setup in (
-            ("A volume in mL per feed", {"scenario_standard_ordered_volume_per_feed_ml": 360}),
-            ("A rate in mL/hour, run for a set time each feed", {"scenario_standard_ordered_rate_ml_hr": 180}),
-            ("A total volume in mL per day", {"scenario_standard_ordered_daily_volume_ml": 1080}),
+            (
+                "Intermittent, each feed a set volume",
+                {"scenario_standard_ordered_volume_per_feed_ml": 360},
+            ),
+            (
+                "Intermittent, each feed run at a rate for a set time",
+                {"scenario_standard_ordered_rate_ml_hr": 180},
+            ),
         ):
             app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
             next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
             next(
                 item for item in app.radio
-                if item.key == "scenario_standard_schedule_type"
-            ).set_value("Intermittent").run(timeout=30)
-            next(
-                item for item in app.radio
-                if item.key == "scenario_standard_order_entry_form"
+                if item.key == "scenario_standard_running_shape"
             ).set_value(form).run(timeout=30)
             next(
                 item for item in app.number_input
@@ -927,7 +933,7 @@ class AssessmentRenderTests(unittest.TestCase):
             ("scenario_standard_regimen_source", "Reviewing a feed already running"),
             (
                 "scenario_standard_running_shape",
-                "In separate feeds, each run at a rate for a set time",
+                "Intermittent, each feed run at a rate for a set time",
             ),
             ("scenario_standard_hydration_entry_mode", "Enter flushes as ordered"),
         ):
@@ -978,12 +984,10 @@ class AssessmentRenderTests(unittest.TestCase):
 
         next(
             item for item in app.radio
-            if item.key == "scenario_standard_schedule_type"
-        ).set_value("Intermittent").run(timeout=30)
-        next(
-            item for item in app.radio
-            if item.key == "scenario_standard_order_entry_form"
-        ).set_value("A rate in mL/hour, run for a set time each feed").run(timeout=30)
+            if item.key == "scenario_standard_running_shape"
+        ).set_value(
+            "Intermittent, each feed run at a rate for a set time"
+        ).run(timeout=30)
         next(
             item for item in app.number_input
             if item.key == "scenario_standard_feeds_per_day"
@@ -1007,12 +1011,10 @@ class AssessmentRenderTests(unittest.TestCase):
 
         next(
             item for item in app.radio
-            if item.key == "scenario_standard_schedule_type"
-        ).set_value("Intermittent").run(timeout=30)
-        next(
-            item for item in app.radio
-            if item.key == "scenario_standard_order_entry_form"
-        ).set_value("A rate in mL/hour, run for a set time each feed").run(timeout=30)
+            if item.key == "scenario_standard_running_shape"
+        ).set_value(
+            "Intermittent, each feed run at a rate for a set time"
+        ).run(timeout=30)
         next(
             item for item in app.number_input
             if item.key == "scenario_standard_feeds_per_day"
@@ -1029,8 +1031,67 @@ class AssessmentRenderTests(unittest.TestCase):
         # 5 hours across 6 feeds is 30 hours. The tool warns rather than
         # refusing, and still reports what was entered.
         self.assertFalse(app.exception)
-        self.assertTrue(any("more than a day" in item.value for item in app.warning))
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("app-alert--warning", rendered_html)
+        self.assertIn("more than a day", rendered_html)
         self.assertEqual(self._daily_volume_from_summary(app), 3000)
+
+    def _propofol_conditional(self):
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button
+            if item.key == "workspace_nav_en_plan_propofol"
+        ).click().run(timeout=30)
+        next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_propofol_method"
+        ).set_value("Changing Propofol rates").run(timeout=30)
+        return app
+
+    def test_reviewing_on_conditional_propofol_rates_still_renders(self):
+        # The prescription box dropped the schedule when reviewing, while the
+        # caller only rebuilt it outside conditional mode, so this combination
+        # raised before anything drew.
+        app = self._propofol_conditional()
+        next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+
+        self.assertFalse(app.exception)
+        # Conditional rates keep the prescription layout, not the review one.
+        headings = "\n".join(item.value for item in app.markdown)
+        self.assertNotIn("The order that is running", headings)
+        self.assertIn(
+            "scenario_propofol_feeding_hours",
+            {i.key for i in app.number_input},
+        )
+
+    def test_reviewing_protects_conditional_rates_from_the_suggestion(self):
+        # The "don't overwrite what was typed" rule has to reach the per-
+        # condition rates too. It was disabled there, because the flag that
+        # carried it also carried the layout decision.
+        app = self._propofol_conditional()
+        next(
+            item for item in app.radio
+            if item.key == "scenario_propofol_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+
+        rate_key = "_propofol_widget_scenario_propofol_conditional_lower_rate_ml_hr"
+        next(
+            item for item in app.number_input if item.key == rate_key
+        ).set_value(20).run(timeout=30)
+        # An unrelated change elsewhere reruns the page.
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_propofol_medication_flushes"
+        ).set_value(40).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(
+            app.session_state["scenario_propofol_conditional_lower_rate_ml_hr"], 20
+        )
 
     def test_conditional_propofol_mode_offers_no_entry_form_picker(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -1073,6 +1134,103 @@ class AssessmentRenderTests(unittest.TestCase):
         # The fluid's volume is reported even though it is not counted as water.
         self.assertIn("IV fluids", rendered_html)
         self.assertIn(">2400<", rendered_html)
+
+    def _every_source_plan(self):
+        """Load a plan carrying a feed, modulars, an IV, ONS and flushes."""
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.selectbox if item.key == "assessment_iv_fluid_0"
+        ).select("D5 1/2 NS").run(timeout=30)
+        next(
+            item for item in app.number_input if item.key == "assessment_iv_rate_0"
+        ).set_value(85).run(timeout=30)
+        next(
+            item for item in app.multiselect
+            if item.key == "scenario_standard_chosen_ons"
+        ).set_value(["BOOST Plus Calories — Vanilla"]).run(timeout=30)
+        product = "nestle-boost-plus-calories-vanilla"
+        next(
+            item for item in app.number_input
+            if item.key == f"scenario_standard_ons_containers_{product}"
+        ).set_value(1).run(timeout=30)
+        next(
+            item for item in app.number_input
+            if item.key == f"scenario_standard_ons_times_{product}"
+        ).set_value(2).run(timeout=30)
+        self.assertFalse(app.exception)
+        return app
+
+    def _intake_rows(self, app):
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        table = re.search(r"Planned daily intake.*?</table>", rendered_html, re.S)
+        self.assertIsNotNone(table, "no daily intake table rendered")
+        rows = {}
+        for row in re.findall(r"<tr>(.*?)</tr>", table.group(0), re.S):
+            cells = [
+                re.sub("<[^>]+>", "", cell).strip()
+                for cell in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)
+            ]
+            if cells:
+                rows[cells[0]] = cells[1:]
+        return rows
+
+    def test_daily_intake_totals_are_unchanged(self):
+        """Today's figures, pinned before the summing moves to the engine.
+
+        The totals are added up inside the page, where no unit test reaches
+        them, and they have been edited repeatedly. Recording them here first
+        is what makes moving that arithmetic provable rather than hopeful.
+        """
+        rows = self._intake_rows(self._every_source_plan())
+
+        self.assertEqual(
+            rows["Source"][:6],
+            ["Volume (mL)", "Energy (kcal)", "Protein (g)",
+             "Carbohydrate (g)", "Fat (g)", "Water (mL)"],
+        )
+        self.assertEqual(rows["Isosource 1.5"][:6],
+                         ["920", "1380", "63", "162", "55", "704"])
+        self.assertEqual(rows["Modulars"][:6], ["120", "50", "12", "0", "0", "120"])
+        self.assertEqual(rows["IV fluids"][:6], ["2040", "347", "0", "102", "0", "0"])
+        self.assertEqual(rows["ONS"][:6], ["474", "720", "28", "90", "28", "366"])
+        self.assertEqual(rows["Water flushes"][:6],
+                         ["1080", "0", "0", "0", "0", "1080"])
+        self.assertEqual(rows["Total"][:6],
+                         ["4634", "2497", "103", "354", "83", "2270"])
+
+    def test_chart_note_totals_match_the_intake_table(self):
+        # The note and the table are summed by separate code today. They must
+        # agree, and must go on agreeing once that summing is shared.
+        app = self._every_source_plan()
+        note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("energy 2,497 kcal", note)
+        self.assertIn("protein 103 g", note)
+        self.assertIn("CHO 354 g", note)
+        self.assertIn("Total water provided is 2,270 mL/day", note)
+
+    def test_a_partial_target_says_which_figure_the_goal_column_holds(self):
+        # At anything but 100% the energy goal in the table is the share the
+        # feed is meant to meet, not the assessed requirement, and the column
+        # header cannot say which of the two it is showing.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        captions = "\n".join(str(item.value) for item in app.caption)
+        self.assertNotIn("of the assessed requirement", captions)
+
+        next(
+            item for item in app.number_input
+            if item.key == "scenario_standard_prescription_target_pct"
+        ).set_value(50).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        captions = "\n".join(str(item.value) for item in app.caption)
+        self.assertIn(
+            "The energy goal above is 50% of the assessed requirement of "
+            "1,800 kcal/day.",
+            captions,
+        )
+        self.assertIn("Protein and water are compared against the full", captions)
 
     def test_ordered_flushes_count_while_iv_fluids_are_running(self):
         # The intensive care case. With a line running, fluid needs are charted
@@ -1137,16 +1295,13 @@ class AssessmentRenderTests(unittest.TestCase):
         # Propofol tab keeps its own comparison while the EN plan loses one.
         def counts(app):
             headings = "\n".join(item.value for item in app.markdown)
-            captions = "\n".join(str(item.value) for item in app.caption)
-            return (
-                headings.count("Formula comparison"),
-                headings.count("Select formula</"),
-                headings.count("The order that is running"),
-                # The pointer to another box must go with the box it names.
-                captions.count("in the **Select formula** box below"),
-            )
+            # Both plan boxes are titled "EN prescription", so the heading
+            # that tells the layouts apart is the comparison, which reviewing
+            # drops. "Select formula" no longer exists on either: choosing and
+            # setting the amount happen inside the comparison box.
+            return headings.count("Formula comparison")
 
-        self.assertEqual(counts(app), (2, 2, 0, 2))
+        self.assertEqual(counts(app), 2)
 
         next(
             item for item in app.radio
@@ -1154,7 +1309,7 @@ class AssessmentRenderTests(unittest.TestCase):
         ).set_value("Reviewing a feed already running").run(timeout=30)
 
         self.assertFalse(app.exception)
-        self.assertEqual(counts(app), (1, 1, 1, 1))
+        self.assertEqual(counts(app), 1)
         # One question replaces the schedule radio and the form radio nested
         # inside it, because transcribing an order does not need both.
         review_radios = {item.key for item in app.radio}
@@ -1271,8 +1426,8 @@ class AssessmentRenderTests(unittest.TestCase):
 
         next(
             item for item in app.radio
-            if item.key == "scenario_standard_schedule_type"
-        ).set_value("Intermittent").run(timeout=30)
+            if item.key == "scenario_standard_running_shape"
+        ).set_value("Intermittent, each feed a set volume").run(timeout=30)
         next(
             item for item in app.number_input
             if item.key == "scenario_standard_feeds_per_day"

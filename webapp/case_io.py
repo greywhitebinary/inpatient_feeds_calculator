@@ -212,6 +212,9 @@ SCENARIO_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "ordered_flush_volume_ml": (0, None, False),
     "peri_feed_flush_volume_ml": (0, None, False),
     "hours_per_feed": (0.5, 24, False),
+    # No screen writes this any more: entering a daily total was dropped
+    # because it is not a way a feed runs. Kept so a record saved while that
+    # form existed still opens.
     "ordered_daily_volume_ml": (0, None, False),
     "propofol_rate": (0, None, False),
     "propofol_hours": (0, 24, False),

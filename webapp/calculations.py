@@ -6,7 +6,6 @@ formula or prescribe a nutrition regimen.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from math import floor
 from typing import Mapping
 
@@ -534,3 +533,39 @@ def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
         "total_water_ml": formula_free_water_ml + modular_free_water_ml
         + modular_preparation_water_ml + medication_flush_ml + patency_flush_ml + rounded_total,
     }
+
+# Every figure the daily-intake table and the chart note report. Summing over a
+# fixed set of keys is what keeps intravenous and propofol volume out of the
+# water column: those sources carry `volume_ml`, which is reported separately,
+# and the goals are entered net of anything given intravenously.
+INTAKE_KEYS = (
+    "Volume (mL)", "Energy (kcal)", "Protein (g)", "Carbohydrate (g)",
+    "Fat (g)", "Water (mL)", "Na (mmol)", "K (mmol)", "Ca (mmol)",
+    "P (mmol)", "Mg (mmol)",
+)
+
+
+def combined_intake(
+    sources: list[Mapping[str, object]],
+) -> dict[str, float]:
+    """Add every contributing source into the one daily intake the plan reports.
+
+    An undisclosed nutrient arrives as None, because the tables print an em
+    dash rather than a confident zero for a figure the manufacturer never
+    declared. It contributes nothing to the total either way, so it is treated
+    as zero here and the distinction survives in the row it came from.
+    """
+    totals: dict[str, float] = {}
+    for key in INTAKE_KEYS:
+        running = 0.0
+        for source in sources:
+            value = source.get(key)
+            if value is None:
+                continue
+            try:
+                running += float(value)
+            except (TypeError, ValueError):
+                continue
+        totals[key] = running
+    return totals
+

@@ -210,7 +210,7 @@ class CaseRecordTests(unittest.TestCase):
             "case_record_label": "Reviewed on admission",
             "scenario_standard_regimen_source": "Reviewing a feed already running",
             "scenario_standard_running_shape": (
-                "In separate feeds, each run at a rate for a set time"
+                "Intermittent, each feed run at a rate for a set time"
             ),
             "scenario_standard_hours_per_feed": 2.0,
             "scenario_standard_feeds_per_day": 3,

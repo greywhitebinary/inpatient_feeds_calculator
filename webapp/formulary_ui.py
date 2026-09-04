@@ -10,6 +10,7 @@ import streamlit as st
 from data import export_formulary_workbook, import_formulary_workbook
 from session_state import master_data
 from ui_common import (
+    render_alert,
     number,
     render_formulary_table,
     render_report_table,
@@ -151,9 +152,13 @@ def show_formulary() -> None:
                 st.session_state.my_formulas = formulas
                 st.session_state.my_modulars = modulars
                 st.session_state.my_ons = ons
-                st.success("Imported the product worksheets. No patient information is imported or retained.")
+                render_alert(
+                    "success",
+                    "Imported the product worksheets. No patient "
+                    "information is imported or retained.",
+                )
             except ValueError as error:
-                st.error(str(error))
+                render_alert("error", str(error))
         st.caption("To add or edit a product, update the downloaded workbook and upload it here.")
         st.download_button(
             "Download My Formulary (.xlsx)",

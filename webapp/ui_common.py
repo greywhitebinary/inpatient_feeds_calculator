@@ -53,6 +53,27 @@ def render_worked_bounds(
         )
 
 
+def render_alert(kind: str, message: str) -> None:
+    """Render a warning, error or success box in the workspace palette.
+
+    Streamlit's own alerts carry a cool, saturated palette that belongs to no
+    other part of this page, and their four kinds are told apart only by
+    generated class names, so they cannot be restyled from a stylesheet with
+    any confidence that the selector will survive an upgrade. This renders the
+    same thing in the project's own markup instead, which is how every other
+    styled block here is built.
+
+    `role` follows the same rule Streamlit uses: a problem or a caution
+    interrupts a screen reader, while a confirmation does not.
+    """
+    role = "alert" if kind in {"error", "warning"} else "status"
+    st.markdown(
+        f'<div class="app-alert app-alert--{escape(kind)}" role="{role}">'
+        f"{escape(message)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_box_heading(label: str) -> None:
     """Render a compact heading inside workflow boxes."""
     st.markdown(
