@@ -206,6 +206,8 @@ SCENARIO_STRING_FIELDS = {
     "ordered_entry_form",
     "running_shape",
 }
+CONDITIONAL_RATE_FIELD = re.compile(r"conditional_[A-Za-z0-9_]+_rate_ml_hr")
+CONDITIONAL_EDITED_FIELD = re.compile(r"conditional_[A-Za-z0-9_]+_rate_user_edited")
 SCENARIO_LIST_FIELDS = {"chosen_modulars", "chosen_ons"}
 SCENARIO_BOOL_FIELDS = {
     "order_user_edited",
@@ -408,6 +410,15 @@ def _validate_case_state_value(key: str, value: Any) -> None:
         )
     ):
         _validate_number(key, value, 0)
+    # Conditional rates are keyed by the sedation condition they belong to, and
+    # those ids come from the Propofol page rather than from a fixed list. Only
+    # two were ever registered by name, so a record saved after visiting that
+    # page carried a third and would not reopen. Matched by shape instead.
+    elif CONDITIONAL_RATE_FIELD.fullmatch(field):
+        _validate_number(key, value, 0)
+    elif CONDITIONAL_EDITED_FIELD.fullmatch(field):
+        if not isinstance(value, bool):
+            raise ValueError(f"Case record requires true or false for {key}.")
     else:
         raise ValueError(f"Case record contains an unsupported scenario field: {key}.")
 

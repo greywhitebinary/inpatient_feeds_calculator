@@ -235,6 +235,26 @@ class CaseRecordTests(unittest.TestCase):
         for key, value in state.items():
             self.assertEqual(restored[key], value)
 
+    def test_a_record_saved_after_visiting_the_propofol_page_reopens(self):
+        # Conditional rates are keyed by the sedation condition they belong to.
+        # Only two ids were registered by name, so the single-rate page's own
+        # condition produced a field the importer rejected, and any record
+        # saved after visiting that page could not be reopened.
+        state = {
+            "case_record_label": "Seen on the Propofol page",
+            "scenario_propofol_conditional_projected_rate_ml_hr": 45.0,
+            "scenario_propofol_conditional_projected_rate_user_edited": True,
+            "scenario_propofol_conditional_lower_rate_ml_hr": 30.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
     def test_round_trip_preserves_a_daily_total_order(self):
         state = {
             "case_record_label": "Written as a daily total",
