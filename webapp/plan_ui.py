@@ -76,6 +76,23 @@ from ui_common import (
 CONDITION_ROW_WIDTHS = [0.8, 0.8, 1, 0.95]
 
 
+def _named_contributions(parts: list[tuple[float, str]]) -> str | None:
+    """Name every source that actually contributed, with its amount.
+
+    A zero contributor is not listed: "0 kcal from modulars" on a plan with no
+    modulars is noise, and it read inconsistently beside the protein row, which
+    already omitted its zeros. An empty result is None rather than a word, so
+    the table prints the em dash it uses everywhere else for nothing to report.
+    """
+    named = [f"{amount:,.0f} {label}" for amount, label in parts if amount]
+    return "; ".join(named) or None
+
+
+def _listed_or_none(parts: list[str]) -> str | None:
+    """Join already-worded contributions, or None when there are none."""
+    return "; ".join(parts) or None
+
+
 def _warn_if_over_a_day(
     hours: float, hours_per_feed: float, feeds_per_day: int
 ) -> None:
@@ -1530,7 +1547,7 @@ def render_en_scenario(
         other_protein_sources = list(modular_protein_sources)
         if ons_totals["protein_g"]:
             other_protein_sources.append(f"{ons_totals['protein_g']:.0f} g from ONS")
-        other_protein_text = "; ".join(other_protein_sources) or "None"
+        other_protein_text = _listed_or_none(other_protein_sources)
         displayed_total_water = (
             displayed_delivery["free_water_ml"]
             + modular_totals["free_water_ml"]
@@ -1558,7 +1575,7 @@ def render_en_scenario(
             water_source_parts.append(
                 f"{other_water_flushes:.0f} mL from water flushes"
             )
-        water_sources_text = "; ".join(water_source_parts) or "None"
+        water_sources_text = _listed_or_none(water_source_parts)
 
         def signed_difference(value: float) -> str:
             if value > 0:
@@ -1578,23 +1595,13 @@ def render_en_scenario(
                 "Component": "Energy (kcal/day)",
                 "Goal": total_energy_target,
                 "From feed": displayed_delivery["energy_kcal"],
-                "From other sources": (
-                    f"{modular_totals['energy_kcal']:.0f} kcal from modulars"
-                    + (
-                        f"; {propofol['kcal']:.0f} kcal from propofol"
-                        if propofol["kcal"]
-                        else ""
-                    )
-                    + (
-                        f"; {iv_fluids['energy_kcal']:,.0f} kcal from IV fluids"
-                        if iv_fluids["energy_kcal"]
-                        else ""
-                    )
-                    + (
-                        f"; {ons_totals['energy_kcal']:.0f} kcal from ONS"
-                        if ons_totals["energy_kcal"]
-                        else ""
-                    )
+                "From other sources": _named_contributions(
+                    [
+                        (modular_totals["energy_kcal"], "kcal from modulars"),
+                        (propofol["kcal"], "kcal from propofol"),
+                        (iv_fluids["energy_kcal"], "kcal from IV fluids"),
+                        (ons_totals["energy_kcal"], "kcal from ONS"),
+                    ]
                 ),
                 total_column: final_energy,
                 difference_column: signed_difference(energy_difference),
@@ -1667,6 +1674,9 @@ def render_en_scenario(
                 "Mg (mmol)": mmol_from_delivery(delivery, "magnesium"),
             },
             {
+                # A row of zeros is not information. Modulars appear only when
+                # some were ordered, matching how ONS, intravenous fluids and
+                # propofol already behave.
                 "Source": "Modulars",
                 "Volume (mL)": modular_preparation_water,
                 "Energy (kcal)": modular_totals["energy_kcal"],
@@ -1752,6 +1762,8 @@ def render_en_scenario(
                     "Mg (mmol)": 0,
                 },
             )
+        if not chart_modulars:
+            rows = [row for row in rows if row["Source"] != "Modulars"]
         return rows
 
     source_rows = _intake_rows(displayed_delivery)
