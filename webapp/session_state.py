@@ -186,8 +186,7 @@ def clear_case_record_state() -> None:
         if (
             key in CASE_STATE_KEYS
             or key in MEASUREMENT_ENTRY_KEYS
-            or key.startswith(CASE_DYNAMIC_PREFIXES)
-            or key.startswith("_propofol_widget_")
+            or key.startswith((*CASE_DYNAMIC_PREFIXES, "_propofol_widget_"))
         ):
             del st.session_state[key]
 
