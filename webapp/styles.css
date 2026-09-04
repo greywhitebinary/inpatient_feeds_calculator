@@ -73,6 +73,29 @@ html {
     font-size: 1.05rem !important;
 }
 
+/* Spread the workspace tabs across the width by distributing the space between
+   them rather than giving each an equal share. Each tab stays as wide as its
+   own label, so the selected-tab underline marks the word rather than a
+   quarter of the page, and no override of the built-in indicator is needed.
+   The Propofol page's own subtabs are a local choice rather than page
+   navigation, so they stay packed left. */
+[data-testid="stTabs"] > div > [role="tablist"] {
+    display: flex;
+    justify-content: space-between;
+}
+
+[data-testid="stTabs"] > div > [role="tablist"] > [role="tab"] {
+    margin-right: 0;
+}
+
+[class*="st-key-propofol_scenario_tabs"] [role="tablist"] {
+    justify-content: flex-start;
+}
+
+[class*="st-key-propofol_scenario_tabs"] [role="tab"] {
+    margin-right: 1.25rem;
+}
+
 [role="tab"] {
     margin-right: 1.25rem;
     padding-top: 0.4rem;
