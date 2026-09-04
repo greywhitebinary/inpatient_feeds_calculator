@@ -153,19 +153,19 @@ def _render_en_prescription(
         )
 
     with st.container(border=True):
-        render_box_heading("EN prescription")
+        render_box_heading("EN regimen")
         schedule = _render_running_shape(scenario_id, conditional_mode)
 
         target_a, target_b = st.columns([1, 1.7], vertical_alignment="bottom")
         prescription_target_pct = target_a.number_input(
-            "EN prescription target (%)",
+            "EN regimen target (%)",
             min_value=1.0,
             max_value=200.0,
             step=5.0,
             format="%.0f",
             key=scenario_key(scenario_id, "prescription_target_pct"),
             help=(
-                "Values above 100% increase the EN prescription to account for "
+                "Values above 100% increase the EN regimen to account for "
                 "expected interruptions. Protein and water goals are unchanged."
             ),
         )
@@ -494,7 +494,7 @@ def render_en_scenario(
     review_container = st.container(border=True) if regimen_already_running else None
     if regimen_already_running:
         with review_container:
-            render_box_heading("EN prescription")
+            render_box_heading("EN regimen")
             # The formula is claimed first so it renders above the schedule,
             # matching how an order reads: the feed, then how it runs.
             formula_slot = st.container()
@@ -606,7 +606,7 @@ def render_en_scenario(
                 render_alert(
                     "warning",
                     "Projected Propofol energy meets or exceeds the EN "
-                    "prescription energy target. A zero formula-energy "
+                    "regimen energy target. A zero formula-energy "
                     "allocation does not meet protein or micronutrient needs.",
                 )
             render_report_table(
@@ -1472,7 +1472,7 @@ def render_en_scenario(
     saved_achieved = int(number(st.session_state.get(achieved_key, 100)))
     saved_view = st.session_state.get(delivery_view_key, "Full planned EN")
     partial_active = saved_achieved < 100 and saved_view == "Achieved delivery"
-    with st.expander("EN plan check", expanded=partial_active):
+    with st.expander("EN regimen check", expanded=partial_active):
         order_summary, partial_action = st.columns([3, 1], vertical_alignment="center")
         # The daily volume is stated rather than left to be multiplied out. It
         # is the quickest check that the figures below are pulling correctly.
@@ -1919,7 +1919,9 @@ def render_en_workflow_setup(
         key_prefix
     )
     if saved_feeds.empty:
-        st.caption("Add at least one product to My Formulary to create an EN plan.")
+        st.caption(
+            "Add at least one feed to My Formulary before building an EN regimen."
+        )
         return None
     if total_energy_target is None or protein_target is None:
         st.caption("Enter energy and protein goals in Assessment or Adjust goals.")

@@ -352,7 +352,7 @@ def _requirements_html(state: Mapping[str, object]) -> str:
             abs(value - target) < 1 for value in comparable_energy_values
         )
     if target is not None and not target_is_represented:
-        energy_lines.append(f"Energy goal used for EN plan: {_fmt(target)} kcal/day")
+        energy_lines.append(f"Energy goal used for EN regimen: {_fmt(target)} kcal/day")
 
     if not energy_lines:
         energy_lines.append("—")
@@ -468,7 +468,7 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     if prescription_target_pct and prescription_target_pct != 100:
         estimated_requirement = _number(result.get("estimated_energy_requirement"))
         target_text = (
-            f"EN prescription target: {_fmt(prescription_target_pct)}% of estimated "
+            f"EN regimen target: {_fmt(prescription_target_pct)}% of estimated "
             "energy requirement"
         )
         if estimated_requirement > 0:
@@ -497,10 +497,10 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
         if rate > 0:
             scenario = (
                 f"When Propofol is running at {rate:g} mL/hr for "
-                f"{hours:g} hours/day, use this EN plan:"
+                f"{hours:g} hours/day, use this EN regimen:"
             )
         else:
-            scenario = "When Propofol is not running, use this EN plan:"
+            scenario = "When Propofol is not running, use this EN regimen:"
         lines.append(f"<strong>{escape(scenario)}</strong>")
 
     if propofol_method in {"Changing Propofol rates", "Conditional EN rates"}:

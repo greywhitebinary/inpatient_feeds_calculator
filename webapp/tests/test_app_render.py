@@ -174,7 +174,12 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(
             "Uses Canadian formula, modular, and ONS product information.", captions
         )
-        self.assertIn("Work left to right: set up My Formulary", captions)
+        self.assertIn(
+            "Set up My Formulary, complete the Assessment, then build the order "
+            "under Enteral nutrition, or under EN + Propofol if propofol is running.",
+            captions,
+            "the last two tabs are a choice, so the line must not read as four steps",
+        )
         self.assertNotIn("First time here?", captions)
         self.assertNotIn("substack logo", captions.lower())
 
@@ -678,7 +683,7 @@ class AssessmentRenderTests(unittest.TestCase):
         # formula over 23 hours rounds to 40 mL/hour.
         self.assertEqual(app.session_state["scenario_propofol_ordered_rate_ml_hr"], 40)
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day).",
             app.session_state["_chart_note_generated_propofol"],
         )
@@ -695,7 +700,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         rationale.set_value(True).run(timeout=30)
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day) to account for anticipated interruptions.",
             app.session_state["_chart_note_generated_propofol"],
         )
@@ -748,7 +753,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         self.assertFalse(rationale.value)
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day).",
             app.session_state["_chart_note_generated_en_plan"],
         )
@@ -867,7 +872,9 @@ class AssessmentRenderTests(unittest.TestCase):
             "Mg (mmol)",
         ):
             self.assertIn(heading, rendered_html)
-        plan_checks = [item for item in app.expander if item.label == "EN plan check"]
+        plan_checks = [
+            item for item in app.expander if item.label == "EN regimen check"
+        ]
         self.assertTrue(plan_checks)
         self.assertTrue(all(not item.proto.expanded for item in plan_checks))
         self.assertNotIn("Final plan checks", rendered_html)
@@ -1446,7 +1453,7 @@ class AssessmentRenderTests(unittest.TestCase):
         # Propofol tab keeps its own comparison while the EN plan loses one.
         def counts(app):
             headings = "\n".join(item.value for item in app.markdown)
-            # Both plan boxes are titled "EN prescription", so the heading
+            # Both plan boxes are titled "EN regimen", so the heading
             # that tells the layouts apart is the comparison, which reviewing
             # drops. "Select formula" no longer exists on either: choosing and
             # setting the amount happen inside the comparison box.
@@ -2019,7 +2026,9 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertLess(
             rendered_html.index(planned_order), rendered_html.index(partial_notice)
         )
-        plan_checks = [item for item in app.expander if item.label == "EN plan check"]
+        plan_checks = [
+            item for item in app.expander if item.label == "EN regimen check"
+        ]
         self.assertTrue(plan_checks)
         self.assertTrue(any(item.proto.expanded for item in plan_checks))
         self.assertIn("Estimated total", rendered_html)

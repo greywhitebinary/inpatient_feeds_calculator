@@ -66,8 +66,8 @@ def main() -> None:
             "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]"
             "(https://feedformflow.substack.com/p/feed-form-flow) project. "
             "Uses Canadian formula, modular, and ONS product information.  \n"
-            "Work left to right: set up "
-            "My Formulary, complete the assessment, build an EN plan, and review the totals."
+            "Set up My Formulary, complete the Assessment, then build the order "
+            "under Enteral nutrition, or under EN + Propofol if propofol is running."
         )
     formulary_tab, assessment_tab, plan_tab, propofol_tab = st.tabs(
         list(WORKSPACE_TABS),
