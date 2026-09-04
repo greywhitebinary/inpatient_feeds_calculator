@@ -263,6 +263,42 @@ html {
     transform: translateY(-0.5rem);
 }
 
+/* Warning, error and success boxes in the workspace palette.
+   Each keeps its own hue, because the meaning is doing clinical work, but all
+   four are built the same way: a tint of the accent over the page background,
+   a rule down the left in the accent itself, and ordinary body text. Building
+   them identically is what makes them read as one set rather than four
+   borrowed widgets.
+   The tint is mixed against --background-color rather than written as a fixed
+   value, so it follows the theme into dark mode without a second palette. The
+   accents are mid-toned for the same reason: each has to stay legible on the
+   warm near-white and on the near-black. Error borrows --primary-color, which
+   the theme already swaps per mode and which the reader has already learnt as
+   this page's colour for something that matters. */
+.app-alert {
+    --alert-accent: var(--primary-color, #A4243A);
+    margin: 0.5rem 0 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-left: 3px solid var(--alert-accent);
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--alert-accent) 10%, var(--background-color, #FCFAF9));
+    color: inherit;
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.app-alert--warning {
+    --alert-accent: #B07D1A;
+}
+
+.app-alert--success {
+    --alert-accent: #3D8266;
+}
+
+.app-alert--info {
+    --alert-accent: #46708C;
+}
+
 .protein-shortfall {
     color: var(--primary-color, #A4243A);
 }

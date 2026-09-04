@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from hashlib import sha256
 from html import escape
-from typing import Mapping, Sequence
 
 import streamlit as st
-
 from calculations import (
     adjusted_body_weight_kg,
     hamwi_ibw_kg,
@@ -16,8 +15,7 @@ from calculations import (
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
 )
-from constants import PROTEIN_WEIGHT_SAME_AS_ENERGY
-
+from constants import IV_FLUIDS, MAX_IV_FLUID_ORDERS, PROTEIN_WEIGHT_SAME_AS_ENERGY
 
 CHART_NOTE_EDITOR_HTML = """
 <div class="chart-note-toolbar">
@@ -97,6 +95,37 @@ export default function(component) {
   };
 }
 """
+
+
+def _iv_assessment_lines(state: Mapping[str, object]) -> list[str]:
+    """Name the intravenous fluids running, for the assessment section.
+
+    Read from state rather than from the plan result, because this states what
+    the medical team has running rather than anything the dietitian ordered.
+    What a fluid supplies is deliberately left out: that belongs with the
+    totals and their breakdowns, and repeating it here would put a second
+    colon on a line already introduced by "Other:".
+    """
+    lines: list[str] = []
+    for index in range(MAX_IV_FLUID_ORDERS):
+        name = state.get(f"assessment_iv_fluid_{index}")
+        if name not in IV_FLUIDS:
+            continue
+        tkvo = bool(state.get(f"assessment_iv_tkvo_{index}"))
+        rate = 0.0 if tkvo else _number(state.get(f"assessment_iv_rate_{index}"))
+        if tkvo:
+            lines.append(f"IV {name}, TKVO")
+            continue
+        if rate <= 0:
+            continue
+        stored_hours = state.get(f"assessment_iv_hours_{index}")
+        hours = 24.0 if stored_hours is None else _number(stored_hours)
+        described = f"IV {name} at {_fmt(rate)} mL/hour"
+        if hours not in (0, 24):
+            described += f" for {_fmt(hours)} hours"
+        lines.append(described)
+    return lines
+
 
 def _number(value: object) -> float:
     try:
@@ -181,7 +210,10 @@ def _penn_state_weight(state: Mapping[str, object]) -> tuple[float | None, str]:
     if choice == "Current body weight":
         return _entered(state, "assessment_current_weight"), "CBW"
     if choice == "Estimated dry / clinician-selected weight":
-        return _entered(state, "assessment_estimated_weight"), "clinician-selected weight"
+        return (
+            _entered(state, "assessment_estimated_weight"),
+            "clinician-selected weight",
+        )
     return None, ""
 
 
@@ -217,9 +249,7 @@ def _anthropometrics_html(state: Mapping[str, object]) -> str:
         if current is not None and usual > 0:
             change = current - usual
             percent = change / usual * 100
-            lines.append(
-                f"Weight change: {change:+.1f} kg ({percent:+.1f}%)"
-            )
+            lines.append(f"Weight change: {change:+.1f} kg ({percent:+.1f}%)")
     return "<br>".join(escape(line) for line in lines) or "—"
 
 
@@ -262,23 +292,36 @@ def _requirements_html(state: Mapping[str, object]) -> str:
         harris_adjusted = harris * activity * stress
         comparable_energy_values.extend([mifflin_adjusted, harris_adjusted])
         factor_text = f"AF {activity:g} × SF {_fmt(stress, 2)}"
-        energy_lines.extend([
-            f"MSJ: {_fmt(mifflin_adjusted)} kcal/day ≈ "
-            f"{_fmt(mifflin)} kcal/day × {factor_text}",
-            f"HB: {_fmt(harris_adjusted)} kcal/day ≈ "
-            f"{_fmt(harris)} kcal/day × {factor_text}",
-        ])
+        energy_lines.extend(
+            [
+                (
+                    f"MSJ: {_fmt(mifflin_adjusted)} kcal/day ≈ "
+                    f"{_fmt(mifflin)} kcal/day × {factor_text}"
+                ),
+                (
+                    f"HB: {_fmt(harris_adjusted)} kcal/day ≈ "
+                    f"{_fmt(harris)} kcal/day × {factor_text}"
+                ),
+            ]
+        )
         temperature = _entered(state, "assessment_temperature")
         minute_ventilation = _entered(state, "assessment_minute_ventilation")
         # Penn State takes Mifflin at an actual weight. It follows the selected
         # weight when that is a measured or clinician-selected one, and falls
         # back to the current weight for a derived weight; see assessment_ui.
         penn_weight, penn_weight_label = _penn_state_weight(state)
-        if (temperature is not None and minute_ventilation is not None
-                and penn_weight is not None):
+        if (
+            temperature is not None
+            and minute_ventilation is not None
+            and penn_weight is not None
+        ):
             penn_mifflin = mifflin_st_jeor_kcal(sex, penn_weight, height, age)
-            penn_2003b = penn_state_2003b_kcal(penn_mifflin, temperature, minute_ventilation)
-            penn_2010 = penn_state_2010_kcal(penn_mifflin, temperature, minute_ventilation)
+            penn_2003b = penn_state_2003b_kcal(
+                penn_mifflin, temperature, minute_ventilation
+            )
+            penn_2010 = penn_state_2010_kcal(
+                penn_mifflin, temperature, minute_ventilation
+            )
             comparable_energy_values.extend([penn_2003b, penn_2010])
             inputs = (
                 f"Mifflin–St Jeor {_fmt(penn_mifflin)} kcal/day at "
@@ -286,11 +329,18 @@ def _requirements_html(state: Mapping[str, object]) -> str:
                 f"{_fmt(temperature, 1)} °C, Ve "
                 f"{_fmt(minute_ventilation, 1)} L/min"
             )
-            energy_lines.extend([
-                f"Penn State 2003b (ventilated adults): {_fmt(penn_2003b)} kcal/day ({inputs})",
-                f"Modified Penn State 2010 (ventilated, age ≥60 and BMI ≥30): "
-                f"{_fmt(penn_2010)} kcal/day ({inputs})",
-            ])
+            energy_lines.extend(
+                [
+                    (
+                        f"Penn State 2003b (ventilated adults): "
+                        f"{_fmt(penn_2003b)} kcal/day ({inputs})"
+                    ),
+                    (
+                        f"Modified Penn State 2010 (ventilated, age ≥60 and "
+                        f"BMI ≥30): {_fmt(penn_2010)} kcal/day ({inputs})"
+                    ),
+                ]
+            )
 
     target = _entered(state, "assessment_energy_target")
     target_is_represented = False
@@ -310,7 +360,9 @@ def _requirements_html(state: Mapping[str, object]) -> str:
     protein_parts: list[str] = []
     protein_low = _entered(state, "assessment_protein_low_gkg")
     protein_high = _entered(state, "assessment_protein_high_gkg")
-    protein_bounds = [value for value in (protein_low, protein_high) if value is not None]
+    protein_bounds = [
+        value for value in (protein_low, protein_high) if value is not None
+    ]
     if protein_weight is not None and protein_bounds:
         protein_results = [protein_weight * value for value in protein_bounds]
         protein_parts.append(
@@ -352,6 +404,10 @@ def _requirements_html(state: Mapping[str, object]) -> str:
     other_loss = _entered(state, "assessment_other_protein_loss")
     if other_loss is not None:
         other_lines.append(f"Other estimated protein loss: {_fmt(other_loss)} g/day")
+    # A line the medical team is running is something observed, not something
+    # the dietitian is prescribing, so it is charted with the assessment. What
+    # it supplies still reaches the plan through the totals and breakdowns.
+    other_lines.extend(_iv_assessment_lines(state))
 
     energy_html = "<br>".join(escape(line) for line in energy_lines)
     protein_html = "<br>".join(escape(line) for line in protein_parts)
@@ -369,9 +425,11 @@ def _source_breakdown(sources: Sequence[tuple[float, str]], unit: str) -> str:
     used = [(amount, label) for amount, label in sources if round(amount, 6) != 0]
     if len(used) <= 1:
         return ""
-    return " (" + " + ".join(
-        f"{label} {_fmt(amount)} {unit}" for amount, label in used
-    ) + ")"
+    return (
+        " ("
+        + " + ".join(f"{label} {_fmt(amount)} {unit}" for amount, label in used)
+        + ")"
+    )
 
 
 def _ons_order_text(item: Mapping[str, object]) -> str:
@@ -408,21 +466,16 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     lines: list[str] = []
     prescription_target_pct = _number(result.get("prescription_target_pct", 100))
     if prescription_target_pct and prescription_target_pct != 100:
-        estimated_requirement = _number(
-            result.get("estimated_energy_requirement")
-        )
+        estimated_requirement = _number(result.get("estimated_energy_requirement"))
         target_text = (
             f"EN prescription target: {_fmt(prescription_target_pct)}% of estimated "
             "energy requirement"
         )
         if estimated_requirement > 0:
-            prescription_energy = (
-                estimated_requirement * prescription_target_pct / 100
-            )
+            prescription_energy = estimated_requirement * prescription_target_pct / 100
             target_text += f" ({_fmt(prescription_energy)} kcal/day)"
-        if (
-            prescription_target_pct > 100
-            and bool(result.get("prescription_interruption_note"))
+        if prescription_target_pct > 100 and bool(
+            result.get("prescription_interruption_note")
         ):
             target_text += " to account for anticipated interruptions"
         lines.append(target_text + ".")
@@ -457,9 +510,7 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             rate = _number(condition_map.get("rate_ml_hr"))
             hours = _number(condition_map.get("hours"))
             if rate > 0 and hours > 0:
-                exposure_parts.append(
-                    f"{_fmt(rate)} mL/hr for {_fmt(hours)} hours/day"
-                )
+                exposure_parts.append(f"{_fmt(rate)} mL/hr for {_fmt(hours)} hours/day")
         if exposure_parts:
             lines.append(
                 "Projected Propofol exposure: " + " and ".join(exposure_parts) + "."
@@ -490,6 +541,13 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             f"Initiate trickle EN with {escape(str(formula['name']))} at "
             f"{escape(str(result['schedule_description']))}."
         )
+    elif bool(result.get("regimen_already_running")):
+        # A note for a regimen already running should say so, rather than
+        # reading as though the feed were being started today.
+        lines.append(
+            f"Continue enteral nutrition: {escape(str(formula['name']))} at "
+            f"{escape(str(result['schedule_description']))}."
+        )
     else:
         lines.append(
             f"Enteral nutrition plan: {escape(str(formula['name']))} at "
@@ -505,50 +563,45 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
                     "mL water each time"
                 )
             modular_descriptions.append(description)
-        lines.append("Modulars: " + "; ".join(escape(text) for text in modular_descriptions) + ".")
+        lines.append(
+            "Modulars: "
+            + "; ".join(escape(text) for text in modular_descriptions)
+            + "."
+        )
     if ons:
         lines.append(
-            "ONS: " + "; ".join(
-                escape(_ons_order_text(item)) for item in ons
-            ) + "."
+            "ONS: " + "; ".join(escape(_ons_order_text(item)) for item in ons) + "."
         )
 
     hydration_each = _number(hydration.get("hydration_flush_each_ml"))
-    if hydration_each > 0:
+    hydration_ordered_total = _number(hydration.get("hydration_flush_total_ml"))
+    as_ordered = bool(result.get("hydration_entered_as_ordered"))
+    # Gate on the total rather than the per-flush amount. An order mixing two
+    # volumes has a real total and no single each-amount, and testing the
+    # each-amount silently dropped the whole hydration sentence from the note.
+    if as_ordered and hydration_ordered_total > 0:
+        # The ordered wording already names each volume and its frequency, so
+        # quoting a per-flush amount in front of it would say the volume twice.
+        lines.append(
+            "Hydration: Provide "
+            f"{escape(str(result['hydration_chart_schedule_text']))}, "
+            f"totalling {_fmt(hydration_ordered_total)} mL daily."
+        )
+    elif hydration_each > 0:
         lines.append(
             f"Hydration: Provide {_fmt(hydration_each)} mL water flushes "
             f"{escape(str(result['hydration_chart_schedule_text']))}."
         )
+    elif hydration_ordered_total > 0:
+        lines.append(
+            "Hydration: Provide "
+            f"{escape(str(result['hydration_chart_schedule_text']))}, "
+            f"totalling {_fmt(hydration_ordered_total)} mL daily."
+        )
 
-    iv_orders = list(result.get("iv_orders") or [])
-    if iv_orders:
-        described = "; ".join(
-            f"{escape(str(order['name']))}, TKVO" if order.get("tkvo")
-            else (
-                f"{escape(str(order['name']))} at "
-                f"{_fmt(_number(order['rate_ml_hr']))} mL/hour"
-                # A full day needs no saying; a part day does.
-                + (
-                    f" for {_fmt(_number(order.get('hours')))} hours"
-                    if _number(order.get("hours", 24)) not in (0, 24) else ""
-                )
-            )
-            for order in iv_orders
-        )
-        iv_volume = sum(
-            _number(dict(order["delivery"]).get("volume_ml")) for order in iv_orders
-        )
-        iv_energy = sum(
-            _number(dict(order["delivery"]).get("energy_kcal")) for order in iv_orders
-        )
-        # A line kept open supplies nothing, so the providing clause is
-        # omitted when every entered line is TKVO.
-        supplied = (
-            f", providing {_fmt(iv_volume)} mL/day"
-            + (f" and {_fmt(iv_energy)} kcal/day" if iv_energy else "")
-            if iv_volume else ""
-        )
-        lines.append(f"IV: {described}{supplied}.")
+    # Intravenous fluids are stated with the assessment, not here: they are
+    # what the medical team has running, not part of the nutrition plan.
+    # What they supply still reaches the totals and the breakdowns below.
 
     total = dict(result["chart_total"])
     energy_sources = [(delivery["energy_kcal"], "Formula")]
@@ -564,10 +617,15 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     protein_sources.extend(
         (_number(item["protein_g"]), str(item["name"])) for item in modulars
     )
-    fat_sources = [(delivery["fat_g"], "Formula")]
-    fat_sources.extend(
-        (_number(item["fat_g"]), str(item["name"])) for item in modulars
+    carbohydrate_sources = [(delivery["carbohydrate_g"], "Formula")]
+    carbohydrate_sources.extend(
+        (_number(item.get("carbohydrate_g")), str(item["name"])) for item in modulars
     )
+    # chart_total counts intravenous dextrose as carbohydrate as well as
+    # energy, so the breakdown names it for the same reason energy does.
+    carbohydrate_sources.append((_number(iv_fluids.get("carbohydrate_g")), "IV fluids"))
+    fat_sources = [(delivery["fat_g"], "Formula")]
+    fat_sources.extend((_number(item["fat_g"]), str(item["name"])) for item in modulars)
     fat_sources.append((_number(propofol.get("fat_g")), "Propofol"))
 
     formula_water = _number(delivery.get("free_water_ml"))
@@ -595,12 +653,21 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     if patency:
         water_sources.append(f"Patency flushes {_fmt(patency)} mL")
     if hydration_total:
-        water_sources.append(
-            f"Hydration flushes {_fmt(hydration_each)} mL "
-            f"{result['hydration_chart_schedule_text']}"
-        )
+        # An ordered schedule names its own volumes, and a mixed order has no
+        # single each-amount, so both state the daily total rather than quote a
+        # per-flush figure that would either repeat or be invented.
+        if as_ordered or hydration_each <= 0:
+            water_sources.append(
+                f"Hydration flushes {_fmt(hydration_total)} mL daily "
+                f"({result['hydration_chart_schedule_text']})"
+            )
+        else:
+            water_sources.append(
+                f"Hydration flushes {_fmt(hydration_each)} mL "
+                f"{result['hydration_chart_schedule_text']}"
+            )
 
-    total_water = _number(total["Free water (mL)"]) + _number(total["Water flushes (mL)"])
+    total_water = _number(total["Water (mL)"])
     if ons:
         ons_energy = _number(ons_totals.get("energy_kcal"))
         ons_protein = _number(ons_totals.get("protein_g"))
@@ -628,7 +695,8 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             f"{_source_breakdown(energy_sources, 'kcal')}, "
             f"protein {_fmt(_number(total['Protein (g)']))} g"
             f"{_source_breakdown(protein_sources, 'g')}, "
-            f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g, and "
+            f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g"
+            f"{_source_breakdown(carbohydrate_sources, 'g')}, and "
             f"fat {_fmt(_number(total['Fat (g)']))} g"
             f"{_source_breakdown(fat_sources, 'g')}."
         )
@@ -647,8 +715,7 @@ def build_chart_note_html(
 ) -> str:
     """Build one ADIME-style note from calculation outputs without adding diagnoses."""
     interventions = "<br><br>".join(
-        _intervention_html(result, include_label=len(results) > 1)
-        for result in results
+        _intervention_html(result, include_label=len(results) > 1) for result in results
     )
     return (
         "<div><strong>Assessment</strong><br><br>"

@@ -1,8 +1,8 @@
-from io import BytesIO
 import os
-from pathlib import Path
 import sys
 import unittest
+from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 
 from openpyxl import load_workbook
@@ -15,7 +15,9 @@ from data import load_master_formulas, load_master_modulars, load_master_ons
 
 class CaseRecordTests(unittest.TestCase):
     def test_default_website_metadata_is_safe_and_not_hyperlinked(self):
-        payload = export_case_record_workbook({}, load_master_formulas().head(0), load_master_modulars().head(0))
+        payload = export_case_record_workbook(
+            {}, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
         workbook = load_workbook(BytesIO(payload))
         sheet = workbook["Case record"]
 
@@ -26,16 +28,27 @@ class CaseRecordTests(unittest.TestCase):
         self.assertIn("hosted session processes entered values", sheet["A4"].value)
 
     def test_live_configured_website_is_hyperlinked(self):
-        with patch.dict(os.environ, {"CALCULATOR_WEBSITE_URL": "https://feeds.example.org/calculator"}):
-            payload = export_case_record_workbook({}, load_master_formulas().head(0), load_master_modulars().head(0))
+        with patch.dict(
+            os.environ,
+            {"CALCULATOR_WEBSITE_URL": "https://feeds.example.org/calculator"},
+        ):
+            payload = export_case_record_workbook(
+                {}, load_master_formulas().head(0), load_master_modulars().head(0)
+            )
         sheet = load_workbook(BytesIO(payload))["Case record"]
 
         self.assertEqual(sheet["B2"].value, "https://feeds.example.org/calculator")
-        self.assertEqual(sheet["B2"].hyperlink.target, "https://feeds.example.org/calculator")
+        self.assertEqual(
+            sheet["B2"].hyperlink.target, "https://feeds.example.org/calculator"
+        )
 
     def test_localhost_configuration_is_not_written_to_workbook(self):
-        with patch.dict(os.environ, {"CALCULATOR_WEBSITE_URL": "http://localhost:8501"}):
-            payload = export_case_record_workbook({}, load_master_formulas().head(0), load_master_modulars().head(0))
+        with patch.dict(
+            os.environ, {"CALCULATOR_WEBSITE_URL": "http://localhost:8501"}
+        ):
+            payload = export_case_record_workbook(
+                {}, load_master_formulas().head(0), load_master_modulars().head(0)
+            )
         sheet = load_workbook(BytesIO(payload))["Case record"]
 
         self.assertEqual(sheet["B2"].value, "To be added after deployment")
@@ -44,7 +57,9 @@ class CaseRecordTests(unittest.TestCase):
     def test_import_accepts_workbook_without_new_website_field(self):
         formulas = load_master_formulas().head(0)
         modulars = load_master_modulars().head(0)
-        payload = export_case_record_workbook({"case_record_label": "Older record"}, formulas, modulars)
+        payload = export_case_record_workbook(
+            {"case_record_label": "Older record"}, formulas, modulars
+        )
         workbook = load_workbook(BytesIO(payload))
         workbook["Case record"].delete_rows(2, 1)
         legacy = BytesIO()
@@ -119,9 +134,11 @@ class CaseRecordTests(unittest.TestCase):
     def test_round_trip_preserves_ons_snapshot_and_order(self):
         formulas = load_master_formulas().head(1)
         modulars = load_master_modulars().head(0)
-        ons = load_master_ons().loc[
-            lambda frame: frame["name"] == "BOOST Plus Calories — Vanilla"
-        ].copy()
+        ons = (
+            load_master_ons()
+            .loc[lambda frame: frame["name"] == "BOOST Plus Calories — Vanilla"]
+            .copy()
+        )
         product_id = ons.iloc[0]["id"]
         state = {
             "scenario_standard_chosen_ons": [ons.iloc[0]["name"]],
@@ -129,12 +146,8 @@ class CaseRecordTests(unittest.TestCase):
             f"scenario_standard_ons_times_{product_id}": 2.0,
         }
 
-        payload = export_case_record_workbook(
-            state, formulas, modulars, ons
-        )
-        restored, _, _, restored_ons = import_case_record_workbook(
-            BytesIO(payload)
-        )
+        payload = export_case_record_workbook(state, formulas, modulars, ons)
+        restored, _, _, restored_ons = import_case_record_workbook(BytesIO(payload))
 
         self.assertEqual(
             restored["scenario_standard_chosen_ons"],
@@ -143,9 +156,7 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(
             restored[f"scenario_standard_ons_containers_{product_id}"], 1.0
         )
-        self.assertEqual(
-            restored[f"scenario_standard_ons_times_{product_id}"], 2.0
-        )
+        self.assertEqual(restored[f"scenario_standard_ons_times_{product_id}"], 2.0)
         self.assertEqual(
             restored_ons["name"].tolist(), ["BOOST Plus Calories — Vanilla"]
         )
@@ -163,6 +174,152 @@ class CaseRecordTests(unittest.TestCase):
 
         self.assertIn("assessment_energy_target", restored)
         self.assertIsNone(restored["assessment_energy_target"])
+
+    def test_round_trip_preserves_an_ordered_flush_schedule(self):
+        state = {
+            "case_record_label": "Running flush order",
+            "scenario_standard_regimen_source": "Reviewing a feed already running",
+            "scenario_standard_hydration_entry_mode": "Enter flushes as ordered",
+            "scenario_standard_peri_feed_flush_pattern": "Before and after each feed",
+            "scenario_standard_peri_feed_flush_volume_ml": 150.0,
+            "scenario_standard_ordered_flush_times_per_day": 1,
+            "scenario_standard_ordered_flush_volume_ml": 150.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_round_trip_preserves_a_rate_and_duration_order(self):
+        state = {
+            "case_record_label": "Bolus by rate",
+            "scenario_standard_schedule_type": "Intermittent",
+            "scenario_standard_order_entry_form": "A rate in mL/hour, run for a set time each feed",
+            "scenario_standard_ordered_entry_form": "A rate in mL/hour, run for a set time each feed",
+            "scenario_standard_hours_per_feed": 2.0,
+            "scenario_standard_feeds_per_day": 3,
+            "scenario_standard_ordered_rate_ml_hr": 180.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_round_trip_preserves_a_reviewed_running_order(self):
+        # A record saved while reviewing carries the running-shape field. It was
+        # unregistered at first, so saving in that mode produced a file that
+        # would not reopen.
+        state = {
+            "case_record_label": "Reviewed on admission",
+            "scenario_standard_regimen_source": "Reviewing a feed already running",
+            "scenario_standard_running_shape": (
+                "Intermittent, each feed run at a rate for a set time"
+            ),
+            "scenario_standard_hours_per_feed": 2.0,
+            "scenario_standard_feeds_per_day": 3,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_a_record_saved_after_visiting_the_propofol_page_reopens(self):
+        # Conditional rates are keyed by the sedation condition they belong to.
+        # Only two ids were registered by name, so the single-rate page's own
+        # condition produced a field the importer rejected, and any record
+        # saved after visiting that page could not be reopened.
+        state = {
+            "case_record_label": "Seen on the Propofol page",
+            "scenario_propofol_conditional_projected_rate_ml_hr": 45.0,
+            "scenario_propofol_conditional_projected_rate_user_edited": True,
+            "scenario_propofol_conditional_lower_rate_ml_hr": 30.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_round_trip_preserves_a_daily_total_order(self):
+        state = {
+            "case_record_label": "Written as a daily total",
+            "scenario_standard_order_entry_form": "A total volume in mL per day",
+            "scenario_standard_ordered_daily_volume_ml": 1080.0,
+        }
+        payload = export_case_record_workbook(
+            state, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        for key, value in state.items():
+            self.assertEqual(restored[key], value)
+
+    def test_import_rejects_an_invalid_order_entry_form(self):
+        payload = export_case_record_workbook(
+            {"scenario_standard_order_entry_form": "A rate in mL/hour"},
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+        workbook = load_workbook(BytesIO(payload))
+        workbook["Case inputs"]["B2"] = '"Any old way"'
+        edited = BytesIO()
+        workbook.save(edited)
+
+        with self.assertRaisesRegex(ValueError, "unsupported order entry form"):
+            import_case_record_workbook(BytesIO(edited.getvalue()))
+
+    def test_record_saved_before_the_new_flush_fields_still_opens(self):
+        # A record written before this work simply lacks the new fields. It must
+        # open unchanged, with the defaults supplied at seeding time rather than
+        # by any conversion step here.
+        payload = export_case_record_workbook(
+            {
+                "case_record_label": "Pre-change record",
+                "assessment_age": 67,
+                "scenario_standard_schedule_type": "Continuous / cyclic",
+                "scenario_standard_feeding_hours": 23.0,
+                "scenario_standard_hydration_flushes": 6,
+            },
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+
+        restored, _, _, _ = import_case_record_workbook(BytesIO(payload))
+
+        self.assertEqual(restored["scenario_standard_feeding_hours"], 23.0)
+        self.assertEqual(restored["scenario_standard_hydration_flushes"], 6)
+        self.assertNotIn("scenario_standard_regimen_source", restored)
+        self.assertNotIn("scenario_standard_hydration_entry_mode", restored)
+
+    def test_import_rejects_an_invalid_hydration_entry_mode(self):
+        payload = export_case_record_workbook(
+            {"scenario_standard_hydration_entry_mode": "Enter flushes as ordered"},
+            load_master_formulas().head(0),
+            load_master_modulars().head(0),
+        )
+        workbook = load_workbook(BytesIO(payload))
+        workbook["Case inputs"]["B2"] = '"Guess the flushes"'
+        edited = BytesIO()
+        workbook.save(edited)
+
+        with self.assertRaisesRegex(ValueError, "unsupported hydration entry mode"):
+            import_case_record_workbook(BytesIO(edited.getvalue()))
 
     def test_download_excludes_generated_and_edited_chart_note_state(self):
         payload = export_case_record_workbook(
@@ -253,7 +410,9 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(restored[f"scenario_primary_modular_doses_{product_id}"], 2.0)
         self.assertTrue(restored["scenario_alternate_include_propofol"])
         self.assertEqual(restored["scenario_alternate_propofol_rate"], 20.0)
-        self.assertEqual(restored[f"scenario_alternate_modular_doses_{product_id}"], 4.0)
+        self.assertEqual(
+            restored[f"scenario_alternate_modular_doses_{product_id}"], 4.0
+        )
 
     def test_round_trip_preserves_independent_standard_and_icu_workflows(self):
         formulas = load_master_formulas().head(1)
@@ -340,9 +499,7 @@ class CaseRecordTests(unittest.TestCase):
             restored["scenario_propofol_propofol_method"], "Changing Propofol rates"
         )
         self.assertEqual(restored["scenario_propofol_prescription_target_pct"], 110.0)
-        self.assertTrue(
-            restored["scenario_propofol_prescription_interruption_note"]
-        )
+        self.assertTrue(restored["scenario_propofol_prescription_interruption_note"])
         self.assertEqual(restored["scenario_propofol_higher_propofol_hours"], 6.0)
         self.assertEqual(
             restored["scenario_propofol_conditional_lower_rate_ml_hr"], 55.0
@@ -414,4 +571,3 @@ class IVFluidRecordTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             import_case_record_workbook(BytesIO(payload))
-

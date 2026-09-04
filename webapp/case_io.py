@@ -7,27 +7,35 @@ on the same or another approved local device.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from io import BytesIO
 import json
-from math import isfinite
 import os
 import re
-from typing import Any
 from copy import copy
+from datetime import datetime, timezone
+from io import BytesIO
+from math import isfinite
+from typing import Any
 from urllib.parse import urlparse
 
 import pandas as pd
-
-from constants import IV_FLUIDS, WATER_MODES
+from constants import (
+    HYDRATION_ENTRY_MODES,
+    IV_FLUIDS,
+    ORDER_FORMS,
+    PERI_FEED_FLUSH_PATTERNS,
+    REGIMEN_SOURCES,
+    RUNNING_SHAPES,
+    WATER_MODES,
+)
 from data import load_master_ons, validate_import
-
 
 CASE_RECORD_TITLE = "Adult Inpatient Enteral Nutrition case record"
 CASE_RECORD_VERSION = 1
 CASE_RECORD_SHEET = "Case record"
 CASE_INPUTS_SHEET = "Case inputs"
-CALCULATOR_WEBSITE_URL = os.getenv("CALCULATOR_WEBSITE_URL", "To be added after deployment")
+CALCULATOR_WEBSITE_URL = os.getenv(
+    "CALCULATOR_WEBSITE_URL", "To be added after deployment"
+)
 
 # These keys are deliberately limited to clinical calculator inputs. The label
 # is part of the downloaded file and must follow the clinician's local policy.
@@ -132,12 +140,20 @@ CASE_EXPORT_OMIT_KEYS = {
 CASE_LIST_KEYS = {"feed_candidates", "icu_feed_candidates", "chosen_modulars"}
 CASE_BOOL_KEYS = {"assessment_mechanical_ventilation", "en_has_alternate_plan"}
 CASE_STRING_KEYS = {
-    "case_record_label", "assessment_sex", "assessment_weight_unit",
-    "assessment_height_unit", "assessment_weight_choice",
-    "assessment_protein_weight_choice", "assessment_water_mode",
-    "assessment_additional_loss_mode", "icu_planned_daily_intake_scenario",
-    "en_selected_formula", "en_schedule_type", "en_delivery_view",
-    "en_hydration_schedule_format", "planned_daily_intake_scenario",
+    "case_record_label",
+    "assessment_sex",
+    "assessment_weight_unit",
+    "assessment_height_unit",
+    "assessment_weight_choice",
+    "assessment_protein_weight_choice",
+    "assessment_water_mode",
+    "assessment_additional_loss_mode",
+    "icu_planned_daily_intake_scenario",
+    "en_selected_formula",
+    "en_schedule_type",
+    "en_delivery_view",
+    "en_hydration_schedule_format",
+    "planned_daily_intake_scenario",
 }
 CASE_ENUM_VALUES = {
     "assessment_sex": {"", "Female", "Male"},
@@ -176,14 +192,29 @@ SCENARIO_FIELD_PATTERN = re.compile(
     rf"^scenario_(?P<scenario>{SCENARIO_ID_PATTERN})_(?P<field>.+)$"
 )
 SCENARIO_STRING_FIELDS = {
-    "selected_formula", "ordered_formula_name", "schedule_type",
-    "ordered_schedule_type", "delivery_view", "hydration_schedule_format",
+    "selected_formula",
+    "ordered_formula_name",
+    "schedule_type",
+    "ordered_schedule_type",
+    "delivery_view",
+    "hydration_schedule_format",
     "propofol_method",
+    "regimen_source",
+    "hydration_entry_mode",
+    "peri_feed_flush_pattern",
+    "order_entry_form",
+    "ordered_entry_form",
+    "running_shape",
 }
+CONDITIONAL_RATE_FIELD = re.compile(r"conditional_[A-Za-z0-9_]+_rate_ml_hr")
+CONDITIONAL_EDITED_FIELD = re.compile(r"conditional_[A-Za-z0-9_]+_rate_user_edited")
 SCENARIO_LIST_FIELDS = {"chosen_modulars", "chosen_ons"}
 SCENARIO_BOOL_FIELDS = {
-    "order_user_edited", "include_propofol", "describe_as_trickle",
-    "conditional_lower_rate_user_edited", "conditional_higher_rate_user_edited",
+    "order_user_edited",
+    "include_propofol",
+    "describe_as_trickle",
+    "conditional_lower_rate_user_edited",
+    "conditional_higher_rate_user_edited",
     "prescription_interruption_note",
 }
 SCENARIO_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
@@ -196,6 +227,16 @@ SCENARIO_NUMERIC_RANGES: dict[str, tuple[float | None, float | None, bool]] = {
     "patency_flushes": (0, None, False),
     "hydration_flushes": (1, 24, True),
     "hydration_interval_hours": (1, 24, True),
+    # The ordered-flush count allows zero, unlike the calculated schedule above,
+    # because an order may have no clock-scheduled line at all.
+    "ordered_flush_times_per_day": (0, 24, True),
+    "ordered_flush_volume_ml": (0, None, False),
+    "peri_feed_flush_volume_ml": (0, None, False),
+    "hours_per_feed": (0.5, 24, False),
+    # No screen writes this any more: entering a daily total was dropped
+    # because it is not a way a feed runs. Kept so a record saved while that
+    # form existed still opens.
+    "ordered_daily_volume_ml": (0, None, False),
     "propofol_rate": (0, None, False),
     "propofol_hours": (0, 24, False),
     "lower_propofol_rate": (0, None, False),
@@ -252,7 +293,11 @@ def _validate_case_state_value(key: str, value: Any) -> None:
         return
     if key in CASE_STRING_KEYS:
         _validate_string(key, value)
-        if value is not None and key in CASE_ENUM_VALUES and value not in CASE_ENUM_VALUES[key]:
+        if (
+            value is not None
+            and key in CASE_ENUM_VALUES
+            and value not in CASE_ENUM_VALUES[key]
+        ):
             raise ValueError(f"Case record has an unsupported value for {key}.")
         return
     if key in CASE_STATE_KEYS:
@@ -281,7 +326,9 @@ def _validate_case_state_value(key: str, value: Any) -> None:
         # version cannot restore a composition this one cannot cost.
         _validate_string(key, value)
         if value not in (None, "") and value not in IV_FLUIDS:
-            raise ValueError(f"Case record names an unknown intravenous fluid: {value}.")
+            raise ValueError(
+                f"Case record names an unknown intravenous fluid: {value}."
+            )
         return
 
     match = SCENARIO_FIELD_PATTERN.fullmatch(key)
@@ -296,30 +343,82 @@ def _validate_case_state_value(key: str, value: Any) -> None:
     elif field in SCENARIO_STRING_FIELDS:
         _validate_string(key, value)
         if field in {"schedule_type", "ordered_schedule_type"} and value not in {
-            "Continuous", "Continuous / cyclic", "Intermittent", None,
+            "Continuous",
+            "Continuous / cyclic",
+            "Intermittent",
+            None,
         }:
             raise ValueError(f"Case record has an unsupported schedule for {key}.")
         if field == "delivery_view" and value not in {
-            "Full planned EN", "Achieved delivery", None,
+            "Full planned EN",
+            "Achieved delivery",
+            None,
         }:
             raise ValueError(f"Case record has an unsupported delivery view for {key}.")
         if field == "hydration_schedule_format" and value not in {
-            "times/day", "qXh", None,
+            "times/day",
+            "qXh",
+            None,
         }:
-            raise ValueError(f"Case record has an unsupported hydration schedule for {key}.")
+            raise ValueError(
+                f"Case record has an unsupported hydration schedule for {key}."
+            )
         if field == "propofol_method" and value not in {
-            "Single Propofol rate", "Changing Propofol rates",
-            "Single daily EN rate", "Conditional EN rates", None,
+            "Single Propofol rate",
+            "Changing Propofol rates",
+            "Single daily EN rate",
+            "Conditional EN rates",
+            None,
         }:
-            raise ValueError(f"Case record has an unsupported Propofol method for {key}.")
+            raise ValueError(
+                f"Case record has an unsupported Propofol method for {key}."
+            )
+        if field == "regimen_source" and value not in set(REGIMEN_SOURCES) | {None}:
+            raise ValueError(
+                f"Case record has an unsupported regimen source for {key}."
+            )
+        if field == "hydration_entry_mode" and value not in (
+            set(HYDRATION_ENTRY_MODES) | {None}
+        ):
+            raise ValueError(
+                f"Case record has an unsupported hydration entry mode for {key}."
+            )
+        if field == "peri_feed_flush_pattern" and value not in (
+            set(PERI_FEED_FLUSH_PATTERNS) | {None}
+        ):
+            raise ValueError(
+                f"Case record has an unsupported peri-feed flush pattern for {key}."
+            )
+        if field == "running_shape" and value not in set(RUNNING_SHAPES) | {None}:
+            raise ValueError(f"Case record has an unsupported running shape for {key}.")
+        if field in {"order_entry_form", "ordered_entry_form"} and value not in (
+            set(ORDER_FORMS) | {None}
+        ):
+            raise ValueError(
+                f"Case record has an unsupported order entry form for {key}."
+            )
     elif field in SCENARIO_NUMERIC_RANGES:
         minimum, maximum, integer = SCENARIO_NUMERIC_RANGES[field]
         _validate_number(key, value, minimum, maximum, integer)
-    elif field.startswith((
-        "modular_units_", "modular_doses_", "modular_water_",
-        "ons_containers_", "ons_times_",
-    )):
+    elif field.startswith(
+        (
+            "modular_units_",
+            "modular_doses_",
+            "modular_water_",
+            "ons_containers_",
+            "ons_times_",
+        )
+    ):
         _validate_number(key, value, 0)
+    # Conditional rates are keyed by the sedation condition they belong to, and
+    # those ids come from the Propofol page rather than from a fixed list. Only
+    # two were ever registered by name, so a record saved after visiting that
+    # page carried a third and would not reopen. Matched by shape instead.
+    elif CONDITIONAL_RATE_FIELD.fullmatch(field):
+        _validate_number(key, value, 0)
+    elif CONDITIONAL_EDITED_FIELD.fullmatch(field):
+        if not isinstance(value, bool):
+            raise ValueError(f"Case record requires true or false for {key}.")
     else:
         raise ValueError(f"Case record contains an unsupported scenario field: {key}.")
 
@@ -340,14 +439,22 @@ def case_state_snapshot(session_state: dict[str, Any]) -> dict[str, Any]:
     for key in CASE_STATE_KEYS:
         if key in session_state and key not in CASE_EXPORT_OMIT_KEYS:
             if has_shared_propofol_plan and key in {
-                "icu_planned_daily_intake_scenario", "planned_daily_intake_scenario",
+                "icu_planned_daily_intake_scenario",
+                "planned_daily_intake_scenario",
             }:
                 continue
             state[key] = session_state[key]
     for key, value in session_state.items():
-        if key.startswith(CASE_DYNAMIC_PREFIXES) and not key.endswith(CASE_TRANSIENT_SUFFIXES):
+        if key.startswith(CASE_DYNAMIC_PREFIXES) and not key.endswith(
+            CASE_TRANSIENT_SUFFIXES
+        ):
             if has_shared_propofol_plan and key.startswith(
-                ("scenario_lower_", "scenario_higher_", "scenario_primary_", "scenario_alternate_")
+                (
+                    "scenario_lower_",
+                    "scenario_higher_",
+                    "scenario_primary_",
+                    "scenario_alternate_",
+                )
             ):
                 continue
             state[key] = value
@@ -361,7 +468,9 @@ def _configured_calculator_website() -> str:
     hostname = (parsed.hostname or "").lower().rstrip(".")
     if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
         return "To be added after deployment"
-    if hostname in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or hostname.endswith(".localhost"):
+    if hostname in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or hostname.endswith(
+        ".localhost"
+    ):
         return "To be added after deployment"
     return configured
 
@@ -375,37 +484,59 @@ def export_case_record_workbook(
     """Create a reviewable workbook containing a local case and product snapshot."""
     state = case_state_snapshot(session_state)
     inputs = pd.DataFrame(
-        [{"Field key": key, "Saved value (JSON)": _json_value(value)} for key, value in sorted(state.items())]
+        [
+            {"Field key": key, "Saved value (JSON)": _json_value(value)}
+            for key, value in sorted(state.items())
+        ]
     )
     label = str(state.get("case_record_label", "")).strip()
     if ons is None:
         ons = load_master_ons().iloc[0:0].copy()
-    metadata = pd.DataFrame([
-        [CASE_RECORD_TITLE, None],
-        ["Calculator website", _configured_calculator_website()],
-        ["This file is local to the clinician's chosen device or approved storage location.", None],
-        ["The application does not retain case records; a hosted session processes entered values while it is active.", None],
-        ["The record label is part of this downloaded file. Store and transfer the file according to local privacy policy.", None],
-        ["Record version", CASE_RECORD_VERSION],
-        ["Saved at UTC", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")],
-        ["Record label", label],
-    ])
+    metadata = pd.DataFrame(
+        [
+            [CASE_RECORD_TITLE, None],
+            ["Calculator website", _configured_calculator_website()],
+            [
+                "This file is local to the clinician's chosen device or approved storage location.",
+                None,
+            ],
+            [
+                "The application does not retain case records; a hosted session processes entered values while it is active.",
+                None,
+            ],
+            [
+                "The record label is part of this downloaded file. Store and transfer the file according to local privacy policy.",
+                None,
+            ],
+            ["Record version", CASE_RECORD_VERSION],
+            ["Saved at UTC", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")],
+            ["Record label", label],
+        ]
+    )
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        metadata.to_excel(writer, sheet_name=CASE_RECORD_SHEET, header=False, index=False)
+        metadata.to_excel(
+            writer, sheet_name=CASE_RECORD_SHEET, header=False, index=False
+        )
         inputs.to_excel(writer, sheet_name=CASE_INPUTS_SHEET, index=False)
         formulas.to_excel(writer, sheet_name="My Formulary", index=False)
         modulars.to_excel(writer, sheet_name="My Modulars", index=False)
         ons.to_excel(writer, sheet_name="My ONS", index=False)
 
         for name in (
-            CASE_RECORD_SHEET, CASE_INPUTS_SHEET, "My Formulary", "My Modulars", "My ONS",
+            CASE_RECORD_SHEET,
+            CASE_INPUTS_SHEET,
+            "My Formulary",
+            "My Modulars",
+            "My ONS",
         ):
             worksheet = writer.sheets[name]
             worksheet.sheet_view.showGridLines = False
             worksheet.freeze_panes = "A2" if name != CASE_RECORD_SHEET else "A6"
             worksheet.column_dimensions["A"].width = 34
-            worksheet.column_dimensions["B"].width = 80 if name == CASE_RECORD_SHEET else 30
+            worksheet.column_dimensions["B"].width = (
+                80 if name == CASE_RECORD_SHEET else 30
+            )
             for cell in worksheet[1]:
                 font = copy(cell.font)
                 font.bold = True
@@ -440,12 +571,17 @@ def export_case_record_workbook(
 
 
 def _read_metadata(workbook: pd.ExcelFile) -> dict[str, str]:
-    metadata = pd.read_excel(workbook, sheet_name=CASE_RECORD_SHEET, header=None, usecols="A:B")
+    metadata = pd.read_excel(
+        workbook, sheet_name=CASE_RECORD_SHEET, header=None, usecols="A:B"
+    )
     if metadata.empty or str(metadata.iloc[0, 0]).strip() != CASE_RECORD_TITLE:
         raise ValueError("This is not an Adult Inpatient EN case-record workbook.")
     values = {
-        str(row.iloc[0]).strip(): "" if len(row) < 2 or pd.isna(row.iloc[1]) else str(row.iloc[1]).strip()
-        for _, row in metadata.iterrows() if not pd.isna(row.iloc[0])
+        str(row.iloc[0]).strip(): (
+            "" if len(row) < 2 or pd.isna(row.iloc[1]) else str(row.iloc[1]).strip()
+        )
+        for _, row in metadata.iterrows()
+        if not pd.isna(row.iloc[0])
     }
     if values.get("Record version") != str(CASE_RECORD_VERSION):
         raise ValueError("This case record uses an unsupported version.")
@@ -460,12 +596,16 @@ def import_case_record_workbook(
     required = {CASE_RECORD_SHEET, CASE_INPUTS_SHEET, "My Formulary", "My Modulars"}
     missing = required - set(workbook.sheet_names)
     if missing:
-        raise ValueError("Case record is missing worksheets: " + ", ".join(sorted(missing)))
+        raise ValueError(
+            "Case record is missing worksheets: " + ", ".join(sorted(missing))
+        )
     _read_metadata(workbook)
     # Preserve the JSON token `null`.  Pandas otherwise treats it as a
     # missing spreadsheet cell, which would silently collapse a deliberate
     # blank input into an unreadable record on reopening.
-    inputs = pd.read_excel(workbook, sheet_name=CASE_INPUTS_SHEET, keep_default_na=False)
+    inputs = pd.read_excel(
+        workbook, sheet_name=CASE_INPUTS_SHEET, keep_default_na=False
+    )
     if set(inputs.columns) != {"Field key", "Saved value (JSON)"}:
         raise ValueError("Case inputs worksheet has an unexpected layout.")
     normalized_keys = inputs["Field key"].astype(str).str.strip()
@@ -483,7 +623,9 @@ def import_case_record_workbook(
         try:
             value = json.loads(str(row["Saved value (JSON)"]))
         except json.JSONDecodeError as error:
-            raise ValueError(f"Case record has an unreadable value for {key}.") from error
+            raise ValueError(
+                f"Case record has an unreadable value for {key}."
+            ) from error
         if not isinstance(value, (str, int, float, bool, list, type(None))):
             raise ValueError(f"Case record has an unsupported value for {key}.")
         _validate_case_state_value(key, value)
@@ -501,10 +643,14 @@ def import_case_record_workbook(
         unit = state.get("assessment_height_unit")
         if unit == "m" and state.get("assessment_height_m") is not None:
             state["assessment_height_cm"] = float(state["assessment_height_m"]) * 100
-        elif (unit == "ft/in" and state.get("assessment_height_feet") is not None
-              and state.get("assessment_height_inches") is not None):
+        elif (
+            unit == "ft/in"
+            and state.get("assessment_height_feet") is not None
+            and state.get("assessment_height_inches") is not None
+        ):
             state["assessment_height_cm"] = (
-                float(state["assessment_height_feet"]) * 12 + float(state["assessment_height_inches"])
+                float(state["assessment_height_feet"]) * 12
+                + float(state["assessment_height_inches"])
             ) * 2.54
     # Metres are no longer offered in the interface. Preserve feet/inches so
     # a saved record reopens in the same entry mode, while retaining the

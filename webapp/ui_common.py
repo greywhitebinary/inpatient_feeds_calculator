@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from base64 import b64encode
+from collections.abc import Mapping
 from html import escape
 from numbers import Real
 from pathlib import Path
-from typing import Mapping
 
 import pandas as pd
 import streamlit as st
-
 from calculations import mg_to_mmol
 from constants import FORMULARY_TABLE_DECIMALS
+
 
 def number(value: object) -> float:
     try:
@@ -22,8 +22,12 @@ def number(value: object) -> float:
 
 
 def render_worked_bounds(
-    label: str, calculation_weight: float | None, lower: float | None,
-    upper: float | None, unit: str, weight_basis: str | None = None,
+    label: str,
+    calculation_weight: float | None,
+    lower: float | None,
+    upper: float | None,
+    unit: str,
+    weight_basis: str | None = None,
 ) -> None:
     """Render a complete range or one entered weight-based target value.
 
@@ -43,14 +47,36 @@ def render_worked_bounds(
         result = "–".join(values)
         basis = (
             f' <span class="calculated-range-basis">using {calculation_weight:.1f} kg'
-            f' ({weight_basis})</span>'
-            if weight_basis else ""
+            f" ({weight_basis})</span>"
+            if weight_basis
+            else ""
         )
         st.markdown(
             f'<p class="calculated-range">{label}: '
-            f'<strong>{result} {unit}</strong>{basis}</p>',
+            f"<strong>{result} {unit}</strong>{basis}</p>",
             unsafe_allow_html=True,
         )
+
+
+def render_alert(kind: str, message: str) -> None:
+    """Render a warning, error or success box in the workspace palette.
+
+    Streamlit's own alerts carry a cool, saturated palette that belongs to no
+    other part of this page, and their four kinds are told apart only by
+    generated class names, so they cannot be restyled from a stylesheet with
+    any confidence that the selector will survive an upgrade. This renders the
+    same thing in the project's own markup instead, which is how every other
+    styled block here is built.
+
+    `role` follows the same rule Streamlit uses: a problem or a caution
+    interrupts a screen reader, while a confirmation does not.
+    """
+    role = "alert" if kind in {"error", "warning"} else "status"
+    st.markdown(
+        f'<div class="app-alert app-alert--{escape(kind)}" role="{role}">'
+        f"{escape(message)}</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def render_box_heading(label: str) -> None:
@@ -64,18 +90,30 @@ def render_box_heading(label: str) -> None:
 def compact_feed_table(frame: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for _, item in frame.iterrows():
-        rows.append({
-            "Product": item["name"],
-            "Energy\nkcal/mL": number(item["kcal_per_mL"]),
-            "Protein\ng/L": number(item["protein_per_mL"]) * 1000,
-            "Free water\nmL/L": number(item["free_water_per_mL"]) * 1000,
-            "Na\nmmol/L": mg_to_mmol("sodium", number(item["sodium_per_mL"]) * 1000),
-            "K\nmmol/L": mg_to_mmol("potassium", number(item["potassium_per_mL"]) * 1000),
-            "Ca\nmmol/L": mg_to_mmol("calcium", number(item["calcium_per_mL"]) * 1000),
-            "P\nmmol/L": mg_to_mmol("phosphorus", number(item["phosphorus_per_mL"]) * 1000),
-            "Mg\nmmol/L": mg_to_mmol("magnesium", number(item["magnesium_per_mL"]) * 1000),
-            "Fibre\ng/L": number(item["fibre_per_mL"]) * 1000,
-        })
+        rows.append(
+            {
+                "Product": item["name"],
+                "Energy\nkcal/mL": number(item["kcal_per_mL"]),
+                "Protein\ng/L": number(item["protein_per_mL"]) * 1000,
+                "Free water\nmL/L": number(item["free_water_per_mL"]) * 1000,
+                "Na\nmmol/L": mg_to_mmol(
+                    "sodium", number(item["sodium_per_mL"]) * 1000
+                ),
+                "K\nmmol/L": mg_to_mmol(
+                    "potassium", number(item["potassium_per_mL"]) * 1000
+                ),
+                "Ca\nmmol/L": mg_to_mmol(
+                    "calcium", number(item["calcium_per_mL"]) * 1000
+                ),
+                "P\nmmol/L": mg_to_mmol(
+                    "phosphorus", number(item["phosphorus_per_mL"]) * 1000
+                ),
+                "Mg\nmmol/L": mg_to_mmol(
+                    "magnesium", number(item["magnesium_per_mL"]) * 1000
+                ),
+                "Fibre\ng/L": number(item["fibre_per_mL"]) * 1000,
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -89,6 +127,7 @@ def render_report_table(
     default_decimals: int = 1,
 ) -> None:
     """Render static clinical tables with one shared visual language."""
+
     def header(label: object) -> str:
         parts = escape(str(label)).split("\n", 1)
         return f"{parts[0]}<small>{parts[1]}</small>" if len(parts) == 2 else parts[0]
@@ -123,12 +162,12 @@ def render_report_table(
         for index, (column, cell) in enumerate(row.items()):
             display, cell_class = value(cell, column, row_label)
             if index == 0:
-                cells.append(f"<th scope=\"row\" class=\"{cell_class}\">{display}</th>")
+                cells.append(f'<th scope="row" class="{cell_class}">{display}</th>')
             else:
-                cells.append(f"<td class=\"{cell_class}\">{display}</td>")
+                cells.append(f'<td class="{cell_class}">{display}</td>')
         body_rows.append(f"<tr>{''.join(cells)}</tr>")
     st.markdown(
-        f"<div class=\"report-table-wrap\"><table class=\"{classes}\">"
+        f'<div class="report-table-wrap"><table class="{classes}">'
         f"<thead><tr>{header_cells}</tr></thead><tbody>{''.join(body_rows)}</tbody></table></div>",
         unsafe_allow_html=True,
     )
@@ -137,7 +176,9 @@ def render_report_table(
 def render_formulary_table(frame: pd.DataFrame) -> None:
     """Render the dense nutrition profile using the shared table system."""
     render_report_table(
-        compact_feed_table(frame), dense=True, wide=True,
+        compact_feed_table(frame),
+        dense=True,
+        wide=True,
         decimals=FORMULARY_TABLE_DECIMALS,
     )
 
@@ -162,7 +203,11 @@ def render_record_title(record_label: str) -> None:
 
 def modular_unit(product: dict[str, object]) -> str:
     """Use the acute-care packet convention for Beneprotein orders."""
-    return "packet" if product.get("id") == "nestle-beneprotein" else str(product["dose_unit"])
+    return (
+        "packet"
+        if product.get("id") == "nestle-beneprotein"
+        else str(product["dose_unit"])
+    )
 
 
 def modular_daily_amount(product: dict[str, object], units: float, doses: float) -> str:
@@ -205,7 +250,7 @@ def mmol_if_disclosed(totals: Mapping[str, object], nutrient: str) -> float | No
     return mg_to_mmol(nutrient, totals.get(f"{nutrient}_mg", 0))
 
 
-def uncounted_volume_note(sources: "list[tuple[float, str]]") -> str:
+def uncounted_volume_note(sources: list[tuple[float, str]]) -> str:
     """List the infusions whose volume is deliberately outside the water total.
 
     Both intravenous fluids and propofol are real volume the patient receives,
@@ -214,8 +259,7 @@ def uncounted_volume_note(sources: "list[tuple[float, str]]") -> str:
     that from becoming a separate sentence per infusion.
     """
     listed = [
-        f"- {volume:,.0f} mL/day from {name}"
-        for volume, name in sources if volume
+        f"- {volume:,.0f} mL/day from {name}" for volume, name in sources if volume
     ]
     if not listed:
         return ""
