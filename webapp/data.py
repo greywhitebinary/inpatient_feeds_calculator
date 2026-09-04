@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FORMULA_PATH = PROJECT_ROOT / "formulary_working" / "canada_formulas_working.csv"
 MODULAR_PATH = PROJECT_ROOT / "formulary_working" / "modular_products_working.csv"

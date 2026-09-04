@@ -1,7 +1,7 @@
 import sys
+import unittest
 from io import BytesIO
 from pathlib import Path
-import unittest
 
 import pandas as pd
 from openpyxl import load_workbook

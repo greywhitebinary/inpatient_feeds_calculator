@@ -6,15 +6,15 @@ from html import escape
 
 import pandas as pd
 import streamlit as st
-
 from data import export_formulary_workbook, import_formulary_workbook
 from session_state import master_data
 from ui_common import (
-    render_alert,
     number,
+    render_alert,
     render_formulary_table,
     render_report_table,
 )
+
 
 def formula_type(name: str) -> str:
     """Return a plain-language working category for the saved-card display."""

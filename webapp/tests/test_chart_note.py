@@ -1,12 +1,12 @@
 import sys
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from calculations import iv_fluid_delivery
-from constants import IV_FLUIDS
 from chart_note import build_chart_note_html
+from constants import IV_FLUIDS
 
 
 def result_fixture():

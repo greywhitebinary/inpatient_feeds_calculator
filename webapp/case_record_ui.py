@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import streamlit as st
-
 from case_io import export_case_record_workbook
 from session_state import load_example_record, open_uploaded_case_record
 from ui_common import render_alert, render_box_heading
+
 
 def render_case_record_actions() -> str:
     """Use the BTF-style top bar for a label and returning-user action."""

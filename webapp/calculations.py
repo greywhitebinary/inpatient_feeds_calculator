@@ -6,9 +6,8 @@ formula or prescribe a nutrition regimen.
 
 from __future__ import annotations
 
-from math import floor
-from typing import Mapping
-
+from collections.abc import Mapping
+from math import floor, isnan
 
 ATOMIC_WEIGHTS_MG_PER_MMOL = {
     "sodium": 22.99,
@@ -190,7 +189,7 @@ def disclosed_value(raw: object) -> tuple[float, bool]:
         value = float(raw)
     except (TypeError, ValueError):
         return 0.0, False
-    if value != value:  # NaN, which is how pandas carries a blank cell
+    if isnan(value):  # how pandas carries a blank cell
         return 0.0, False
     return value, True
 

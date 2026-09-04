@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from hashlib import sha256
 from html import escape
-from typing import Mapping, Sequence
 
 import streamlit as st
-
 from calculations import (
     adjusted_body_weight_kg,
     hamwi_ibw_kg,
@@ -17,7 +16,6 @@ from calculations import (
     penn_state_2010_kcal,
 )
 from constants import IV_FLUIDS, MAX_IV_FLUID_ORDERS, PROTEIN_WEIGHT_SAME_AS_ENERGY
-
 
 CHART_NOTE_EDITOR_HTML = """
 <div class="chart-note-toolbar">
@@ -293,10 +291,14 @@ def _requirements_html(state: Mapping[str, object]) -> str:
         comparable_energy_values.extend([mifflin_adjusted, harris_adjusted])
         factor_text = f"AF {activity:g} × SF {_fmt(stress, 2)}"
         energy_lines.extend([
-            f"MSJ: {_fmt(mifflin_adjusted)} kcal/day ≈ "
-            f"{_fmt(mifflin)} kcal/day × {factor_text}",
-            f"HB: {_fmt(harris_adjusted)} kcal/day ≈ "
-            f"{_fmt(harris)} kcal/day × {factor_text}",
+            (
+                f"MSJ: {_fmt(mifflin_adjusted)} kcal/day ≈ "
+                f"{_fmt(mifflin)} kcal/day × {factor_text}"
+            ),
+            (
+                f"HB: {_fmt(harris_adjusted)} kcal/day ≈ "
+                f"{_fmt(harris)} kcal/day × {factor_text}"
+            ),
         ])
         temperature = _entered(state, "assessment_temperature")
         minute_ventilation = _entered(state, "assessment_minute_ventilation")
@@ -317,9 +319,14 @@ def _requirements_html(state: Mapping[str, object]) -> str:
                 f"{_fmt(minute_ventilation, 1)} L/min"
             )
             energy_lines.extend([
-                f"Penn State 2003b (ventilated adults): {_fmt(penn_2003b)} kcal/day ({inputs})",
-                f"Modified Penn State 2010 (ventilated, age ≥60 and BMI ≥30): "
-                f"{_fmt(penn_2010)} kcal/day ({inputs})",
+                (
+                    f"Penn State 2003b (ventilated adults): "
+                    f"{_fmt(penn_2003b)} kcal/day ({inputs})"
+                ),
+                (
+                    f"Modified Penn State 2010 (ventilated, age ≥60 and "
+                    f"BMI ≥30): {_fmt(penn_2010)} kcal/day ({inputs})"
+                ),
             ])
 
     target = _entered(state, "assessment_energy_target")

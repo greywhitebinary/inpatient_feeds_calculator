@@ -1,16 +1,15 @@
 import re
-from pathlib import Path
 import sys
 import unittest
+from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from case_io import export_case_record_workbook
 from calculations import modular_delivery, practical_feed_delivery, propofol_intake
+from case_io import export_case_record_workbook
 from data import load_master_formulas, load_master_modulars
-
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 
@@ -1163,13 +1162,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def _intake_rows(self, app):
         rendered_html = "\n".join(item.value for item in app.markdown)
-        table = re.search(r"Planned daily intake.*?</table>", rendered_html, re.S)
+        table = re.search(r"Planned daily intake.*?</table>", rendered_html, re.DOTALL)
         self.assertIsNotNone(table, "no daily intake table rendered")
         rows = {}
-        for row in re.findall(r"<tr>(.*?)</tr>", table.group(0), re.S):
+        for row in re.findall(r"<tr>(.*?)</tr>", table.group(0), re.DOTALL):
             cells = [
                 re.sub("<[^>]+>", "", cell).strip()
-                for cell in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)
+                for cell in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.DOTALL)
             ]
             if cells:
                 rows[cells[0]] = cells[1:]

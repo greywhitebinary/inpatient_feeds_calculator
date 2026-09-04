@@ -1,0 +1,27 @@
+[tool.black]
+line-length = 88
+extend-exclude = "webapp/.venv"
+
+[tool.ruff]
+line-length = 88
+extend-exclude = ["webapp/.venv"]
+
+[tool.ruff.lint]
+extend-select = ["I", "UP", "SIM", "TRY", "PIE", "FURB", "ISC"]
+
+# Each of these was looked at and kept deliberately.
+ignore = [
+    # Two branches that assign the same thing for different reasons: seeding an
+    # empty order once, and following a suggestion that has not been overridden.
+    # Combining them into one condition hides the distinction the comment above
+    # them exists to explain.
+    "SIM114",
+    # The saved-record validator raises ValueError for every kind of bad field,
+    # including a wrong type, so that the caller can catch one exception and
+    # show one message. Splitting it by exception type would break that.
+    "TRY003",
+    "TRY004",
+    # Nested `with` blocks are used where the inner one is conditional or where
+    # collapsing them would put an unrelated context on the same line.
+    "SIM117",
+]

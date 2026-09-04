@@ -7,7 +7,6 @@ from zipfile import BadZipFile
 
 import pandas as pd
 import streamlit as st
-
 from calculations import height_to_cm, iv_fluid_delivery, total_iv_fluid_delivery
 from case_io import CASE_DYNAMIC_PREFIXES, CASE_STATE_KEYS, import_case_record_workbook
 from constants import (
@@ -17,15 +16,16 @@ from constants import (
     MAX_IV_FLUID_ORDERS,
     MEASUREMENT_ENTRY_KEYS,
     ORDER_FORM_RATE_AND_HOURS,
-    RUNNING_CONTINUOUS,
     PERI_FEED_FLUSH_NONE,
     PLAN_GOALS,
     PROTEIN_WEIGHT_SAME_AS_ENERGY,
     REGIMEN_SOURCE_NEW,
+    RUNNING_CONTINUOUS,
     WATER_MODE_FLUSHES,
 )
 from data import load_master_formulas, load_master_modulars, load_master_ons
 from ui_common import number
+
 
 def iv_fluid_orders() -> list[dict[str, object]]:
     """Each intravenous fluid entered in Assessment, with its rate and delivery.

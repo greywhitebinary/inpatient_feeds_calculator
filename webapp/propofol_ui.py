@@ -6,7 +6,6 @@ from copy import deepcopy
 
 import pandas as pd
 import streamlit as st
-
 from calculations import total_propofol_intake
 from case_record_ui import render_save_record
 from chart_note import build_chart_note_html, render_chart_note_editor
@@ -19,7 +18,6 @@ from session_state import (
     sync_propofol_widget,
 )
 from ui_common import number, render_box_heading, render_report_table
-
 
 PROPOFOL_METHODS = ("Single Propofol rate", "Changing Propofol rates")
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pandas as pd
 import streamlit as st
-
 from calculations import (
     adjusted_body_weight_kg,
     devine_ibw_kg,
@@ -35,7 +34,13 @@ from session_state import (
     sync_weight_from_lb,
     sync_weight_unit_fields,
 )
-from ui_common import number, render_box_heading, render_report_table, render_worked_bounds
+from ui_common import (
+    number,
+    render_box_heading,
+    render_report_table,
+    render_worked_bounds,
+)
+
 
 def show_assessment() -> None:
     st.caption("Blank means not entered; use 0 only when zero is intended.")

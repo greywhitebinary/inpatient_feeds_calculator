@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from base64 import b64encode
+from collections.abc import Mapping
 from html import escape
 from numbers import Real
 from pathlib import Path
-from typing import Mapping
 
 import pandas as pd
 import streamlit as st
-
 from calculations import mg_to_mmol
 from constants import FORMULARY_TABLE_DECIMALS
+
 
 def number(value: object) -> float:
     try:
@@ -226,7 +226,7 @@ def mmol_if_disclosed(totals: Mapping[str, object], nutrient: str) -> float | No
     return mg_to_mmol(nutrient, totals.get(f"{nutrient}_mg", 0))
 
 
-def uncounted_volume_note(sources: "list[tuple[float, str]]") -> str:
+def uncounted_volume_note(sources: list[tuple[float, str]]) -> str:
     """List the infusions whose volume is deliberately outside the water total.
 
     Both intravenous fluids and propofol are real volume the patient receives,

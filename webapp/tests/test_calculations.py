@@ -1,6 +1,6 @@
 import sys
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -8,12 +8,12 @@ from calculations import (
     adjusted_body_weight_kg,
     conditional_feed_delivery,
     devine_ibw_kg,
+    disclosed_value,
     feed_delivery,
     hamwi_ibw_kg,
-    height_to_cm,
     harris_benedict_kcal,
+    height_to_cm,
     hydration_flushes_per_day,
-    disclosed_value,
     iv_fluid_delivery,
     mg_to_mmol,
     mifflin_st_jeor_kcal,
@@ -29,8 +29,8 @@ from calculations import (
     suggested_conditional_formula_rate,
     total_iv_fluid_delivery,
     total_modular_delivery,
-    total_propofol_intake,
     total_ons_delivery,
+    total_propofol_intake,
     water_plan,
 )
 from constants import IV_FLUIDS

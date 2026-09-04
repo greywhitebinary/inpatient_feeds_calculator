@@ -19,7 +19,6 @@ from propofol_ui import show_icu_propofol
 from session_state import initialise_state
 from ui_common import apply_wireframe_theme, render_record_title
 
-
 WORKSPACE_TABS = ("Formulary", "Assessment", "EN plan", "Propofol")
 
 

@@ -1,8 +1,8 @@
-from io import BytesIO
 import os
-from pathlib import Path
 import sys
 import unittest
+from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 
 from openpyxl import load_workbook

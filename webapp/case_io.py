@@ -7,18 +7,17 @@ on the same or another approved local device.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from io import BytesIO
 import json
-from math import isfinite
 import os
 import re
-from typing import Any
 from copy import copy
+from datetime import datetime, timezone
+from io import BytesIO
+from math import isfinite
+from typing import Any
 from urllib.parse import urlparse
 
 import pandas as pd
-
 from constants import (
     HYDRATION_ENTRY_MODES,
     IV_FLUIDS,
@@ -29,7 +28,6 @@ from constants import (
     WATER_MODES,
 )
 from data import load_master_ons, validate_import
-
 
 CASE_RECORD_TITLE = "Adult Inpatient Enteral Nutrition case record"
 CASE_RECORD_VERSION = 1

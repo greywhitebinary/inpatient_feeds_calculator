@@ -6,9 +6,7 @@ from html import escape
 
 import pandas as pd
 import streamlit as st
-
 from assessment_ui import render_assessment_goals
-from chart_note import build_chart_note_html, render_chart_note_editor
 from calculations import (
     combined_intake,
     conditional_feed_delivery,
@@ -21,12 +19,13 @@ from calculations import (
     practical_feed_delivery,
     propofol_intake,
     suggested_conditional_formula_rate,
-    total_propofol_intake,
     total_modular_delivery,
     total_ons_delivery,
+    total_propofol_intake,
     water_plan,
 )
 from case_record_ui import render_save_record
+from chart_note import build_chart_note_html, render_chart_note_editor
 from constants import (
     DAILY_INTAKE_DECIMALS,
     FORMULA_COMPARISON_DECIMALS,
@@ -34,42 +33,41 @@ from constants import (
     HYDRATION_ENTRY_ORDERED,
     ORDER_FORM_RATE_AND_HOURS,
     ORDER_FORM_RATE_PER_FEED,
-    RUNNING_SHAPES,
-    RUNNING_SHAPE_MEANINGS,
-    REGIMEN_SOURCES,
-    REGIMEN_SOURCE_EXISTING,
-    PERI_FEED_FLUSHES_PER_FEED,
     PERI_FEED_FLUSH_NONE,
     PERI_FEED_FLUSH_PATTERNS,
+    PERI_FEED_FLUSHES_PER_FEED,
     PLAN_CHECK_DECIMALS,
+    REGIMEN_SOURCE_EXISTING,
+    REGIMEN_SOURCES,
+    RUNNING_SHAPE_MEANINGS,
+    RUNNING_SHAPES,
     WATER_MODE_CHART_ONLY,
 )
 from session_state import (
+    iv_fluid_orders,
+    iv_fluid_totals,
     mark_order_as_edited,
     propofol_widget_key,
     request_suggested_order,
     reset_new_modular_orders,
     scenario_key,
     seed_scenario_state,
-    iv_fluid_orders,
-    iv_fluid_totals,
-    sync_propofol_widget,
     show_partial_formula_delivery,
+    sync_propofol_widget,
 )
 from ui_common import (
-    render_alert,
     mmol_from_delivery,
+    mmol_if_disclosed,
     modular_chart_amount,
     modular_daily_amount,
     modular_unit,
     number,
+    render_alert,
     render_box_heading,
     render_report_table,
-    mmol_if_disclosed,
     uncounted_volume_note,
     undisclosed_note,
 )
-
 
 # Shared by the header row and every condition row, so the columns line up.
 # The condition column is kept narrow so the Propofol rate sits close to the
@@ -265,20 +263,17 @@ def _render_running_shape(
 def _engine_order_amount(
     entered_amount_ml: float,
     order_form: str,
-    schedule_type: str,
-    hours: float,
-    feeds_per_day: int,
     hours_per_feed: float,
 ) -> float:
     """Convert an entered order into the quantity the calculation expects.
 
-    Every form reduces to the same daily volume, so the conversion happens once,
-    here, and no calculation ever learns which form produced its input. A
-    continuous schedule is driven by a rate, an intermittent one by a volume per
-    feed, and both meanings already exist in `ordered_feed_delivery`.
+    Only one shape needs converting. A continuous order is entered as the rate
+    the calculation wants, and an intermittent one by volume is entered as the
+    volume per feed it wants. A rate run for a set time each feed is the single
+    case where what is typed and what is calculated differ, so it multiplies
+    out here and no calculation learns that the shape exists.
     """
     entered = max(float(entered_amount_ml), 0)
-    safe_feeds = max(int(feeds_per_day), 1)
     if order_form == ORDER_FORM_RATE_PER_FEED:
         return entered * max(hours_per_feed, 0)
     return entered
@@ -796,8 +791,7 @@ def render_en_scenario(
         # existing calculation already expects for this schedule, so nothing
         # downstream of this point knows which form produced it.
         engine_amount = _engine_order_amount(
-            ordered_amount, order_form, schedule_type, hours,
-            feeds_per_day, hours_per_feed,
+            ordered_amount, order_form, hours_per_feed
         )
         final_planned_delivery = ordered_feed_delivery(
             formula, engine_amount, hours, 100, schedule_type, feeds_per_day
