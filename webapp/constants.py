@@ -307,3 +307,44 @@ WEIGHT_ACRONYMS = {
     "Adjusted body weight (Hamwi IBW)": "AdjBW",
     "Estimated dry / clinician-selected weight": "clinician-selected weight",
 }
+
+# How each micronutrient is labelled and how finely it is read. Precision is per
+# row because the amounts differ by orders of magnitude: selenium is read in
+# whole micrograms, copper to two decimal places. "mcg" is spelled out rather
+# than written as a Greek mu, which is the safer form on a clinical display.
+MICRONUTRIENT_ROW_LABELS = {
+    "vitamin_a_rae_ug_per_mL": "Vitamin A (mcg RAE)",
+    "vitamin_d_ug_per_mL": "Vitamin D (mcg)",
+    "vitamin_e_mg_per_mL": "Vitamin E (mg)",
+    "vitamin_c_mg_per_mL": "Vitamin C (mg)",
+    "thiamine_mg_per_mL": "Thiamine (mg)",
+    "riboflavin_mg_per_mL": "Riboflavin (mg)",
+    "niacin_preformed_mg_per_mL": "Niacin, preformed (mg)",
+    "vitamin_b6_mg_per_mL": "Vitamin B6 (mg)",
+    "folate_dfe_ug_per_mL": "Folate (mcg DFE)",
+    "vitamin_b12_ug_per_mL": "Vitamin B12 (mcg)",
+    "pantothenic_acid_mg_per_mL": "Pantothenic acid (mg)",
+    "iron_per_mL": "Iron (mg)",
+    "zinc_mg_per_mL": "Zinc (mg)",
+    "copper_mg_per_mL": "Copper (mg)",
+    "manganese_mg_per_mL": "Manganese (mg)",
+    "selenium_ug_per_mL": "Selenium (mcg)",
+}
+MICRONUTRIENT_ROW_DECIMALS = {
+    "Vitamin A (mcg RAE)": 0,
+    "Vitamin D (mcg)": 1,
+    "Vitamin E (mg)": 1,
+    "Vitamin C (mg)": 0,
+    "Thiamine (mg)": 2,
+    "Riboflavin (mg)": 2,
+    "Niacin, preformed (mg)": 1,
+    "Vitamin B6 (mg)": 2,
+    "Folate (mcg DFE)": 0,
+    "Vitamin B12 (mcg)": 1,
+    "Pantothenic acid (mg)": 1,
+    "Iron (mg)": 1,
+    "Zinc (mg)": 1,
+    "Copper (mg)": 2,
+    "Manganese (mg)": 2,
+    "Selenium (mcg)": 0,
+}

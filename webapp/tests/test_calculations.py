@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from calculations import (
+    FORMULA_MICRONUTRIENT_COLUMNS,
     adjusted_body_weight_kg,
     conditional_feed_delivery,
     devine_ibw_kg,
@@ -16,6 +17,7 @@ from calculations import (
     hydration_flushes_per_day,
     iv_fluid_delivery,
     mg_to_mmol,
+    micronutrient_delivery,
     mifflin_st_jeor_kcal,
     modular_delivery,
     ons_delivery,
@@ -689,6 +691,36 @@ class WaterModeTests(unittest.TestCase):
         plan = water_plan(1900, 880, 0, 120, 120, 0, 6)
         self.assertGreater(plan["hydration_flush_each_ml"], 0)
         self.assertGreater(plan["total_water_ml"], 1800)
+
+
+class MicronutrientDeliveryTests(unittest.TestCase):
+    """Amounts only: this layer never compares a figure with a reference intake."""
+
+    def test_amounts_scale_with_the_volume_delivered(self):
+        formula = {
+            "name": "Test feed",
+            "vitamin_a_rae_ug_per_mL": 0.72,
+            "selenium_ug_per_mL": 0.058,
+            "copper_mg_per_mL": 0.00173333,
+        }
+        amounts = micronutrient_delivery(formula, 1500)
+        self.assertAlmostEqual(amounts["vitamin_a_rae_ug_per_mL"], 1080, places=3)
+        self.assertAlmostEqual(amounts["selenium_ug_per_mL"], 87, places=3)
+        self.assertAlmostEqual(amounts["copper_mg_per_mL"], 2.6, places=3)
+
+    def test_missing_and_blank_cells_contribute_nothing(self):
+        amounts = micronutrient_delivery({"zinc_mg_per_mL": ""}, 1000)
+        self.assertEqual(amounts["zinc_mg_per_mL"], 0)
+        self.assertEqual(amounts["thiamine_mg_per_mL"], 0)
+
+    def test_a_negative_volume_cannot_produce_a_negative_amount(self):
+        amounts = micronutrient_delivery({"iron_per_mL": 0.014}, -500)
+        self.assertEqual(amounts["iron_per_mL"], 0)
+
+    def test_every_reported_column_is_one_the_formulary_carries(self):
+        formulas = load_master_formulas()
+        for column in FORMULA_MICRONUTRIENT_COLUMNS:
+            self.assertIn(column, formulas.columns)
 
 
 if __name__ == "__main__":

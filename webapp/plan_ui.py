@@ -12,6 +12,7 @@ from calculations import (
     conditional_feed_delivery,
     hydration_flushes_per_day,
     mg_to_mmol,
+    micronutrient_delivery,
     modular_delivery,
     ons_delivery,
     ordered_feed_delivery,
@@ -31,6 +32,8 @@ from constants import (
     FORMULA_COMPARISON_DECIMALS,
     HYDRATION_ENTRY_MODES,
     HYDRATION_ENTRY_ORDERED,
+    MICRONUTRIENT_ROW_DECIMALS,
+    MICRONUTRIENT_ROW_LABELS,
     ORDER_FORM_RATE_AND_HOURS,
     ORDER_FORM_RATE_PER_FEED,
     PERI_FEED_FLUSH_NONE,
@@ -1834,6 +1837,7 @@ def render_en_scenario(
             if note
         ],
         "delivery": final_planned_delivery,
+        "displayed_delivery": displayed_delivery,
         "chart_total": chart_total,
         "modular_totals": modular_totals,
         "chart_modulars": chart_modulars,
@@ -1855,6 +1859,42 @@ def render_en_scenario(
             else f"Estimated daily intake at {view_percent}% formula delivery"
         ),
     }
+
+
+def render_micronutrient_panel(result: dict) -> None:
+    """Show what the ordered formula delivers, without judging the amounts.
+
+    Micronutrients are rarely the question in acute care, so this stays shut
+    until someone opens it. It reports amounts only. No amount is compared with
+    a reference intake, because the intake that applies depends on the patient
+    and because the reference groups the manufacturers publish against do not
+    describe most inpatients.
+    """
+    formula = result.get("formula")
+    if formula is None:
+        return
+    volume = number(result["displayed_delivery"]["delivered_volume_ml"])
+    if volume <= 0:
+        return
+    amounts = micronutrient_delivery(formula, volume)
+    with st.expander("Micronutrients from the formula", expanded=False):
+        st.caption(
+            f"Delivered by {volume:,.0f} mL of {formula['name']} a day. "
+            "ONS and modular products are not counted, because their labels do "
+            "not declare micronutrients."
+        )
+        render_report_table(
+            pd.DataFrame(
+                [
+                    {
+                        "Micronutrient": MICRONUTRIENT_ROW_LABELS[column],
+                        "Per day": value,
+                    }
+                    for column, value in amounts.items()
+                ]
+            ),
+            row_decimals=MICRONUTRIENT_ROW_DECIMALS,
+        )
 
 
 def render_en_workflow_setup(
@@ -1960,6 +2000,7 @@ def show_en_plan() -> None:
         # remarks when they belong together under the same table.
         if result["table_notes"]:
             st.caption("  \n".join(str(note) for note in result["table_notes"]))
+        render_micronutrient_panel(result)
     with st.container(border=True):
         render_box_heading("Chart note")
         st.caption(

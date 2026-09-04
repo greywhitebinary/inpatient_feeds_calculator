@@ -10,7 +10,11 @@ from calculations import total_propofol_intake
 from case_record_ui import render_save_record
 from chart_note import build_chart_note_html, render_chart_note_editor
 from constants import DAILY_INTAKE_DECIMALS
-from plan_ui import render_en_scenario, render_en_workflow_setup
+from plan_ui import (
+    render_en_scenario,
+    render_en_workflow_setup,
+    render_micronutrient_panel,
+)
 from session_state import (
     scenario_key,
     seed_propofol_widget,
@@ -261,6 +265,7 @@ def show_icu_propofol() -> None:
         # remarks when they belong together under the same table.
         if result["table_notes"]:
             st.caption("  \n".join(str(note) for note in result["table_notes"]))
+        render_micronutrient_panel(result)
 
     with st.container(border=True):
         render_box_heading("Chart note")
