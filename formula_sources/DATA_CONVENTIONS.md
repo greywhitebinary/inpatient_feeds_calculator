@@ -113,3 +113,42 @@ for r in csv.DictReader(open('formulary_working/canada_formulas_working.csv',enc
     if pct<95 or pct>110: print(f'{pct:6.1f}%  {r[\"name\"]}')
 "
 ```
+
+## 7. The `data_note` column
+
+`canada_formulas_working.csv` carries a free-text `data_note` beside `source`
+and `verified`. It records why a row holds the value it does where the citation
+alone does not explain it, such as which basis column of a panel that prints
+two was divided, or which conversion factor the ingredient list dictates. It is
+maintainer-facing and is displayed nowhere in the application.
+
+An empty cell means the row needs no explanation, so `data.py` fills a blank
+note with an empty string rather than the zero every other column receives.
+Write a note whenever a future maintainer re-deriving the row from the cited
+page would get a different answer than the one stored.
+
+## 8. Micronutrient adequacy volumes
+
+`dri_volume_ml` is the daily volume at which the manufacturer states the feed
+meets the Dietary Reference Intakes, and `dri_micronutrients_met` is how many
+micronutrients that claim covers. The count travels with the volume because it
+varies and changes what the claim is worth: most products meet 25, but Compleat
+1.5 meets 24, NovaSource Renal 22, Tolerex and Vivonex Plus 21, and Vivonex
+T.E.N. 20. A renal or elemental formula reaching its volume is therefore not
+the same assurance as a standard polymeric one reaching its own.
+
+Only the Nestlé guide publishes these figures, one per product page, so all 21
+Nestlé rows carry them and all 12 Abbott rows are blank. Neither the Abbott
+adult product guide nor any of the four Abbott product information sheets makes
+an adequacy claim of any kind. A blank therefore means the manufacturer states
+no volume, not that the feed never meets the DRIs, and it must not be
+zero-filled: a zero here would read as "meets the DRIs in 0 mL". `data.py`
+keeps both columns null through loading and the workbook round trip.
+
+Nestlé's comparison group matters when the figure is shown to a clinician. The
+guide's DRI page (printed folio 123, pdf page 62) states that adult products
+are compared against the DRIs for **males 31-50 years**, and names its own
+exceptions: vitamin D for ages 71+, calcium for males and females 51+, and iron
+for females. Anything that displays this volume should say which group it
+refers to, since a woman over 50 is not the person the claim was written about.
+

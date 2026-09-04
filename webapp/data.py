@@ -140,10 +140,35 @@ UNDISCLOSED_WHEN_BLANK_MODULAR = {
     "free_water_ml_per_basis",
 }
 
+# The manufacturer's own statement of the daily volume at which a feed meets the
+# Dietary Reference Intakes, and how many micronutrients that claim covers. A
+# blank is not a zero: it means the documents we hold make no such claim for
+# that product, which is true of every Abbott row. Zero-filling would read as
+# "meets the DRI in 0 mL", the opposite of what the blank means.
+UNDISCLOSED_WHEN_BLANK_FORMULA = {
+    "dri_volume_ml",
+    "dri_micronutrients_met",
+}
+
+# Free-text provenance columns. `data_note` records why a row holds the value it
+# does, where the reason is not obvious from the citation alone: which basis
+# column of a self-inconsistent panel was divided, or which conversion factor a
+# product's ingredient list dictates. It is maintainer-facing, is displayed
+# nowhere, and an empty cell simply means the row needs no explanation, so these
+# are filled with an empty string rather than the zero every other column gets.
+TEXT_COLUMNS = {"data_note"}
+
 
 def _fill_zeros_except(frame: pd.DataFrame, keep_null: set[str]) -> pd.DataFrame:
     """Zero-fill every column except those where blank carries meaning."""
-    fill_columns = [column for column in frame.columns if column not in keep_null]
+    text_columns = [column for column in frame.columns if column in TEXT_COLUMNS]
+    if text_columns:
+        frame[text_columns] = frame[text_columns].fillna("")
+    fill_columns = [
+        column
+        for column in frame.columns
+        if column not in keep_null and column not in TEXT_COLUMNS
+    ]
     frame[fill_columns] = frame[fill_columns].fillna(0)
     return frame
 
@@ -151,13 +176,14 @@ def _fill_zeros_except(frame: pd.DataFrame, keep_null: set[str]) -> pd.DataFrame
 def load_master_formulas() -> pd.DataFrame:
     formulas = pd.read_csv(FORMULA_PATH, encoding="utf-8-sig")
     validate_columns(formulas, FORMULA_REQUIRED_COLUMNS, "Master formulary")
-    return validate_product_rows(
+    formulas = validate_product_rows(
         formulas,
         FORMULA_NUMERIC_COLUMNS,
         "Master formulary",
         optional_numeric_columns=FORMULA_OPTIONAL_NUMERIC_COLUMNS,
         positive_numeric_columns={"kcal_per_mL"},
-    ).fillna(0)
+    )
+    return _fill_zeros_except(formulas, UNDISCLOSED_WHEN_BLANK_FORMULA)
 
 
 def load_master_modulars() -> pd.DataFrame:
@@ -177,7 +203,7 @@ def load_master_ons() -> pd.DataFrame:
     ons = pd.read_csv(ONS_PATH, encoding="utf-8-sig")
     validate_columns(ons, ONS_REQUIRED_COLUMNS, "Master ONS")
     ons = _normalise_ons_schema(ons)
-    return _validate_ons_rows(ons, "Master ONS").fillna(0)
+    return _fill_zeros_except(_validate_ons_rows(ons, "Master ONS"), set())
 
 
 def _normalise_ons_schema(frame: pd.DataFrame) -> pd.DataFrame:
@@ -333,9 +359,9 @@ def validate_import(
     if modulars["id"].astype(str).str.strip().str.casefold().duplicated().any():
         raise ValueError("My Modulars worksheet contains duplicate ids.")
     return (
-        formulas.fillna(0),
+        _fill_zeros_except(formulas, UNDISCLOSED_WHEN_BLANK_FORMULA),
         _fill_zeros_except(modulars, UNDISCLOSED_WHEN_BLANK_MODULAR),
-        ons.fillna(0),
+        _fill_zeros_except(ons, set()),
     )
 
 
