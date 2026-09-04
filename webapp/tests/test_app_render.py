@@ -103,16 +103,16 @@ class AssessmentRenderTests(unittest.TestCase):
         next(
             item
             for item in app.button
-            if item.key == "workspace_nav_assessment_en_plan"
+            if item.key == "workspace_nav_assessment_enteral_nutrition"
         ).click().run(timeout=30)
-        self.assertEqual(app.session_state["workspace_tab"], "EN plan")
+        self.assertEqual(app.session_state["workspace_tab"], "Enteral nutrition")
 
         next(
             item
             for item in app.button
-            if item.key == "workspace_nav_assessment_propofol"
+            if item.key == "workspace_nav_assessment_en_propofol"
         ).click().run(timeout=30)
-        self.assertEqual(app.session_state["workspace_tab"], "Propofol")
+        self.assertEqual(app.session_state["workspace_tab"], "EN + Propofol")
 
         next(
             item
@@ -132,29 +132,35 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(app.session_state["workspace_tab"], "Assessment")
 
         next(
-            item for item in app.button if item.key == "workspace_nav_formulary_en_plan"
+            item
+            for item in app.button
+            if item.key == "workspace_nav_formulary_enteral_nutrition"
         ).click().run(timeout=30)
-        self.assertEqual(app.session_state["workspace_tab"], "EN plan")
+        self.assertEqual(app.session_state["workspace_tab"], "Enteral nutrition")
 
         next(
             item
             for item in app.button
-            if item.key == "workspace_nav_formulary_propofol"
+            if item.key == "workspace_nav_formulary_en_propofol"
         ).click().run(timeout=30)
-        self.assertEqual(app.session_state["workspace_tab"], "Propofol")
+        self.assertEqual(app.session_state["workspace_tab"], "EN + Propofol")
 
     def test_plan_and_propofol_have_footer_navigation(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
         next(
-            item for item in app.button if item.key == "workspace_nav_en_plan_propofol"
+            item
+            for item in app.button
+            if item.key == "workspace_nav_enteral_nutrition_en_propofol"
         ).click().run(timeout=30)
-        self.assertEqual(app.session_state["workspace_tab"], "Propofol")
+        self.assertEqual(app.session_state["workspace_tab"], "EN + Propofol")
 
         next(
-            item for item in app.button if item.key == "workspace_nav_propofol_en_plan"
+            item
+            for item in app.button
+            if item.key == "workspace_nav_en_propofol_enteral_nutrition"
         ).click().run(timeout=30)
-        self.assertEqual(app.session_state["workspace_tab"], "EN plan")
+        self.assertEqual(app.session_state["workspace_tab"], "Enteral nutrition")
 
     def test_header_uses_a_text_link_and_separates_identity_from_workflow(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -168,7 +174,12 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(
             "Uses Canadian formula, modular, and ONS product information.", captions
         )
-        self.assertIn("Work left to right: set up My Formulary", captions)
+        self.assertIn(
+            "Set up My Formulary, complete the Assessment, then build the order "
+            "under Enteral nutrition, or under EN + Propofol if propofol is running.",
+            captions,
+            "the last two tabs are a choice, so the line must not read as four steps",
+        )
         self.assertNotIn("First time here?", captions)
         self.assertNotIn("substack logo", captions.lower())
 
@@ -537,8 +548,8 @@ class AssessmentRenderTests(unittest.TestCase):
         example.click().run(timeout=30)
 
         tab_labels = [item.label for item in app.tabs]
-        self.assertIn("EN plan", tab_labels)
-        self.assertIn("Propofol", tab_labels)
+        self.assertIn("Enteral nutrition", tab_labels)
+        self.assertIn("EN + Propofol", tab_labels)
         self.assertNotIn("Lower/no propofol", tab_labels)
         self.assertNotIn("Higher propofol", tab_labels)
         radio_keys = {item.key for item in app.radio}
@@ -672,7 +683,7 @@ class AssessmentRenderTests(unittest.TestCase):
         # formula over 23 hours rounds to 40 mL/hour.
         self.assertEqual(app.session_state["scenario_propofol_ordered_rate_ml_hr"], 40)
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day).",
             app.session_state["_chart_note_generated_propofol"],
         )
@@ -689,9 +700,32 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         rationale.set_value(True).run(timeout=30)
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day) to account for anticipated interruptions.",
             app.session_state["_chart_note_generated_propofol"],
+        )
+
+    def test_micronutrients_are_available_but_stay_shut(self):
+        # Vitamins are rarely the question in acute care, so the panel is there
+        # for whoever wants it and reports amounts without judging them.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+
+        self.assertFalse(app.exception)
+        captions = {item.value for item in app.caption}
+        self.assertTrue(
+            any(
+                re.fullmatch(
+                    r"Delivered by [\d,]+ mL of .+ a day\. ONS and modular products "
+                    r"are not counted, because their labels do not declare "
+                    r"micronutrients\.",
+                    caption,
+                )
+                for caption in captions
+            ),
+            captions,
         )
 
     def test_standard_en_plan_has_an_independent_prescription_target(self):
@@ -719,7 +753,7 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         self.assertFalse(rationale.value)
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day).",
             app.session_state["_chart_note_generated_en_plan"],
         )
@@ -838,7 +872,9 @@ class AssessmentRenderTests(unittest.TestCase):
             "Mg (mmol)",
         ):
             self.assertIn(heading, rendered_html)
-        plan_checks = [item for item in app.expander if item.label == "EN plan check"]
+        plan_checks = [
+            item for item in app.expander if item.label == "EN regimen check"
+        ]
         self.assertTrue(plan_checks)
         self.assertTrue(all(not item.proto.expanded for item in plan_checks))
         self.assertNotIn("Final plan checks", rendered_html)
@@ -1130,7 +1166,9 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
         next(
-            item for item in app.button if item.key == "workspace_nav_en_plan_propofol"
+            item
+            for item in app.button
+            if item.key == "workspace_nav_enteral_nutrition_en_propofol"
         ).click().run(timeout=30)
         next(
             item
@@ -1188,7 +1226,9 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
         next(
-            item for item in app.button if item.key == "workspace_nav_en_plan_propofol"
+            item
+            for item in app.button
+            if item.key == "workspace_nav_enteral_nutrition_en_propofol"
         ).click().run(timeout=30)
         next(
             item
@@ -1413,7 +1453,7 @@ class AssessmentRenderTests(unittest.TestCase):
         # Propofol tab keeps its own comparison while the EN plan loses one.
         def counts(app):
             headings = "\n".join(item.value for item in app.markdown)
-            # Both plan boxes are titled "EN prescription", so the heading
+            # Both plan boxes are titled "EN regimen", so the heading
             # that tells the layouts apart is the comparison, which reviewing
             # drops. "Select formula" no longer exists on either: choosing and
             # setting the amount happen inside the comparison box.
@@ -1986,7 +2026,9 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertLess(
             rendered_html.index(planned_order), rendered_html.index(partial_notice)
         )
-        plan_checks = [item for item in app.expander if item.label == "EN plan check"]
+        plan_checks = [
+            item for item in app.expander if item.label == "EN regimen check"
+        ]
         self.assertTrue(plan_checks)
         self.assertTrue(any(item.proto.expanded for item in plan_checks))
         self.assertIn("Estimated total", rendered_html)

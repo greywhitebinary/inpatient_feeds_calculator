@@ -186,10 +186,20 @@ class FormularyImportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "sodium_mg_per_basis"):
             validate_import(self.formulas, modulars)
 
+    def test_pivot_citation_names_both_basis_columns(self):
+        # The sheet prints a 237 mL and a 100 mL column, and this row divides by
+        # each in turn: the macronutrients by 237, the vitamins and minerals by
+        # 100, because the sheet prints each block to a different precision. A
+        # citation naming only one column would misdescribe half the row.
+        formulas = load_master_formulas().set_index("name")
+        source = formulas.loc["Pivot 1.5 Cal", "source"]
+        self.assertIn("237-mL column for macronutrients", source)
+        self.assertIn("100-mL column for vitamins and minerals", source)
+
     def test_abbott_profiles_use_the_reverified_ready_to_hang_values(self):
         formulas = load_master_formulas().set_index("name")
         expected = {
-            "Jevity 1.2 Cal": (1.06667, 2.39, 0.807333),
+            "Jevity 1.2 Cal": (1.06667, 2.39, 0.807),
             "Jevity 1.5 Cal": (1.33, 2.18, 0.76),
             "Osmolite 1.2 Cal": (1.06667, 2.27333, 0.82),
             "TwoCal HN": (0.844, 2.11, 0.7),
@@ -253,6 +263,55 @@ class UndisclosedColumnTests(unittest.TestCase):
         formulas = load_master_formulas()
         row = formulas[formulas["name"] == "Isosource 1.2"].iloc[0]
         self.assertEqual(row["fibre_per_mL"], 0)
+
+    def test_dri_volume_loads_for_a_product_that_states_one(self):
+        formulas = load_master_formulas().set_index("name")
+        self.assertEqual(formulas.loc["Isosource 2.0", "dri_volume_ml"], 750)
+        self.assertEqual(formulas.loc["Isosource 2.0", "dri_micronutrients_met"], 25)
+        # An elemental formula needs far more volume and still covers fewer
+        # nutrients, which is the whole reason the count travels with the volume.
+        self.assertEqual(formulas.loc["Vivonex T.E.N.", "dri_volume_ml"], 2000)
+        self.assertEqual(formulas.loc["Vivonex T.E.N.", "dri_micronutrients_met"], 20)
+
+    def test_dri_volume_blank_stays_undisclosed(self):
+        # Abbott states no adequacy volume in any document we hold. A zero here
+        # would read as "meets the DRI in 0 mL", so the blank must survive.
+        formulas = load_master_formulas().set_index("name")
+        self.assertTrue(pd.isna(formulas.loc["Jevity 1.2 Cal", "dri_volume_ml"]))
+        self.assertTrue(
+            pd.isna(formulas.loc["Jevity 1.2 Cal", "dri_micronutrients_met"])
+        )
+
+    def test_workbook_round_trip_preserves_undisclosed_dri_volume(self):
+        formulas = load_master_formulas()
+        modulars = load_master_modulars()
+        ons = load_master_ons()
+        payload = export_formulary_workbook(formulas, modulars, ons)
+        restored, _, _ = import_formulary_workbook(BytesIO(payload))
+        restored = restored.set_index("name")
+        self.assertTrue(pd.isna(restored.loc["Jevity 1.2 Cal", "dri_volume_ml"]))
+        self.assertEqual(restored.loc["Isosource 2.0", "dri_volume_ml"], 750)
+
+    def test_data_note_stays_text_through_loading(self):
+        # A blank note means the row needs no explanation. Zero-filling it would
+        # put the number 0 in a prose column and read as a note that says "0".
+        formulas = load_master_formulas()
+        pivot = formulas[formulas["name"] == "Pivot 1.5 Cal"].iloc[0]
+        self.assertIn("100 mL column", pivot["data_note"])
+        unannotated = formulas[formulas["name"] == "Promote"].iloc[0]
+        self.assertEqual(unannotated["data_note"], "")
+
+    def test_workbook_round_trip_preserves_data_note(self):
+        formulas = load_master_formulas()
+        modulars = load_master_modulars()
+        ons = load_master_ons()
+        payload = export_formulary_workbook(formulas, modulars, ons)
+        restored, _, _ = import_formulary_workbook(BytesIO(payload))
+        pivot = restored[restored["name"] == "Pivot 1.5 Cal"].iloc[0]
+        self.assertIn("100 mL column", pivot["data_note"])
+        self.assertEqual(
+            restored[restored["name"] == "Promote"].iloc[0]["data_note"], ""
+        )
 
     def test_workbook_round_trip_preserves_undisclosed(self):
         formulas = load_master_formulas()

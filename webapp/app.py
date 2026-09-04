@@ -7,6 +7,8 @@ storage; clinicians can voluntarily download and later upload a local case file.
 
 from __future__ import annotations
 
+import re
+
 import streamlit as st
 
 st.set_page_config(page_title="Adult Inpatient EN Calculator", layout="wide")
@@ -19,7 +21,7 @@ from propofol_ui import show_icu_propofol
 from session_state import initialise_state
 from ui_common import apply_wireframe_theme, render_record_title
 
-WORKSPACE_TABS = ("Formulary", "Assessment", "EN plan", "Propofol")
+WORKSPACE_TABS = ("Formulary", "Assessment", "Enteral nutrition", "EN + Propofol")
 
 
 def _open_workspace_tab(tab_label: str) -> None:
@@ -28,7 +30,12 @@ def _open_workspace_tab(tab_label: str) -> None:
 
 
 def _tab_key(tab_label: str) -> str:
-    return tab_label.lower().replace(" ", "_")
+    """Slug for widget keys, which Streamlit also emits as a CSS class name.
+
+    Everything but letters and digits is dropped, so a label is free to carry
+    punctuation without it reaching a key or a generated class name.
+    """
+    return "_".join(part for part in re.split(r"[^a-z0-9]+", tab_label.lower()) if part)
 
 
 def render_workspace_navigation(active_tab: str) -> None:
@@ -59,27 +66,26 @@ def main() -> None:
             "Adult Inpatient Enteral Nutrition Calculator, a [Feed. Form. Flow.]"
             "(https://feedformflow.substack.com/p/feed-form-flow) project. "
             "Uses Canadian formula, modular, and ONS product information.  \n"
-            "Work left to right: set up "
-            "My Formulary, complete the assessment, build an EN plan, and review the totals."
+            "Set up My Formulary, complete the Assessment, then build the order "
+            "under Enteral nutrition, or under EN + Propofol if propofol is running."
         )
     formulary_tab, assessment_tab, plan_tab, propofol_tab = st.tabs(
-        ["Formulary", "Assessment", "EN plan", "Propofol"],
-        default="Formulary",
+        list(WORKSPACE_TABS),
+        default=WORKSPACE_TABS[0],
         key="workspace_tab",
         on_change="rerun",
     )
-    with formulary_tab:
-        show_formulary()
-        render_workspace_navigation("Formulary")
-    with assessment_tab:
-        show_assessment()
-        render_workspace_navigation("Assessment")
-    with plan_tab:
-        show_en_plan()
-        render_workspace_navigation("EN plan")
-    with propofol_tab:
-        show_icu_propofol()
-        render_workspace_navigation("Propofol")
+    # One list, so a renamed tab cannot label the strip at the top and the
+    # navigation at the bottom differently.
+    for tab, show_panel, label in (
+        (formulary_tab, show_formulary, WORKSPACE_TABS[0]),
+        (assessment_tab, show_assessment, WORKSPACE_TABS[1]),
+        (plan_tab, show_en_plan, WORKSPACE_TABS[2]),
+        (propofol_tab, show_icu_propofol, WORKSPACE_TABS[3]),
+    ):
+        with tab:
+            show_panel()
+            render_workspace_navigation(label)
     render_footer()
 
 

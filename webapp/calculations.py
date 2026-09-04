@@ -221,6 +221,48 @@ def disclosed_value(raw: object) -> tuple[float, bool]:
     return value, True
 
 
+# The micronutrient columns a formula panel declares, in the order a label
+# prints them: vitamins first, then the minerals and trace elements. The
+# retinol and beta-carotene split is deliberately absent. It is a breakdown of
+# the vitamin A total rather than a separate nutrient, and four rows leave
+# retinol blank because their panel prints the total in International Units and
+# the beta-carotene share in milligrams, which cannot be separated.
+FORMULA_MICRONUTRIENT_COLUMNS = (
+    "vitamin_a_rae_ug_per_mL",
+    "vitamin_d_ug_per_mL",
+    "vitamin_e_mg_per_mL",
+    "vitamin_c_mg_per_mL",
+    "thiamine_mg_per_mL",
+    "riboflavin_mg_per_mL",
+    "niacin_preformed_mg_per_mL",
+    "vitamin_b6_mg_per_mL",
+    "folate_dfe_ug_per_mL",
+    "vitamin_b12_ug_per_mL",
+    "pantothenic_acid_mg_per_mL",
+    "iron_per_mL",
+    "zinc_mg_per_mL",
+    "copper_mg_per_mL",
+    "manganese_mg_per_mL",
+    "selenium_ug_per_mL",
+)
+
+
+def micronutrient_delivery(
+    formula: Mapping[str, object], volume_ml: float
+) -> dict[str, float]:
+    """Daily micronutrient amounts from a volume of one formula.
+
+    Amounts only. Nothing here compares a figure with a reference intake, and
+    nothing decides whether an amount is enough: that depends on the patient in
+    front of the clinician, not on the feed.
+    """
+    volume = max(float(volume_ml), 0)
+    return {
+        column: disclosed_value(formula.get(column))[0] * volume
+        for column in FORMULA_MICRONUTRIENT_COLUMNS
+    }
+
+
 def feed_delivery(
     formula: Mapping[str, object],
     en_energy_target_kcal: float,

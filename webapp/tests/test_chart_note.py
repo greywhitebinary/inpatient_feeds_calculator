@@ -215,10 +215,10 @@ class ChartNoteTests(unittest.TestCase):
         higher["propofol_rate"] = 20
         higher["propofol_hours"] = 24
         note = build_chart_note_html(self.state, [lower, higher])
-        self.assertIn("When Propofol is not running, use this EN plan:", note)
+        self.assertIn("When Propofol is not running, use this EN regimen:", note)
         self.assertIn(
             "When Propofol is running at 20 mL/hr for 24 hours/day, "
-            "use this EN plan:",
+            "use this EN regimen:",
             note,
         )
 
@@ -241,7 +241,7 @@ class ChartNoteTests(unittest.TestCase):
         note = build_chart_note_html(self.state, [result])
 
         self.assertIn(
-            "EN prescription target: 110% of estimated energy requirement "
+            "EN regimen target: 110% of estimated energy requirement "
             "(1,980 kcal/day) to account for anticipated interruptions.",
             note,
         )
@@ -265,7 +265,7 @@ class ChartNoteTests(unittest.TestCase):
         note = build_chart_note_html(self.state, [result])
 
         self.assertIn(
-            "EN prescription target: 80% of estimated energy requirement "
+            "EN regimen target: 80% of estimated energy requirement "
             "(1,440 kcal/day).",
             note,
         )

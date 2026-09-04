@@ -185,11 +185,25 @@ Labels were added rather than converting the numbers, because recomputing 54
 verified page references would risk introducing errors to remove an ambiguity
 that a label already removes.
 
-## 3. Verify the vitamin and trace-mineral columns — deferred
+## 3. Verify the vitamin and trace-mineral columns — values verified 2026-09-04
 
-**Deferred deliberately (owner's call, 2026-09-02): these columns reach
-nothing today, so verifying them changes no displayed number. Revisit when the
-micronutrient display is built.**
+**The owner reopened this on 2026-09-04, wanting the micronutrients tracked, so
+the deferral from 2026-09-02 no longer stands.** All 594 values in
+`canada_formulas_working.csv` were checked against the cited page of the cited
+document, and the full account is in `MICRONUTRIENT_VERIFICATION.md`. Four
+blank cells were filled where the source discloses the figure: beta-carotene
+for Jevity 1.2 Cal and Osmolite 1.2 Cal, and retinol for Jevity 1.5 Cal and
+TwoCal HN, whose sheets name no beta-carotene in either the panel or the
+ingredient list, so their vitamin A is entirely retinyl palmitate. Nothing else
+was changed.
+
+What that leaves for the display work: the columns are still absent from the
+validated numeric set in `data.py`, still read by no module, and three
+questions from the review were left for the owner. One of the three is now
+settled; see "Pivot 1.5 Cal citation" below. The two that remain are how to
+mark that Compleat Organic Blends 1.25 uses the dietary 12:1 RAE factor while
+every other row uses the supplemental 2:1 factor, and whether to fill Pivot 1.5
+Cal's retinol by subtraction when three comparable rows leave it blank.
 
 `canada_formulas_working.csv` carries 18 micronutrient columns: iron, vitamin A
 (with retinol and beta-carotene), D, E and C, thiamine, riboflavin, B6, B12,
@@ -204,10 +218,11 @@ That is 594 values (33 rows x 18 columns) that would need checking against the
 source documents, which would be the largest single piece of the verification.
 
 When the display is built, do these first: add the columns to the validated
-numeric set in `data.py` so blanks and text stop passing silently; verify the
-values against the source documents; and apply items 1 and 2 to them, since a
-Nutrition Facts panel discloses no vitamins at all and every micronutrient
-column for the three Medtrition modulars will be a structural blank.
+numeric set in `data.py` so blanks and text stop passing silently, and apply
+items 1 and 2 to them, since a Nutrition Facts panel discloses no vitamins at
+all and every micronutrient column for the three Medtrition modulars will be a
+structural blank. The values themselves no longer need checking; that was done
+on 2026-09-04.
 
 ## 4. Smaller items
 
@@ -223,14 +238,32 @@ column for the three Medtrition modulars will be a structural blank.
   the label.
 - **`ONS_VERIFICATION.md`** row count corrected from 52 to 54.
 
+### Decided 2026-09-04
+
+- **Pivot 1.5 Cal citation.** The row's values are unchanged and stay as they
+  are. Its sheet prints a 237 mL and a 100 mL column, and the row divides by
+  each in turn: the macronutrients by 237, the vitamins and minerals by 100.
+  That is defensible under section 4 of `DATA_CONVENTIONS.md`, because neither
+  column is uniformly finer — folic acid reads 0.037 mg per 100 mL against
+  0.09 mg per 237 mL, while copper reads 0.52 mg per 237 mL against 0.2 mg per
+  100 mL — and the two columns agree to within 1.5% throughout. What was wrong
+  was the citation, which claimed the 237 mL column for the whole row. It now
+  names both columns and the block each one supplied, the page range is
+  corrected to p.3-4 because the trace minerals sit on the following page, and
+  the reasoning is recorded in the row's new `data_note`.
+
+- **Jevity 1.2 Cal `free_water_per_mL`** is now `0.807`, down from `0.807333`.
+  The stored figure came from the product sheet's Per 1500 mL column (1211 g),
+  while the same sheet's per-100 mL column implies 0.810 and the general guide
+  says 810 g/L. The owner ruled that the disagreement is rounding in the source
+  document rather than a real difference, so the value keeps the column it was
+  sourced from and drops the trailing digits that document cannot support. The
+  spread across the three readings is about 3 mL of water per litre of feed, and
+  a plan running 1.5 L/day now reports roughly half a millilitre less free water
+  than before, which no clinical decision turns on.
+
 ### Still open — each needs an owner decision, not a fix
 
-- **Jevity 1.2 Cal `free_water_per_mL`** is 0.807333, from the product sheet's
-  Per 1500 mL column (1211 g). The same sheet's per-100 mL column implies 0.810,
-  and the general guide says 810 g/L. That sheet omits the `Water (g/L)` row the
-  other three carry, so it has no tiebreaker. The stored value is defensible;
-  the gap is about 2.6 mL of water per litre of feed. Changing it means picking
-  which column of a self-inconsistent document to believe.
 - **"Not a significant source of" is a labelling threshold, not a zero.** BOOST
   Soothe's potassium, calcium, magnesium and phosphorus, and several Beneprotein
   and MCT Oil fields, are stored as 0 on the strength of that phrase. Under
@@ -243,3 +276,37 @@ column for the three Medtrition modulars will be a structural blank.
   Glucerna flavours have "a similar nutritional profile". There is no better
   data to substitute, so this is a question of whether to annotate the rows
   rather than to correct them. `ONS_VERIFICATION.md` already records it.
+
+## 5. Micronutrients on screen — built 2026-09-04
+
+The owner's position is that vitamins are rarely looked at in acute care, so an
+18-nutrient table would not earn its place on the plan screen. The question that
+does get asked is whether the patient is receiving enough volume for the feed's
+micronutrients to add up to anything, which matters on a fluid restriction, on a
+concentrated 2.0 kcal/mL feed, on trophic feeds, and for anyone living on ONS
+alone.
+
+`dri_volume_ml` and `dri_micronutrients_met` now carry the manufacturer's own
+answer for the 21 Nestlé rows, transcribed from the same product page each row
+already cites. See `DATA_CONVENTIONS.md` section 8 for what the figures mean and
+for the reference population the claim is written against.
+
+**The display shows amounts and passes no judgment (owner's call, 2026-09-04).**
+An earlier proposal here was a plan-check line comparing planned volume against
+the stated volume. The owner rejected it: the tool reports what the feed
+delivers, and whether that is enough is the clinician's call. So
+`render_micronutrient_panel` lists the sixteen micronutrients a panel declares,
+scaled to the volume on screen, inside an expander that stays shut. No amount is
+compared with a reference intake anywhere in the application.
+
+That decision also settles the Abbott gap, since nothing is being computed
+against a reference. `dri_volume_ml` and `dri_micronutrients_met` stay in the
+data as verified manufacturer figures, reaching no module, available if the
+question is ever asked again.
+
+Still to do:
+
+- **Vitamin K.** Not in the CSV at all, though both guides print it on every
+  panel. It is the one micronutrient in a feed that changes a drug decision,
+  through warfarin and the INR. Adding it means one column and 33 values.
+

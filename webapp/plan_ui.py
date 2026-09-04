@@ -12,6 +12,7 @@ from calculations import (
     conditional_feed_delivery,
     hydration_flushes_per_day,
     mg_to_mmol,
+    micronutrient_delivery,
     modular_delivery,
     ons_delivery,
     ordered_feed_delivery,
@@ -31,6 +32,8 @@ from constants import (
     FORMULA_COMPARISON_DECIMALS,
     HYDRATION_ENTRY_MODES,
     HYDRATION_ENTRY_ORDERED,
+    MICRONUTRIENT_ROW_DECIMALS,
+    MICRONUTRIENT_ROW_LABELS,
     ORDER_FORM_RATE_AND_HOURS,
     ORDER_FORM_RATE_PER_FEED,
     PERI_FEED_FLUSH_NONE,
@@ -150,19 +153,19 @@ def _render_en_prescription(
         )
 
     with st.container(border=True):
-        render_box_heading("EN prescription")
+        render_box_heading("EN regimen")
         schedule = _render_running_shape(scenario_id, conditional_mode)
 
         target_a, target_b = st.columns([1, 1.7], vertical_alignment="bottom")
         prescription_target_pct = target_a.number_input(
-            "EN prescription target (%)",
+            "EN regimen target (%)",
             min_value=1.0,
             max_value=200.0,
             step=5.0,
             format="%.0f",
             key=scenario_key(scenario_id, "prescription_target_pct"),
             help=(
-                "Values above 100% increase the EN prescription to account for "
+                "Values above 100% increase the EN regimen to account for "
                 "expected interruptions. Protein and water goals are unchanged."
             ),
         )
@@ -491,7 +494,7 @@ def render_en_scenario(
     review_container = st.container(border=True) if regimen_already_running else None
     if regimen_already_running:
         with review_container:
-            render_box_heading("EN prescription")
+            render_box_heading("EN regimen")
             # The formula is claimed first so it renders above the schedule,
             # matching how an order reads: the feed, then how it runs.
             formula_slot = st.container()
@@ -603,7 +606,7 @@ def render_en_scenario(
                 render_alert(
                     "warning",
                     "Projected Propofol energy meets or exceeds the EN "
-                    "prescription energy target. A zero formula-energy "
+                    "regimen energy target. A zero formula-energy "
                     "allocation does not meet protein or micronutrient needs.",
                 )
             render_report_table(
@@ -1469,7 +1472,7 @@ def render_en_scenario(
     saved_achieved = int(number(st.session_state.get(achieved_key, 100)))
     saved_view = st.session_state.get(delivery_view_key, "Full planned EN")
     partial_active = saved_achieved < 100 and saved_view == "Achieved delivery"
-    with st.expander("EN plan check", expanded=partial_active):
+    with st.expander("EN regimen check", expanded=partial_active):
         order_summary, partial_action = st.columns([3, 1], vertical_alignment="center")
         # The daily volume is stated rather than left to be multiplied out. It
         # is the quickest check that the figures below are pulling correctly.
@@ -1834,6 +1837,7 @@ def render_en_scenario(
             if note
         ],
         "delivery": final_planned_delivery,
+        "displayed_delivery": displayed_delivery,
         "chart_total": chart_total,
         "modular_totals": modular_totals,
         "chart_modulars": chart_modulars,
@@ -1855,6 +1859,42 @@ def render_en_scenario(
             else f"Estimated daily intake at {view_percent}% formula delivery"
         ),
     }
+
+
+def render_micronutrient_panel(result: dict) -> None:
+    """Show what the ordered formula delivers, without judging the amounts.
+
+    Micronutrients are rarely the question in acute care, so this stays shut
+    until someone opens it. It reports amounts only. No amount is compared with
+    a reference intake, because the intake that applies depends on the patient
+    and because the reference groups the manufacturers publish against do not
+    describe most inpatients.
+    """
+    formula = result.get("formula")
+    if formula is None:
+        return
+    volume = number(result["displayed_delivery"]["delivered_volume_ml"])
+    if volume <= 0:
+        return
+    amounts = micronutrient_delivery(formula, volume)
+    with st.expander("Micronutrients from the formula", expanded=False):
+        st.caption(
+            f"Delivered by {volume:,.0f} mL of {formula['name']} a day. "
+            "ONS and modular products are not counted, because their labels do "
+            "not declare micronutrients."
+        )
+        render_report_table(
+            pd.DataFrame(
+                [
+                    {
+                        "Micronutrient": MICRONUTRIENT_ROW_LABELS[column],
+                        "Per day": value,
+                    }
+                    for column, value in amounts.items()
+                ]
+            ),
+            row_decimals=MICRONUTRIENT_ROW_DECIMALS,
+        )
 
 
 def render_en_workflow_setup(
@@ -1879,7 +1919,9 @@ def render_en_workflow_setup(
         key_prefix
     )
     if saved_feeds.empty:
-        st.caption("Add at least one product to My Formulary to create an EN plan.")
+        st.caption(
+            "Add at least one feed to My Formulary before building an EN regimen."
+        )
         return None
     if total_energy_target is None or protein_target is None:
         st.caption("Enter energy and protein goals in Assessment or Adjust goals.")
@@ -1960,6 +2002,7 @@ def show_en_plan() -> None:
         # remarks when they belong together under the same table.
         if result["table_notes"]:
             st.caption("  \n".join(str(note) for note in result["table_notes"]))
+        render_micronutrient_panel(result)
     with st.container(border=True):
         render_box_heading("Chart note")
         st.caption(
