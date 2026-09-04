@@ -282,18 +282,26 @@ def _render_review_schedule(scenario_id: str) -> tuple[str, float, int, str, flo
 
     feeds_per_day = 1
     hours_per_feed = 0.0
+    # The amount shares a row with the number that qualifies it, because a rate
+    # and the time it runs for describe one feed together. Anything that counts
+    # whole feeds is a separate fact and gets its own row. The amount itself is
+    # entered into the column handed back, since its suggested figure needs a
+    # formula that has not been chosen at this point.
+    # Aligned at the top, not the bottom: the amount column carries the
+    # suggested figure under its box, so bottom-aligning would lift that box
+    # above the one beside it.
+    amount_column, qualifier_column = st.columns(2, vertical_alignment="top")
     if order_form == ORDER_FORM_RATE_AND_HOURS:
-        hours = number(st.number_input(
+        hours = number(qualifier_column.number_input(
             "Hours a day", min_value=1.0, max_value=24.0, step=1.0, format="%.0f",
             key=scenario_key(scenario_id, "feeding_hours"),
         ))
     elif order_form == ORDER_FORM_RATE_PER_FEED:
-        hours_column, feeds_column = st.columns(2)
-        hours_per_feed = number(hours_column.number_input(
+        hours_per_feed = number(qualifier_column.number_input(
             "Hours each feed", min_value=0.5, max_value=24.0, step=0.5,
             format="%.1f", key=scenario_key(scenario_id, "hours_per_feed"),
         ))
-        feeds_per_day = int(feeds_column.number_input(
+        feeds_per_day = int(st.number_input(
             "Feeds a day", min_value=1, max_value=12, step=1,
             key=scenario_key(scenario_id, "feeds_per_day"),
         ))
@@ -306,11 +314,14 @@ def _render_review_schedule(scenario_id: str) -> tuple[str, float, int, str, flo
             )
     else:
         hours = 24.0
-        feeds_per_day = int(st.number_input(
+        feeds_per_day = int(qualifier_column.number_input(
             "Feeds a day", min_value=1, max_value=12, step=1,
             key=scenario_key(scenario_id, "feeds_per_day"),
         ))
-    return schedule_type, number(hours), feeds_per_day, order_form, hours_per_feed
+    return (
+        (schedule_type, number(hours), feeds_per_day, order_form, hours_per_feed),
+        amount_column,
+    )
 
 
 def _engine_order_amount(
@@ -463,8 +474,10 @@ def render_en_scenario(
             # The formula is claimed first so it renders above the schedule,
             # matching how an order reads: the feed, then how it runs.
             formula_slot = st.container()
-            schedule = _render_review_schedule(scenario_id)
-            order_slot = st.container()
+            schedule, amount_column = _render_review_schedule(scenario_id)
+            reset_order_slot = st.empty()
+            order_summary_slot = st.empty()
+            trickle_note_slot = st.empty()
     schedule_type, hours, feeds_per_day, order_form, hours_per_feed = schedule
 
     # Intravenous dextrose supplies energy the feed no longer has to, so it
@@ -568,28 +581,32 @@ def render_en_scenario(
                 "Formula", candidate_frame["name"].tolist(),
                 key=scenario_key(scenario_id, "selected_formula"),
             )
-        with order_slot:
-            amount_columns = st.columns([1.15, 1])
-            entered_order_slot = amount_columns[0].container()
-            calculated_order_slot = amount_columns[1].container()
-            reset_order_slot = st.empty()
-            order_summary_slot = st.empty()
-            trickle_note_slot = st.empty()
+        # The suggested figure sits directly beneath the box it refers to, so
+        # there is no doubt which entry it belongs to.
+        with amount_column:
+            entered_order_slot = st.container()
+            calculated_order_slot = st.container()
     else:
         formula_container = st.container(border=True)
         with formula_container:
             render_box_heading("Select formula")
             formula_columns = st.columns(
-                [1] if conditional_mode else [2.2, 1, 1.15],
-                vertical_alignment="bottom",
+                [1] if conditional_mode else [2.2, 1.4],
+                # Top-aligned for the same reason as the review layout: the
+                # entry column is the taller one once the suggestion sits below.
+                vertical_alignment="top",
             )
             selected_name = formula_columns[0].selectbox(
                 "Formula", candidate_frame["name"].tolist(),
                 key=scenario_key(scenario_id, "selected_formula"),
             )
             if not conditional_mode:
-                calculated_order_slot = formula_columns[1].container()
-                entered_order_slot = formula_columns[2].container()
+                # Entry first, suggested figure directly beneath it, so the two
+                # read as a pair rather than as two neighbouring columns whose
+                # labels and boxes sit at different heights.
+                with formula_columns[1]:
+                    entered_order_slot = st.container()
+                    calculated_order_slot = st.container()
                 reset_order_slot = st.empty()
                 order_summary_slot = st.empty()
                 trickle_note_slot = st.empty()
@@ -770,7 +787,6 @@ def render_en_scenario(
                 suggested_final_delivery["planned_volume_ml"] / 5 + 0.5
             ) * 5
             order_label = "Formula volume per day (mL)"
-            suggestion_label = "Suggested volume per day"
             use_suggestion_label = "Use suggested volume"
             order_unit = "mL/day"
         elif order_form == ORDER_FORM_RATE_PER_FEED:
@@ -780,23 +796,20 @@ def render_en_scenario(
                 "Continuous / cyclic", 1,
             )["ordered_rate_ml_hr"]
             order_label = "Formula rate (mL/hour)"
-            suggestion_label = "Suggested rate"
             use_suggestion_label = "Use suggested rate"
             order_unit = "mL/hour"
         elif schedule_type == "Continuous / cyclic":
             order_key = ordered_rate_key
             suggestion = suggested_final_delivery["ordered_rate_ml_hr"]
             order_label = "Formula rate (mL/hour)"
-            suggestion_label = "Suggested rate"
             use_suggestion_label = "Use suggested rate"
             order_unit = "mL/hour"
         else:
             order_key = ordered_volume_key
             suggestion = suggested_final_delivery["ordered_volume_per_feed_ml"]
             order_label = "Formula volume per feed (mL)"
-            suggestion_label = "Suggested volume per feed"
             use_suggestion_label = "Use suggested volume"
-            order_unit = "mL"
+            order_unit = "mL/feed"
         pending_reset_key = scenario_key(scenario_id, "order_reset_requested")
         if st.session_state.get(pending_reset_key):
             st.session_state[pending_reset_key] = False
@@ -825,7 +838,7 @@ def render_en_scenario(
                 display_order_key, order_key, order_edited_key,
             )
         calculated_order_slot.markdown(
-            f'<p class="worked-bounds">{suggestion_label}:<br>'
+            f'<p class="worked-bounds">Suggested: '
             f'<strong>{suggestion:.0f} {order_unit}</strong></p>',
             unsafe_allow_html=True,
         )

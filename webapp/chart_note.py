@@ -16,7 +16,7 @@ from calculations import (
     penn_state_2003b_kcal,
     penn_state_2010_kcal,
 )
-from constants import PROTEIN_WEIGHT_SAME_AS_ENERGY
+from constants import IV_FLUIDS, MAX_IV_FLUID_ORDERS, PROTEIN_WEIGHT_SAME_AS_ENERGY
 
 
 CHART_NOTE_EDITOR_HTML = """
@@ -97,6 +97,36 @@ export default function(component) {
   };
 }
 """
+
+def _iv_assessment_lines(state: Mapping[str, object]) -> list[str]:
+    """Name the intravenous fluids running, for the assessment section.
+
+    Read from state rather than from the plan result, because this states what
+    the medical team has running rather than anything the dietitian ordered.
+    What a fluid supplies is deliberately left out: that belongs with the
+    totals and their breakdowns, and repeating it here would put a second
+    colon on a line already introduced by "Other:".
+    """
+    lines: list[str] = []
+    for index in range(MAX_IV_FLUID_ORDERS):
+        name = state.get(f"assessment_iv_fluid_{index}")
+        if name not in IV_FLUIDS:
+            continue
+        tkvo = bool(state.get(f"assessment_iv_tkvo_{index}"))
+        rate = 0.0 if tkvo else _number(state.get(f"assessment_iv_rate_{index}"))
+        if tkvo:
+            lines.append(f"IV {name}, TKVO")
+            continue
+        if rate <= 0:
+            continue
+        stored_hours = state.get(f"assessment_iv_hours_{index}")
+        hours = 24.0 if stored_hours is None else _number(stored_hours)
+        described = f"IV {name} at {_fmt(rate)} mL/hour"
+        if hours not in (0, 24):
+            described += f" for {_fmt(hours)} hours"
+        lines.append(described)
+    return lines
+
 
 def _number(value: object) -> float:
     try:
@@ -352,6 +382,10 @@ def _requirements_html(state: Mapping[str, object]) -> str:
     other_loss = _entered(state, "assessment_other_protein_loss")
     if other_loss is not None:
         other_lines.append(f"Other estimated protein loss: {_fmt(other_loss)} g/day")
+    # A line the medical team is running is something observed, not something
+    # the dietitian is prescribing, so it is charted with the assessment. What
+    # it supplies still reaches the plan through the totals and breakdowns.
+    other_lines.extend(_iv_assessment_lines(state))
 
     energy_html = "<br>".join(escape(line) for line in energy_lines)
     protein_html = "<br>".join(escape(line) for line in protein_parts)
@@ -546,35 +580,9 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             f"totalling {_fmt(hydration_ordered_total)} mL daily."
         )
 
-    iv_orders = list(result.get("iv_orders") or [])
-    if iv_orders:
-        described = "; ".join(
-            f"{escape(str(order['name']))}, TKVO" if order.get("tkvo")
-            else (
-                f"{escape(str(order['name']))} at "
-                f"{_fmt(_number(order['rate_ml_hr']))} mL/hour"
-                # A full day needs no saying; a part day does.
-                + (
-                    f" for {_fmt(_number(order.get('hours')))} hours"
-                    if _number(order.get("hours", 24)) not in (0, 24) else ""
-                )
-            )
-            for order in iv_orders
-        )
-        iv_volume = sum(
-            _number(dict(order["delivery"]).get("volume_ml")) for order in iv_orders
-        )
-        iv_energy = sum(
-            _number(dict(order["delivery"]).get("energy_kcal")) for order in iv_orders
-        )
-        # A line kept open supplies nothing, so the providing clause is
-        # omitted when every entered line is TKVO.
-        supplied = (
-            f", providing {_fmt(iv_volume)} mL/day"
-            + (f" and {_fmt(iv_energy)} kcal/day" if iv_energy else "")
-            if iv_volume else ""
-        )
-        lines.append(f"IV: {described}{supplied}.")
+    # Intravenous fluids are stated with the assessment, not here: they are
+    # what the medical team has running, not part of the nutrition plan.
+    # What they supply still reaches the totals and the breakdowns below.
 
     total = dict(result["chart_total"])
     energy_sources = [(delivery["energy_kcal"], "Formula")]
@@ -589,6 +597,15 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     protein_sources = [(delivery["protein_g"], "Formula")]
     protein_sources.extend(
         (_number(item["protein_g"]), str(item["name"])) for item in modulars
+    )
+    carbohydrate_sources = [(delivery["carbohydrate_g"], "Formula")]
+    carbohydrate_sources.extend(
+        (_number(item.get("carbohydrate_g")), str(item["name"])) for item in modulars
+    )
+    # chart_total counts intravenous dextrose as carbohydrate as well as
+    # energy, so the breakdown names it for the same reason energy does.
+    carbohydrate_sources.append(
+        (_number(iv_fluids.get("carbohydrate_g")), "IV fluids")
     )
     fat_sources = [(delivery["fat_g"], "Formula")]
     fat_sources.extend(
@@ -663,7 +680,8 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             f"{_source_breakdown(energy_sources, 'kcal')}, "
             f"protein {_fmt(_number(total['Protein (g)']))} g"
             f"{_source_breakdown(protein_sources, 'g')}, "
-            f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g, and "
+            f"CHO {_fmt(_number(total['Carbohydrate (g)']))} g"
+            f"{_source_breakdown(carbohydrate_sources, 'g')}, and "
             f"fat {_fmt(_number(total['Fat (g)']))} g"
             f"{_source_breakdown(fat_sources, 'g')}."
         )

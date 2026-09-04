@@ -323,10 +323,25 @@ class ChartNoteTests(unittest.TestCase):
 class IVChartNoteTests(unittest.TestCase):
     """The note has to say what is running, not only what it supplies."""
 
-    def _note(self, orders):
+    def _note(self, **iv_state):
+        # Intravenous fluids are read from the assessment, not from the plan,
+        # because they are what the medical team has running. The plan still
+        # receives their totals, exactly as the app computes them, so the
+        # breakdowns can name what a fluid supplies.
+        state = dict(self.state)
+        state.update(iv_state)
         result = result_fixture()
-        result["iv_orders"] = orders
-        return build_chart_note_html(self.state, [result])
+        name = iv_state.get("assessment_iv_fluid_0")
+        if name in IV_FLUIDS:
+            rate = 0.0 if iv_state.get("assessment_iv_tkvo_0") else float(
+                iv_state.get("assessment_iv_rate_0") or 0
+            )
+            result["iv_fluids"] = iv_fluid_delivery(IV_FLUIDS[name], rate)
+            result["chart_total"]["Energy (kcal)"] += result["iv_fluids"]["energy_kcal"]
+            result["chart_total"]["Carbohydrate (g)"] += result["iv_fluids"][
+                "carbohydrate_g"
+            ]
+        return build_chart_note_html(state, [result])
 
     def setUp(self):
         super().setUp()
@@ -334,27 +349,33 @@ class IVChartNoteTests(unittest.TestCase):
             self.state = {}
 
     def test_fluid_is_named_with_its_rate_and_daily_totals(self):
-        order = [{
-            "name": "D5 1/2 NS", "rate_ml_hr": 85.0,
-            "delivery": iv_fluid_delivery(IV_FLUIDS["D5 1/2 NS"], 85),
-        }]
-        note = self._note(order)
-        self.assertIn("D5 1/2 NS at 85 mL/hour", note)
-        self.assertIn("2,040 mL/day", note)
-        self.assertIn("347 kcal/day", note)
+        note = self._note(
+            assessment_iv_fluid_0="D5 1/2 NS", assessment_iv_rate_0=85.0,
+        )
+        self.assertIn("IV D5 1/2 NS at 85 mL/hour", note)
+        # The assessment names the fluid only. What it supplies belongs with
+        # the totals, and a second colon on an "Other:" line reads badly.
+        self.assertNotIn("providing", note)
+        # It still reaches the plan through the breakdowns.
+        self.assertIn("IV fluids 347 kcal", note)
+        self.assertIn("IV fluids 102 g", note)
+
+    def test_the_fluid_is_charted_with_the_assessment_not_the_plan(self):
+        note = self._note(
+            assessment_iv_fluid_0="D5 1/2 NS", assessment_iv_rate_0=85.0,
+        )
+        before_intervention = note.split("Nutrition Intervention(s)")[0]
+        self.assertIn("D5 1/2 NS", before_intervention)
+        self.assertNotIn("D5 1/2 NS", note.split("Nutrition Intervention(s)")[1])
 
     def test_tkvo_names_the_fluid_without_inventing_a_rate(self):
-        order = [{
-            "name": "D5W", "rate_ml_hr": 0.0, "tkvo": True,
-            "delivery": iv_fluid_delivery(IV_FLUIDS["D5W"], 0),
-        }]
-        note = self._note(order)
-        self.assertIn("IV: D5W, TKVO.", note)
+        note = self._note(assessment_iv_fluid_0="D5W", assessment_iv_tkvo_0=True)
+        self.assertIn("IV D5W, TKVO", note)
         # A line kept open supplies nothing, so no providing clause follows.
         self.assertNotIn("providing", note.split("TKVO")[1][:40])
 
     def test_no_iv_produces_no_line(self):
-        self.assertNotIn("IV:", self._note([]))
+        self.assertNotIn("IV ", self._note())
 
 
 if __name__ == "__main__":
