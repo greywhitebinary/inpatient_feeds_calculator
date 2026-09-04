@@ -26,15 +26,17 @@ def result_fixture():
             "hydration_flush_each_ml": 130,
             "hydration_flush_total_ml": 780,
         },
-        "chart_modulars": [{
-            "name": "Beneprotein",
-            "order": "1 packet BID",
-            "energy_kcal": 50,
-            "protein_g": 12,
-            "fat_g": 0,
-            "preparation_water_ml": 120,
-            "preparation_water_per_dose_ml": 60,
-        }],
+        "chart_modulars": [
+            {
+                "name": "Beneprotein",
+                "order": "1 packet BID",
+                "energy_kcal": 50,
+                "protein_g": 12,
+                "fat_g": 0,
+                "preparation_water_ml": 120,
+                "preparation_water_per_dose_ml": 60,
+            }
+        ],
         "schedule_description": "50 mL/hour for 23 hours daily",
         "hydration_chart_schedule_text": "q4h",
         "medication_flushes_ml": 120,
@@ -83,9 +85,7 @@ class ChartNoteTests(unittest.TestCase):
         ):
             self.assertIn(f"<strong>{heading}</strong>", note)
         self.assertIn("Modulars: Beneprotein 1 packet BID", note)
-        self.assertIn(
-            "At goal, the complete regimen provides energy 1,775 kcal ", note
-        )
+        self.assertIn("At goal, the complete regimen provides energy 1,775 kcal ", note)
         self.assertIn("protein 90 g (Formula 78 g + Beneprotein 12 g)", note)
         self.assertIn("CHO 202 g, and fat 69 g.", note)
         self.assertIn("Total water provided is 1,900 mL/day", note)
@@ -138,12 +138,14 @@ class ChartNoteTests(unittest.TestCase):
 
     def test_ons_order_has_separate_en_and_ons_macro_subtotals(self):
         result = result_fixture()
-        result["chart_ons"] = [{
-            "name": "BOOST Plus Calories — Vanilla",
-            "package_unit": "carton",
-            "containers_each_time": 1,
-            "times_per_day": 2,
-        }]
+        result["chart_ons"] = [
+            {
+                "name": "BOOST Plus Calories — Vanilla",
+                "package_unit": "carton",
+                "containers_each_time": 1,
+                "times_per_day": 2,
+            }
+        ]
         result["ons_totals"] = {
             "energy_kcal": 720,
             "protein_g": 28,
@@ -151,27 +153,25 @@ class ChartNoteTests(unittest.TestCase):
             "fat_g": 28,
             "free_water_ml": 366,
         }
-        result["chart_total"].update({
-            "Energy (kcal)": 2495,
-            "Protein (g)": 118,
-            "Carbohydrate (g)": 292,
-            "Fat (g)": 97,
-            "Water (mL)": 2266,
-        })
+        result["chart_total"].update(
+            {
+                "Energy (kcal)": 2495,
+                "Protein (g)": 118,
+                "Carbohydrate (g)": 292,
+                "Fat (g)": 97,
+                "Water (mL)": 2266,
+            }
+        )
 
         note = build_chart_note_html(self.state, [result])
 
-        self.assertIn(
-            "ONS: BOOST Plus Calories — Vanilla, 1 carton BID.", note
-        )
+        self.assertIn("ONS: BOOST Plus Calories — Vanilla, 1 carton BID.", note)
         self.assertIn(
             "At goal, EN and ONS orders provide energy 2,495 kcal "
             "(EN 1,775 kcal + ONS 720 kcal)",
             note,
         )
-        self.assertIn(
-            "protein 118 g (EN 90 g + ONS 28 g)", note
-        )
+        self.assertIn("protein 118 g (EN 90 g + ONS 28 g)", note)
         self.assertIn("CHO 292 g (EN 202 g + ONS 90 g)", note)
         self.assertIn("fat 97 g (EN 69 g + ONS 28 g)", note)
         self.assertIn("Total water provided is 2,266 mL/day", note)
@@ -179,13 +179,15 @@ class ChartNoteTests(unittest.TestCase):
 
     def test_serving_based_ons_uses_serving_wording_in_order(self):
         result = result_fixture()
-        result["chart_ons"] = [{
-            "name": "BOOST Pudding — Vanilla",
-            "calculation_basis": "serving",
-            "quantity_each_time": 1,
-            "quantity_unit": "cup",
-            "times_per_day": 2,
-        }]
+        result["chart_ons"] = [
+            {
+                "name": "BOOST Pudding — Vanilla",
+                "calculation_basis": "serving",
+                "quantity_each_time": 1,
+                "quantity_unit": "cup",
+                "times_per_day": 2,
+            }
+        ]
         result["ons_totals"] = {
             "energy_kcal": 460,
             "protein_g": 14,
@@ -244,12 +246,8 @@ class ChartNoteTests(unittest.TestCase):
             note,
         )
         self.assertEqual(note.count("Enteral nutrition plan: Isosource 1.5."), 1)
-        self.assertIn(
-            "When Propofol is not running, provide feed at 50 mL/hr.", note
-        )
-        self.assertIn(
-            "When Propofol is at 20 mL/hr, provide feed at 35 mL/hr.", note
-        )
+        self.assertIn("When Propofol is not running, provide feed at 50 mL/hr.", note)
+        self.assertIn("When Propofol is at 20 mL/hr, provide feed at 35 mL/hr.", note)
         self.assertIn(
             "Projected Propofol exposure: 20 mL/hr for 6 hours/day.",
             note,
@@ -319,7 +317,6 @@ class ChartNoteTests(unittest.TestCase):
         self.assertNotIn("kcal/day =", note)
 
 
-
 class IVChartNoteTests(unittest.TestCase):
     """The note has to say what is running, not only what it supplies."""
 
@@ -333,8 +330,10 @@ class IVChartNoteTests(unittest.TestCase):
         result = result_fixture()
         name = iv_state.get("assessment_iv_fluid_0")
         if name in IV_FLUIDS:
-            rate = 0.0 if iv_state.get("assessment_iv_tkvo_0") else float(
-                iv_state.get("assessment_iv_rate_0") or 0
+            rate = (
+                0.0
+                if iv_state.get("assessment_iv_tkvo_0")
+                else float(iv_state.get("assessment_iv_rate_0") or 0)
             )
             result["iv_fluids"] = iv_fluid_delivery(IV_FLUIDS[name], rate)
             result["chart_total"]["Energy (kcal)"] += result["iv_fluids"]["energy_kcal"]
@@ -350,7 +349,8 @@ class IVChartNoteTests(unittest.TestCase):
 
     def test_fluid_is_named_with_its_rate_and_daily_totals(self):
         note = self._note(
-            assessment_iv_fluid_0="D5 1/2 NS", assessment_iv_rate_0=85.0,
+            assessment_iv_fluid_0="D5 1/2 NS",
+            assessment_iv_rate_0=85.0,
         )
         self.assertIn("IV D5 1/2 NS at 85 mL/hour", note)
         # The assessment names the fluid only. What it supplies belongs with
@@ -362,7 +362,8 @@ class IVChartNoteTests(unittest.TestCase):
 
     def test_the_fluid_is_charted_with_the_assessment_not_the_plan(self):
         note = self._note(
-            assessment_iv_fluid_0="D5 1/2 NS", assessment_iv_rate_0=85.0,
+            assessment_iv_fluid_0="D5 1/2 NS",
+            assessment_iv_rate_0=85.0,
         )
         before_intervention = note.split("Nutrition Intervention(s)")[0]
         self.assertIn("D5 1/2 NS", before_intervention)

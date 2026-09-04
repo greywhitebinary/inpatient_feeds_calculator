@@ -18,8 +18,12 @@ ATOMIC_WEIGHTS_MG_PER_MMOL = {
 }
 
 
-def height_to_cm(unit: str, metres: float | None = None, feet: int | None = None,
-                 inches: float | None = None) -> float:
+def height_to_cm(
+    unit: str,
+    metres: float | None = None,
+    feet: int | None = None,
+    inches: float | None = None,
+) -> float:
     """Convert a height entry to centimetres."""
     if unit == "m":
         return (metres or 0) * 100
@@ -40,38 +44,47 @@ def devine_ibw_kg(sex: str, height_cm: float) -> float:
     return (50.0 if sex == "Male" else 45.5) + 2.3 * inches_over_five_feet
 
 
-def adjusted_body_weight_kg(current_kg: float, ibw_kg: float,
-                            correction_factor: float = 0.25) -> float:
+def adjusted_body_weight_kg(
+    current_kg: float, ibw_kg: float, correction_factor: float = 0.25
+) -> float:
     return ibw_kg + correction_factor * (current_kg - ibw_kg)
 
 
-def mifflin_st_jeor_kcal(sex: str, weight_kg: float, height_cm: float,
-                          age_years: float) -> float:
+def mifflin_st_jeor_kcal(
+    sex: str, weight_kg: float, height_cm: float, age_years: float
+) -> float:
     base = 10 * weight_kg + 6.25 * height_cm - 5 * age_years
     return base + (5 if sex == "Male" else -161)
 
 
-def harris_benedict_kcal(sex: str, weight_kg: float, height_cm: float,
-                          age_years: float) -> float:
+def harris_benedict_kcal(
+    sex: str, weight_kg: float, height_cm: float, age_years: float
+) -> float:
     if sex == "Male":
         return 88.362 + 13.397 * weight_kg + 4.799 * height_cm - 5.677 * age_years
     return 447.593 + 9.247 * weight_kg + 3.098 * height_cm - 4.330 * age_years
 
 
-def penn_state_2003b_kcal(mifflin_kcal: float, temperature_c: float,
-                           minute_ventilation_l_min: float) -> float:
+def penn_state_2003b_kcal(
+    mifflin_kcal: float, temperature_c: float, minute_ventilation_l_min: float
+) -> float:
     """Penn State 2003b estimate for ventilated adults.
 
     The interface displays this equation when temperature and minute
     ventilation are entered, and the clinician determines applicability.
     """
-    return 0.96 * mifflin_kcal + 167 * temperature_c + 31 * minute_ventilation_l_min - 6212
+    return (
+        0.96 * mifflin_kcal + 167 * temperature_c + 31 * minute_ventilation_l_min - 6212
+    )
 
 
-def penn_state_2010_kcal(mifflin_kcal: float, temperature_c: float,
-                         minute_ventilation_l_min: float) -> float:
+def penn_state_2010_kcal(
+    mifflin_kcal: float, temperature_c: float, minute_ventilation_l_min: float
+) -> float:
     """Return modified Penn State 2010 for clinician review alongside 2003b."""
-    return 0.71 * mifflin_kcal + 85 * temperature_c + 64 * minute_ventilation_l_min - 3085
+    return (
+        0.71 * mifflin_kcal + 85 * temperature_c + 64 * minute_ventilation_l_min - 3085
+    )
 
 
 def propofol_intake(rate_ml_hr: float, hours_per_day: float = 24) -> dict[str, float]:
@@ -129,7 +142,9 @@ def conditional_feed_delivery(
     """Aggregate formula delivery across conditional propofol-linked rates."""
     if len(conditions) != len(formula_rates_ml_hr):
         raise ValueError("Each propofol condition requires one formula rate.")
-    total_condition_hours = sum(max(float(item.get("hours", 0)), 0) for item in conditions)
+    total_condition_hours = sum(
+        max(float(item.get("hours", 0)), 0) for item in conditions
+    )
     safe_feeding_hours = max(float(feeding_hours), 0)
     if total_condition_hours <= 0 or safe_feeding_hours <= 0:
         return ordered_feed_delivery(formula, 0, safe_feeding_hours, achieved_percent)
@@ -137,7 +152,9 @@ def conditional_feed_delivery(
     deliveries = []
     for condition, rate in zip(conditions, formula_rates_ml_hr):
         condition_hours = max(float(condition.get("hours", 0)), 0)
-        allocated_feeding_hours = safe_feeding_hours * condition_hours / total_condition_hours
+        allocated_feeding_hours = (
+            safe_feeding_hours * condition_hours / total_condition_hours
+        )
         deliveries.append(
             ordered_feed_delivery(
                 formula,
@@ -149,9 +166,19 @@ def conditional_feed_delivery(
 
     result: dict[str, float] = {}
     additive_keys = {
-        "planned_volume_ml", "delivered_volume_ml", "energy_kcal", "protein_g",
-        "carbohydrate_g", "fat_g", "fibre_g", "free_water_ml", "sodium_mg",
-        "potassium_mg", "calcium_mg", "magnesium_mg", "phosphorus_mg",
+        "planned_volume_ml",
+        "delivered_volume_ml",
+        "energy_kcal",
+        "protein_g",
+        "carbohydrate_g",
+        "fat_g",
+        "fibre_g",
+        "free_water_ml",
+        "sodium_mg",
+        "potassium_mg",
+        "calcium_mg",
+        "magnesium_mg",
+        "phosphorus_mg",
     }
     for key in additive_keys:
         result[key] = sum(delivery.get(key, 0) for delivery in deliveries)
@@ -194,8 +221,12 @@ def disclosed_value(raw: object) -> tuple[float, bool]:
     return value, True
 
 
-def feed_delivery(formula: Mapping[str, object], en_energy_target_kcal: float,
-                  hours_per_day: float, achieved_percent: float = 100) -> dict[str, float]:
+def feed_delivery(
+    formula: Mapping[str, object],
+    en_energy_target_kcal: float,
+    hours_per_day: float,
+    achieved_percent: float = 100,
+) -> dict[str, float]:
     """Calculate formula volume, rate, and nutrient delivery for one day."""
     kcal_per_ml = float(formula["kcal_per_mL"])
     if kcal_per_ml <= 0:
@@ -225,10 +256,14 @@ def feed_delivery(formula: Mapping[str, object], en_energy_target_kcal: float,
     return result
 
 
-def practical_feed_delivery(formula: Mapping[str, object], en_energy_target_kcal: float,
-                            hours_per_day: float, achieved_percent: float = 100,
-                            schedule_type: str = "Continuous / cyclic",
-                            feeds_per_day: int = 1) -> dict[str, float]:
+def practical_feed_delivery(
+    formula: Mapping[str, object],
+    en_energy_target_kcal: float,
+    hours_per_day: float,
+    achieved_percent: float = 100,
+    schedule_type: str = "Continuous / cyclic",
+    feeds_per_day: int = 1,
+) -> dict[str, float]:
     """Calculate delivery from a pump- or feed-volume order rounded to 5 mL.
 
     The rounded amount is handed straight to `ordered_feed_delivery`, so a
@@ -241,19 +276,27 @@ def practical_feed_delivery(formula: Mapping[str, object], en_energy_target_kcal
         ordered_amount = floor(unrounded["rate_ml_hr"] / 5 + 0.5) * 5
     else:
         safe_feeds = max(int(feeds_per_day), 1)
-        ordered_amount = floor(
-            unrounded["planned_volume_ml"] / safe_feeds / 5 + 0.5
-        ) * 5
+        ordered_amount = (
+            floor(unrounded["planned_volume_ml"] / safe_feeds / 5 + 0.5) * 5
+        )
     return ordered_feed_delivery(
-        formula, ordered_amount, hours_per_day, achieved_percent,
-        schedule_type, feeds_per_day,
+        formula,
+        ordered_amount,
+        hours_per_day,
+        achieved_percent,
+        schedule_type,
+        feeds_per_day,
     )
 
 
-def ordered_feed_delivery(formula: Mapping[str, object], ordered_amount_ml: float,
-                          hours_per_day: float, achieved_percent: float = 100,
-                          schedule_type: str = "Continuous / cyclic",
-                          feeds_per_day: int = 1) -> dict[str, float]:
+def ordered_feed_delivery(
+    formula: Mapping[str, object],
+    ordered_amount_ml: float,
+    hours_per_day: float,
+    achieved_percent: float = 100,
+    schedule_type: str = "Continuous / cyclic",
+    feeds_per_day: int = 1,
+) -> dict[str, float]:
     """Calculate nutrients from an explicitly entered pump rate or volume per feed."""
     kcal_per_ml = float(formula["kcal_per_mL"])
     if schedule_type == "Continuous / cyclic":
@@ -277,8 +320,12 @@ def ordered_feed_delivery(formula: Mapping[str, object], ordered_amount_ml: floa
     return result
 
 
-def modular_delivery(product: Mapping[str, object], units_per_dose: float,
-                     doses_per_day: float, preparation_water_ml_per_dose: float = 0) -> dict[str, object]:
+def modular_delivery(
+    product: Mapping[str, object],
+    units_per_dose: float,
+    doses_per_day: float,
+    preparation_water_ml_per_dose: float = 0,
+) -> dict[str, object]:
     """Calculate daily modular delivery from its labelled product basis."""
     basis = float(product.get("basis_amount", 0) or 0)
     if basis <= 0:
@@ -312,9 +359,18 @@ def modular_delivery(product: Mapping[str, object], units_per_dose: float,
 
 def total_modular_delivery(orders: list[dict[str, object]]) -> dict[str, object]:
     keys = {
-        "energy_kcal", "protein_g", "carbohydrate_g", "fat_g", "fibre_g",
-        "free_water_ml", "preparation_water_ml", "sodium_mg", "potassium_mg",
-        "calcium_mg", "magnesium_mg", "phosphorus_mg",
+        "energy_kcal",
+        "protein_g",
+        "carbohydrate_g",
+        "fat_g",
+        "fibre_g",
+        "free_water_ml",
+        "preparation_water_ml",
+        "sodium_mg",
+        "potassium_mg",
+        "calcium_mg",
+        "magnesium_mg",
+        "phosphorus_mg",
     }
     totals: dict[str, object] = {
         key: sum(order.get(key, 0) for order in orders) for key in keys
@@ -392,15 +448,27 @@ def ons_delivery(
 
 def total_ons_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
     keys = {
-        "daily_containers", "daily_servings", "daily_volume_ml", "energy_kcal", "protein_g",
-        "carbohydrate_g", "fat_g", "fibre_g", "free_water_ml", "sodium_mg",
-        "potassium_mg", "calcium_mg", "magnesium_mg", "phosphorus_mg",
+        "daily_containers",
+        "daily_servings",
+        "daily_volume_ml",
+        "energy_kcal",
+        "protein_g",
+        "carbohydrate_g",
+        "fat_g",
+        "fibre_g",
+        "free_water_ml",
+        "sodium_mg",
+        "potassium_mg",
+        "calcium_mg",
+        "magnesium_mg",
+        "phosphorus_mg",
     }
     return {key: sum(order.get(key, 0) for order in orders) for key in keys}
 
 
-def iv_fluid_delivery(fluid: Mapping[str, float], rate_ml_hr: float,
-                      hours_per_day: float = 24) -> dict[str, float]:
+def iv_fluid_delivery(
+    fluid: Mapping[str, float], rate_ml_hr: float, hours_per_day: float = 24
+) -> dict[str, float]:
     """Calculate what one intravenous fluid contributes over a day.
 
     Only the dextrose-containing fluids carry energy, but every fluid carries
@@ -425,8 +493,13 @@ def iv_fluid_delivery(fluid: Mapping[str, float], rate_ml_hr: float,
 def total_iv_fluid_delivery(orders: list[dict[str, float]]) -> dict[str, float]:
     """Sum several concurrent intravenous lines."""
     keys = {
-        "volume_ml", "energy_kcal", "carbohydrate_g",
-        "sodium_mg", "potassium_mg", "calcium_mg", "magnesium_mg",
+        "volume_ml",
+        "energy_kcal",
+        "carbohydrate_g",
+        "sodium_mg",
+        "potassium_mg",
+        "calcium_mg",
+        "magnesium_mg",
     }
     return {key: sum(order.get(key, 0) for order in orders) for key in keys}
 
@@ -474,11 +547,16 @@ def ordered_flush_schedule(lines: list[Mapping[str, float]]) -> dict[str, float]
     }
 
 
-def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
-               modular_free_water_ml: float, modular_preparation_water_ml: float,
-               medication_flush_ml: float, patency_flush_ml: float,
-               hydration_flushes_per_day: int,
-               ordered_flushes: Mapping[str, float] | None = None) -> dict[str, float]:
+def water_plan(
+    water_target_ml: float | None,
+    formula_free_water_ml: float,
+    modular_free_water_ml: float,
+    modular_preparation_water_ml: float,
+    medication_flush_ml: float,
+    patency_flush_ml: float,
+    hydration_flushes_per_day: int,
+    ordered_flushes: Mapping[str, float] | None = None,
+) -> dict[str, float]:
     """Calculate counted water and a practical, rounded hydration flush amount.
 
     `water_target_ml` may be None, meaning no enteral water goal was set. That
@@ -502,8 +580,11 @@ def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
     100 mL twice, when no flush is 160 mL.
     """
     existing_water = (
-        formula_free_water_ml + modular_free_water_ml + modular_preparation_water_ml
-        + medication_flush_ml + patency_flush_ml
+        formula_free_water_ml
+        + modular_free_water_ml
+        + modular_preparation_water_ml
+        + medication_flush_ml
+        + patency_flush_ml
     )
     if ordered_flushes is not None:
         rounded_total = max(
@@ -514,11 +595,13 @@ def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
         )
     else:
         hydration_total = (
-            0.0 if water_target_ml is None
-            else max(water_target_ml - existing_water, 0)
+            0.0 if water_target_ml is None else max(water_target_ml - existing_water, 0)
         )
-        each_hydration_flush = (hydration_total / hydration_flushes_per_day
-                                if hydration_flushes_per_day else 0)
+        each_hydration_flush = (
+            hydration_total / hydration_flushes_per_day
+            if hydration_flushes_per_day
+            else 0
+        )
         # Match practical feed-volume rounding: exact half-way values round up,
         # rather than following Python's bankers-rounding rule.
         rounded_each = floor(each_hydration_flush / 5 + 0.5) * 5
@@ -527,20 +610,35 @@ def water_plan(water_target_ml: float | None, formula_free_water_ml: float,
         "counted_before_hydration_ml": existing_water,
         "hydration_flush_total_ml": rounded_total,
         "hydration_flush_each_ml": rounded_each,
-        "water_flushes_total_ml": modular_preparation_water_ml + medication_flush_ml
-        + patency_flush_ml + rounded_total,
-        "total_water_ml": formula_free_water_ml + modular_free_water_ml
-        + modular_preparation_water_ml + medication_flush_ml + patency_flush_ml + rounded_total,
+        "water_flushes_total_ml": modular_preparation_water_ml
+        + medication_flush_ml
+        + patency_flush_ml
+        + rounded_total,
+        "total_water_ml": formula_free_water_ml
+        + modular_free_water_ml
+        + modular_preparation_water_ml
+        + medication_flush_ml
+        + patency_flush_ml
+        + rounded_total,
     }
+
 
 # Every figure the daily-intake table and the chart note report. Summing over a
 # fixed set of keys is what keeps intravenous and propofol volume out of the
 # water column: those sources carry `volume_ml`, which is reported separately,
 # and the goals are entered net of anything given intravenously.
 INTAKE_KEYS = (
-    "Volume (mL)", "Energy (kcal)", "Protein (g)", "Carbohydrate (g)",
-    "Fat (g)", "Water (mL)", "Na (mmol)", "K (mmol)", "Ca (mmol)",
-    "P (mmol)", "Mg (mmol)",
+    "Volume (mL)",
+    "Energy (kcal)",
+    "Protein (g)",
+    "Carbohydrate (g)",
+    "Fat (g)",
+    "Water (mL)",
+    "Na (mmol)",
+    "K (mmol)",
+    "Ca (mmol)",
+    "P (mmol)",
+    "Mg (mmol)",
 )
 
 
@@ -567,4 +665,3 @@ def combined_intake(
                 continue
         totals[key] = running
     return totals
-

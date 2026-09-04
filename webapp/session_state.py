@@ -41,8 +41,8 @@ def iv_fluid_orders() -> list[dict[str, object]]:
         if name not in IV_FLUIDS:
             continue
         tkvo = bool(st.session_state.get(f"assessment_iv_tkvo_{index}"))
-        rate = 0.0 if tkvo else number(
-            st.session_state.get(f"assessment_iv_rate_{index}")
+        rate = (
+            0.0 if tkvo else number(st.session_state.get(f"assessment_iv_rate_{index}"))
         )
         # An infusion that runs part of the day supplies proportionally less;
         # counting 12 hours of D5W as 24 would double its energy.
@@ -51,21 +51,21 @@ def iv_fluid_orders() -> list[dict[str, object]]:
         # A line kept open is recorded but supplies nothing, so its delivery is
         # computed at a zero rate rather than special-cased downstream.
         if tkvo or rate > 0:
-            orders.append({
-                "name": name,
-                "rate_ml_hr": rate,
-                "hours": hours,
-                "tkvo": tkvo,
-                "delivery": iv_fluid_delivery(IV_FLUIDS[name], rate, hours),
-            })
+            orders.append(
+                {
+                    "name": name,
+                    "rate_ml_hr": rate,
+                    "hours": hours,
+                    "tkvo": tkvo,
+                    "delivery": iv_fluid_delivery(IV_FLUIDS[name], rate, hours),
+                }
+            )
     return orders
 
 
 def iv_fluid_totals() -> dict[str, float]:
     """Daily contribution of every intravenous fluid entered in Assessment."""
-    return total_iv_fluid_delivery(
-        [order["delivery"] for order in iv_fluid_orders()]
-    )
+    return total_iv_fluid_delivery([order["delivery"] for order in iv_fluid_orders()])
 
 
 @st.cache_data
@@ -117,7 +117,8 @@ def sync_height_from_feet_inches() -> None:
     inches = st.session_state.get("assessment_height_inches")
     st.session_state.assessment_height_cm = (
         height_to_cm("ft/in", feet=int(feet), inches=number(inches))
-        if feet is not None and inches is not None else None
+        if feet is not None and inches is not None
+        else None
     )
 
 
@@ -206,7 +207,8 @@ def open_uploaded_case_record(uploaded_file) -> None:
     st.session_state.my_ons = ons
     st.session_state["_chart_note_case_token"] = uuid4().hex
     st.session_state["_case_record_notice"] = (
-        "success", "The saved record is now open."
+        "success",
+        "The saved record is now open.",
     )
 
 
@@ -216,7 +218,9 @@ def load_example_record() -> None:
     example_feed = formulas.loc[
         formulas["name"].isin(["Isosource 1.5", "Peptamen 1.5"])
     ].copy()
-    example_modular = modulars.loc[modulars["id"] == "nestle-beneprotein"].iloc[[0]].copy()
+    example_modular = (
+        modulars.loc[modulars["id"] == "nestle-beneprotein"].iloc[[0]].copy()
+    )
 
     clear_case_record_state()
     st.session_state.my_formulas = example_feed
@@ -225,127 +229,129 @@ def load_example_record() -> None:
         ons["name"].isin(["BOOST Plus Calories — Vanilla"])
     ].copy()
     st.session_state["_chart_note_case_token"] = uuid4().hex
-    st.session_state.update({
-        "case_record_label": "Example — inpatient EN review",
-        "assessment_sex": "Female",
-        "assessment_age": 67,
-        "assessment_current_weight": 64.0,
-        "assessment_usual_weight": 68.0,
-        "assessment_weight_unit": "kg",
-        "assessment_height_unit": "cm",
-        "assessment_height_cm": 165,
-        "assessment_adjusted_weight_factor": 0.25,
-        "assessment_estimated_weight": 62.0,
-        "assessment_weight_choice": "Current body weight",
-        "assessment_protein_weight_choice": PROTEIN_WEIGHT_SAME_AS_ENERGY,
-        "assessment_indirect_calorimetry": None,
-        "assessment_activity_factor": 1.2,
-        "assessment_stress_factor": 1.0,
-        # Present so the example demonstrates the Penn State rows, which the
-        # Propofol scenario's ventilated patient is the case for. This patient's
-        # BMI is 23.5, so the applicability labels show that the modified 2010
-        # equation does not apply and 2003b does.
-        "assessment_temperature": 38.2,
-        "assessment_minute_ventilation": 8.5,
-        "assessment_energy_low_kcal_kg": 25.0,
-        "assessment_energy_high_kcal_kg": 30.0,
-        "assessment_energy_target": 1800.0,
-        "assessment_protein_low_gkg": 1.2,
-        "assessment_protein_high_gkg": 1.5,
-        "assessment_protein_target": 85.0,
-        "assessment_water_low_mlkg": 25.0,
-        "assessment_water_high_mlkg": 30.0,
-        "assessment_water_target": 1900.0,
-        "en_energy_target": 1800.0,
-        "en_total_energy_target": 1800.0,
-        "en_protein_target": 85.0,
-        "en_water_target": 1900.0,
-        "feed_candidates": ["Isosource 1.5"],
-        "icu_total_energy_target": 1800.0,
-        "icu_protein_target": 85.0,
-        "icu_water_target": 1900.0,
-        "icu_feed_candidates": ["Peptamen 1.5"],
-        "icu_planned_daily_intake_scenario": "lower",
-        "en_selected_formula": "Isosource 1.5",
-        "en_schedule_type": "Continuous / cyclic",
-        "en_feeding_hours": 23.0,
-        "en_achieved_delivery_pct": 100,
-        "chosen_modulars": ["Beneprotein"],
-        "modular_units_nestle-beneprotein": 1.0,
-        "modular_doses_nestle-beneprotein": 2.0,
-        "modular_water_nestle-beneprotein": 60.0,
-        "en_medication_flushes": 120.0,
-        "en_patency_flushes": 0.0,
-        "en_hydration_flushes": 6,
-        "en_hydration_schedule_format": "qXh",
-        "en_hydration_interval_hours": 4,
-        "scenario_standard_propofol_rate": 0.0,
-        "scenario_standard_propofol_hours": 24.0,
-        "scenario_standard_selected_formula": "Isosource 1.5",
-        "scenario_standard_schedule_type": "Continuous / cyclic",
-        "scenario_standard_feeding_hours": 23.0,
-        "scenario_standard_achieved_delivery_pct": 100,
-        "scenario_standard_chosen_modulars": ["Beneprotein"],
-        "scenario_standard_modular_units_nestle-beneprotein": 1.0,
-        "scenario_standard_modular_doses_nestle-beneprotein": 2.0,
-        "scenario_standard_modular_water_nestle-beneprotein": 60.0,
-        "scenario_standard_medication_flushes": 120.0,
-        "scenario_standard_patency_flushes": 0.0,
-        "scenario_standard_hydration_flushes": 6,
-        "scenario_standard_hydration_schedule_format": "qXh",
-        "scenario_standard_hydration_interval_hours": 4,
-        "scenario_propofol_propofol_method": "Single Propofol rate",
-        "scenario_propofol_prescription_target_pct": 100.0,
-        "scenario_propofol_prescription_interruption_note": False,
-        "scenario_propofol_propofol_rate": 20.0,
-        "scenario_propofol_propofol_hours": 24.0,
-        "scenario_propofol_lower_propofol_rate": 0.0,
-        "scenario_propofol_higher_propofol_rate": 20.0,
-        "scenario_propofol_higher_propofol_hours": 6.0,
-        "scenario_propofol_selected_formula": "Peptamen 1.5",
-        "scenario_propofol_schedule_type": "Continuous / cyclic",
-        "scenario_propofol_feeding_hours": 23.0,
-        "scenario_propofol_achieved_delivery_pct": 100,
-        "scenario_propofol_chosen_modulars": ["Beneprotein"],
-        "scenario_propofol_modular_units_nestle-beneprotein": 1.0,
-        "scenario_propofol_modular_doses_nestle-beneprotein": 2.0,
-        "scenario_propofol_modular_water_nestle-beneprotein": 60.0,
-        "scenario_propofol_medication_flushes": 120.0,
-        "scenario_propofol_patency_flushes": 0.0,
-        "scenario_propofol_hydration_flushes": 6,
-        "scenario_propofol_hydration_schedule_format": "qXh",
-        "scenario_propofol_hydration_interval_hours": 4,
-        "scenario_lower_propofol_rate": 0.0,
-        "scenario_lower_propofol_hours": 24.0,
-        "scenario_lower_selected_formula": "Peptamen 1.5",
-        "scenario_lower_schedule_type": "Continuous / cyclic",
-        "scenario_lower_feeding_hours": 23.0,
-        "scenario_lower_achieved_delivery_pct": 100,
-        "scenario_lower_chosen_modulars": ["Beneprotein"],
-        "scenario_lower_modular_units_nestle-beneprotein": 1.0,
-        "scenario_lower_modular_doses_nestle-beneprotein": 2.0,
-        "scenario_lower_modular_water_nestle-beneprotein": 60.0,
-        "scenario_lower_medication_flushes": 120.0,
-        "scenario_lower_patency_flushes": 0.0,
-        "scenario_lower_hydration_flushes": 6,
-        "scenario_lower_hydration_schedule_format": "qXh",
-        "scenario_lower_hydration_interval_hours": 4,
-        "scenario_higher_propofol_rate": 20.0,
-        "scenario_higher_propofol_hours": 24.0,
-        "scenario_higher_selected_formula": "Peptamen 1.5",
-        "scenario_higher_schedule_type": "Continuous / cyclic",
-        "scenario_higher_feeding_hours": 23.0,
-        "scenario_higher_achieved_delivery_pct": 100,
-        "scenario_higher_chosen_modulars": ["Beneprotein"],
-        "scenario_higher_modular_units_nestle-beneprotein": 1.0,
-        "scenario_higher_modular_doses_nestle-beneprotein": 2.0,
-        "scenario_higher_modular_water_nestle-beneprotein": 60.0,
-        "scenario_higher_medication_flushes": 120.0,
-        "scenario_higher_patency_flushes": 0.0,
-        "scenario_higher_hydration_flushes": 6,
-        "scenario_higher_hydration_schedule_format": "qXh",
-        "scenario_higher_hydration_interval_hours": 4,
-    })
+    st.session_state.update(
+        {
+            "case_record_label": "Example — inpatient EN review",
+            "assessment_sex": "Female",
+            "assessment_age": 67,
+            "assessment_current_weight": 64.0,
+            "assessment_usual_weight": 68.0,
+            "assessment_weight_unit": "kg",
+            "assessment_height_unit": "cm",
+            "assessment_height_cm": 165,
+            "assessment_adjusted_weight_factor": 0.25,
+            "assessment_estimated_weight": 62.0,
+            "assessment_weight_choice": "Current body weight",
+            "assessment_protein_weight_choice": PROTEIN_WEIGHT_SAME_AS_ENERGY,
+            "assessment_indirect_calorimetry": None,
+            "assessment_activity_factor": 1.2,
+            "assessment_stress_factor": 1.0,
+            # Present so the example demonstrates the Penn State rows, which the
+            # Propofol scenario's ventilated patient is the case for. This patient's
+            # BMI is 23.5, so the applicability labels show that the modified 2010
+            # equation does not apply and 2003b does.
+            "assessment_temperature": 38.2,
+            "assessment_minute_ventilation": 8.5,
+            "assessment_energy_low_kcal_kg": 25.0,
+            "assessment_energy_high_kcal_kg": 30.0,
+            "assessment_energy_target": 1800.0,
+            "assessment_protein_low_gkg": 1.2,
+            "assessment_protein_high_gkg": 1.5,
+            "assessment_protein_target": 85.0,
+            "assessment_water_low_mlkg": 25.0,
+            "assessment_water_high_mlkg": 30.0,
+            "assessment_water_target": 1900.0,
+            "en_energy_target": 1800.0,
+            "en_total_energy_target": 1800.0,
+            "en_protein_target": 85.0,
+            "en_water_target": 1900.0,
+            "feed_candidates": ["Isosource 1.5"],
+            "icu_total_energy_target": 1800.0,
+            "icu_protein_target": 85.0,
+            "icu_water_target": 1900.0,
+            "icu_feed_candidates": ["Peptamen 1.5"],
+            "icu_planned_daily_intake_scenario": "lower",
+            "en_selected_formula": "Isosource 1.5",
+            "en_schedule_type": "Continuous / cyclic",
+            "en_feeding_hours": 23.0,
+            "en_achieved_delivery_pct": 100,
+            "chosen_modulars": ["Beneprotein"],
+            "modular_units_nestle-beneprotein": 1.0,
+            "modular_doses_nestle-beneprotein": 2.0,
+            "modular_water_nestle-beneprotein": 60.0,
+            "en_medication_flushes": 120.0,
+            "en_patency_flushes": 0.0,
+            "en_hydration_flushes": 6,
+            "en_hydration_schedule_format": "qXh",
+            "en_hydration_interval_hours": 4,
+            "scenario_standard_propofol_rate": 0.0,
+            "scenario_standard_propofol_hours": 24.0,
+            "scenario_standard_selected_formula": "Isosource 1.5",
+            "scenario_standard_schedule_type": "Continuous / cyclic",
+            "scenario_standard_feeding_hours": 23.0,
+            "scenario_standard_achieved_delivery_pct": 100,
+            "scenario_standard_chosen_modulars": ["Beneprotein"],
+            "scenario_standard_modular_units_nestle-beneprotein": 1.0,
+            "scenario_standard_modular_doses_nestle-beneprotein": 2.0,
+            "scenario_standard_modular_water_nestle-beneprotein": 60.0,
+            "scenario_standard_medication_flushes": 120.0,
+            "scenario_standard_patency_flushes": 0.0,
+            "scenario_standard_hydration_flushes": 6,
+            "scenario_standard_hydration_schedule_format": "qXh",
+            "scenario_standard_hydration_interval_hours": 4,
+            "scenario_propofol_propofol_method": "Single Propofol rate",
+            "scenario_propofol_prescription_target_pct": 100.0,
+            "scenario_propofol_prescription_interruption_note": False,
+            "scenario_propofol_propofol_rate": 20.0,
+            "scenario_propofol_propofol_hours": 24.0,
+            "scenario_propofol_lower_propofol_rate": 0.0,
+            "scenario_propofol_higher_propofol_rate": 20.0,
+            "scenario_propofol_higher_propofol_hours": 6.0,
+            "scenario_propofol_selected_formula": "Peptamen 1.5",
+            "scenario_propofol_schedule_type": "Continuous / cyclic",
+            "scenario_propofol_feeding_hours": 23.0,
+            "scenario_propofol_achieved_delivery_pct": 100,
+            "scenario_propofol_chosen_modulars": ["Beneprotein"],
+            "scenario_propofol_modular_units_nestle-beneprotein": 1.0,
+            "scenario_propofol_modular_doses_nestle-beneprotein": 2.0,
+            "scenario_propofol_modular_water_nestle-beneprotein": 60.0,
+            "scenario_propofol_medication_flushes": 120.0,
+            "scenario_propofol_patency_flushes": 0.0,
+            "scenario_propofol_hydration_flushes": 6,
+            "scenario_propofol_hydration_schedule_format": "qXh",
+            "scenario_propofol_hydration_interval_hours": 4,
+            "scenario_lower_propofol_rate": 0.0,
+            "scenario_lower_propofol_hours": 24.0,
+            "scenario_lower_selected_formula": "Peptamen 1.5",
+            "scenario_lower_schedule_type": "Continuous / cyclic",
+            "scenario_lower_feeding_hours": 23.0,
+            "scenario_lower_achieved_delivery_pct": 100,
+            "scenario_lower_chosen_modulars": ["Beneprotein"],
+            "scenario_lower_modular_units_nestle-beneprotein": 1.0,
+            "scenario_lower_modular_doses_nestle-beneprotein": 2.0,
+            "scenario_lower_modular_water_nestle-beneprotein": 60.0,
+            "scenario_lower_medication_flushes": 120.0,
+            "scenario_lower_patency_flushes": 0.0,
+            "scenario_lower_hydration_flushes": 6,
+            "scenario_lower_hydration_schedule_format": "qXh",
+            "scenario_lower_hydration_interval_hours": 4,
+            "scenario_higher_propofol_rate": 20.0,
+            "scenario_higher_propofol_hours": 24.0,
+            "scenario_higher_selected_formula": "Peptamen 1.5",
+            "scenario_higher_schedule_type": "Continuous / cyclic",
+            "scenario_higher_feeding_hours": 23.0,
+            "scenario_higher_achieved_delivery_pct": 100,
+            "scenario_higher_chosen_modulars": ["Beneprotein"],
+            "scenario_higher_modular_units_nestle-beneprotein": 1.0,
+            "scenario_higher_modular_doses_nestle-beneprotein": 2.0,
+            "scenario_higher_modular_water_nestle-beneprotein": 60.0,
+            "scenario_higher_medication_flushes": 120.0,
+            "scenario_higher_patency_flushes": 0.0,
+            "scenario_higher_hydration_flushes": 6,
+            "scenario_higher_hydration_schedule_format": "qXh",
+            "scenario_higher_hydration_interval_hours": 4,
+        }
+    )
 
 
 def scenario_key(scenario_id: str, field: str) -> str:
@@ -390,7 +396,9 @@ def show_partial_formula_delivery(scenario_id: str) -> None:
     """Show the newly entered partial-delivery estimate by default."""
     achieved_key = scenario_key(scenario_id, "achieved_delivery_pct")
     if number(st.session_state.get(achieved_key, 100)) < 100:
-        st.session_state[scenario_key(scenario_id, "delivery_view")] = "Achieved delivery"
+        st.session_state[scenario_key(scenario_id, "delivery_view")] = (
+            "Achieved delivery"
+        )
 
 
 def reset_new_modular_orders(
@@ -406,12 +414,12 @@ def reset_new_modular_orders(
         product_id = modular_ids_by_name.get(modular_name)
         if product_id is None:
             continue
-        st.session_state[scenario_key(
-            scenario_id, f"modular_units_{product_id}"
-        )] = None
-        st.session_state[scenario_key(
-            scenario_id, f"modular_doses_{product_id}"
-        )] = None
+        st.session_state[scenario_key(scenario_id, f"modular_units_{product_id}")] = (
+            None
+        )
+        st.session_state[scenario_key(scenario_id, f"modular_doses_{product_id}")] = (
+            None
+        )
     st.session_state[previous_key] = current
 
 
@@ -486,16 +494,23 @@ def seed_scenario_state(
     for field, legacy_key in legacy_fields.items():
         key = scenario_key(scenario_id, field)
         if key not in st.session_state:
-            migrated_key = scenario_key(migration_scenario_id, field) if migration_scenario_id else None
+            migrated_key = (
+                scenario_key(migration_scenario_id, field)
+                if migration_scenario_id
+                else None
+            )
             if migrated_key and migrated_key in st.session_state:
                 st.session_state[key] = st.session_state[migrated_key]
             else:
-                st.session_state[key] = st.session_state.get(legacy_key, defaults[field])
+                st.session_state[key] = st.session_state.get(
+                    legacy_key, defaults[field]
+                )
     edited_key = scenario_key(scenario_id, "order_user_edited")
     if edited_key not in st.session_state:
         migrated_edited_key = (
             scenario_key(migration_scenario_id, "order_user_edited")
-            if migration_scenario_id else None
+            if migration_scenario_id
+            else None
         )
         if migrated_edited_key and migrated_edited_key in st.session_state:
             st.session_state[edited_key] = st.session_state[migrated_edited_key]
@@ -508,7 +523,8 @@ def seed_scenario_state(
     if ordered_schedule_key not in st.session_state:
         migrated_schedule_key = (
             scenario_key(migration_scenario_id, "ordered_schedule_type")
-            if migration_scenario_id else None
+            if migration_scenario_id
+            else None
         )
         st.session_state[ordered_schedule_key] = (
             st.session_state[migrated_schedule_key]
@@ -517,26 +533,38 @@ def seed_scenario_state(
         )
     propofol_key = scenario_key(scenario_id, "propofol_rate")
     if propofol_key not in st.session_state:
-        migrated_propofol_key = scenario_key(migration_scenario_id, "propofol_rate") if migration_scenario_id else None
+        migrated_propofol_key = (
+            scenario_key(migration_scenario_id, "propofol_rate")
+            if migration_scenario_id
+            else None
+        )
         if migrated_propofol_key and migrated_propofol_key in st.session_state:
-            migrated_include_key = scenario_key(migration_scenario_id, "include_propofol")
+            migrated_include_key = scenario_key(
+                migration_scenario_id, "include_propofol"
+            )
             migrated_rate = st.session_state[migrated_propofol_key]
             st.session_state[propofol_key] = (
-                migrated_rate if st.session_state.get(migrated_include_key, number(migrated_rate) > 0)
+                migrated_rate
+                if st.session_state.get(migrated_include_key, number(migrated_rate) > 0)
                 else 0.0
             )
         elif scenario_id == "lower":
-            st.session_state[propofol_key] = number(st.session_state.get("assessment_propofol_rate"))
+            st.session_state[propofol_key] = number(
+                st.session_state.get("assessment_propofol_rate")
+            )
         else:
             st.session_state[propofol_key] = None
     propofol_hours_key = scenario_key(scenario_id, "propofol_hours")
     if propofol_hours_key not in st.session_state:
         migrated_hours_key = (
-            scenario_key(migration_scenario_id, "propofol_hours") if migration_scenario_id else None
+            scenario_key(migration_scenario_id, "propofol_hours")
+            if migration_scenario_id
+            else None
         )
         st.session_state[propofol_hours_key] = (
             st.session_state[migrated_hours_key]
-            if migrated_hours_key and migrated_hours_key in st.session_state else 24.0
+            if migrated_hours_key and migrated_hours_key in st.session_state
+            else 24.0
         )
 
     selected_key = scenario_key(scenario_id, "selected_formula")
@@ -545,7 +573,9 @@ def seed_scenario_state(
     schedule_key = scenario_key(scenario_id, "schedule_type")
     if st.session_state[schedule_key] == "Continuous":
         st.session_state[schedule_key] = "Continuous / cyclic"
-    modular_names = set(saved_modulars["name"].tolist()) if not saved_modulars.empty else set()
+    modular_names = (
+        set(saved_modulars["name"].tolist()) if not saved_modulars.empty else set()
+    )
     chosen_key = scenario_key(scenario_id, "chosen_modulars")
     st.session_state[chosen_key] = [
         name for name in st.session_state.get(chosen_key, []) if name in modular_names
@@ -559,15 +589,22 @@ def seed_scenario_state(
         for field, legacy_prefix, default in (
             ("modular_units", "modular_units_", None),
             ("modular_doses", "modular_doses_", None),
-            ("modular_water", "modular_water_", number(product.get("default_preparation_water_ml_per_dose", 0))),
+            (
+                "modular_water",
+                "modular_water_",
+                number(product.get("default_preparation_water_ml_per_dose", 0)),
+            ),
         ):
             key = scenario_key(scenario_id, f"{field}_{product_id}")
             if key not in st.session_state:
                 migrated_key = (
                     scenario_key(migration_scenario_id, f"{field}_{product_id}")
-                    if migration_scenario_id else None
+                    if migration_scenario_id
+                    else None
                 )
                 if migrated_key and migrated_key in st.session_state:
                     st.session_state[key] = st.session_state[migrated_key]
                 else:
-                    st.session_state[key] = st.session_state.get(f"{legacy_prefix}{product_id}", default)
+                    st.session_state[key] = st.session_state.get(
+                        f"{legacy_prefix}{product_id}", default
+                    )

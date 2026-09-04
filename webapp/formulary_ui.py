@@ -39,7 +39,9 @@ def formula_type(name: str) -> str:
     return "standard whole protein"
 
 
-def render_reference_list(options: pd.DataFrame, saved_names: set[str], kind: str) -> None:
+def render_reference_list(
+    options: pd.DataFrame, saved_names: set[str], kind: str
+) -> None:
     """Render a compact, browsable reference list without displacing saved cards."""
     if kind == "feed":
         st.caption("Scroll to view more feeds.")
@@ -52,7 +54,10 @@ def render_reference_list(options: pd.DataFrame, saved_names: set[str], kind: st
             elif kind == "modular":
                 description = f"{item['brand']} · {item['basis_description']}"
             else:
-                if str(item.get("calculation_basis", "container_ml")).casefold() == "serving":
+                if (
+                    str(item.get("calculation_basis", "container_ml")).casefold()
+                    == "serving"
+                ):
                     description = (
                         f"{item['brand']} · {number(item['serving_size_g']):g} g per "
                         f"{item['serving_unit']}"
@@ -63,17 +68,21 @@ def render_reference_list(options: pd.DataFrame, saved_names: set[str], kind: st
                         f"{item['package_unit']}"
                     )
             with st.container(key=f"reference_row_{kind}_{row_position}"):
-                description_column, button_column = st.columns([3, 2], vertical_alignment="center")
+                description_column, button_column = st.columns(
+                    [3, 2], vertical_alignment="center"
+                )
                 description_column.markdown(
                     '<div class="reference-product-text">'
                     f'<strong>{escape(str(item["name"]))}</strong>'
-                    f'<span>{escape(description)}</span></div>',
+                    f"<span>{escape(description)}</span></div>",
                     unsafe_allow_html=True,
                 )
                 if item["name"] in saved_names:
                     button_column.button(
-                        "Saved", key=f"saved_{kind}_{item['name']}",
-                        disabled=True, width="content",
+                        "Saved",
+                        key=f"saved_{kind}_{item['name']}",
+                        disabled=True,
+                        width="content",
                     )
                 else:
                     button_column.button(
@@ -103,9 +112,7 @@ def add_reference_product(kind: str, item: dict[str, object]) -> None:
             st.session_state.my_modulars, addition, "id"
         )
     else:
-        st.session_state.my_ons = add_unique(
-            st.session_state.my_ons, addition, "id"
-        )
+        st.session_state.my_ons = add_unique(st.session_state.my_ons, addition, "id")
 
 
 def remove_selected_products(kind: str) -> None:
@@ -118,7 +125,8 @@ def remove_selected_products(kind: str) -> None:
         for candidates_key in ("feed_candidates", "icu_feed_candidates"):
             if candidates_key in st.session_state:
                 st.session_state[candidates_key] = [
-                    name for name in st.session_state[candidates_key]
+                    name
+                    for name in st.session_state[candidates_key]
                     if name not in removed
                 ]
         st.session_state.remove_feeds = []
@@ -145,7 +153,9 @@ def show_formulary() -> None:
             "Uploading replaces the product lists for this session. "
             "Calculations use the uploaded values."
         )
-        upload = st.file_uploader("Import a .xlsx workbook", type="xlsx", key="formulary_upload")
+        upload = st.file_uploader(
+            "Import a .xlsx workbook", type="xlsx", key="formulary_upload"
+        )
         if upload is not None and st.button("Validate and import workbook"):
             try:
                 formulas, modulars, ons = import_formulary_workbook(upload)
@@ -159,7 +169,9 @@ def show_formulary() -> None:
                 )
             except ValueError as error:
                 render_alert("error", str(error))
-        st.caption("To add or edit a product, update the downloaded workbook and upload it here.")
+        st.caption(
+            "To add or edit a product, update the downloaded workbook and upload it here."
+        )
         st.download_button(
             "Download My Formulary (.xlsx)",
             data=export_formulary_workbook(
@@ -218,9 +230,7 @@ def show_formulary() -> None:
         elif product_group.endswith("ONS"):
             manufacturer = product_group.removesuffix(" ONS")
             options = tube_ons[
-                tube_ons["brand"].str.contains(
-                    manufacturer, case=False, na=False
-                )
+                tube_ons["brand"].str.contains(manufacturer, case=False, na=False)
             ]
         else:
             manufacturer = product_group.removesuffix(" EN formulas")
@@ -230,8 +240,12 @@ def show_formulary() -> None:
                 )
             ]
         if search.strip():
-            options = options.loc[options["name"].str.contains(search.strip(), case=False, na=False)]
-        render_reference_list(options, set(st.session_state.my_formulas["name"]), "feed")
+            options = options.loc[
+                options["name"].str.contains(search.strip(), case=False, na=False)
+            ]
+        render_reference_list(
+            options, set(st.session_state.my_formulas["name"]), "feed"
+        )
 
     st.divider()
     modular_heading, modular_actions = st.columns([4, 1], vertical_alignment="bottom")
@@ -253,21 +267,32 @@ def show_formulary() -> None:
             )
     if not st.session_state.my_modulars.empty:
         render_report_table(
-            st.session_state.my_modulars[["name", "basis_description"]].rename(columns={
-                "name": "Product",
-                "basis_description": "Description",
-            }).assign(**{
-                "Labelled serving": st.session_state.my_modulars.apply(
-                    lambda item: f"{number(item['basis_amount']):g} {item['dose_unit']}", axis=1
-                )
-            })
+            st.session_state.my_modulars[["name", "basis_description"]]
+            .rename(
+                columns={
+                    "name": "Product",
+                    "basis_description": "Description",
+                }
+            )
+            .assign(
+                **{
+                    "Labelled serving": st.session_state.my_modulars.apply(
+                        lambda item: f"{number(item['basis_amount']):g} {item['dose_unit']}",
+                        axis=1,
+                    )
+                }
+            )
         )
     with st.expander("Find a modular", expanded=False):
         search = st.text_input("Search modular name", key="modular_search")
         options = master_modulars
         if search.strip():
-            options = options.loc[options["name"].str.contains(search.strip(), case=False, na=False)]
-        render_reference_list(options, set(st.session_state.my_modulars["name"]), "modular")
+            options = options.loc[
+                options["name"].str.contains(search.strip(), case=False, na=False)
+            ]
+        render_reference_list(
+            options, set(st.session_state.my_modulars["name"]), "modular"
+        )
 
     st.divider()
     ons_heading, ons_actions = st.columns([4, 1], vertical_alignment="bottom")
@@ -298,15 +323,19 @@ def show_formulary() -> None:
         ons_table["Basis"] = ons_table.apply(
             lambda item: (
                 f"{number(item['serving_size_g']):g} g per {item['serving_unit']}"
-                if str(item.get("calculation_basis", "container_ml")).casefold() == "serving"
+                if str(item.get("calculation_basis", "container_ml")).casefold()
+                == "serving"
                 else f"{number(item['container_size_ml']):g} mL {item['package_unit']}"
-            ), axis=1,
+            ),
+            axis=1,
         )
         render_report_table(
-            ons_table[["name", "brand", "Basis"]].rename(columns={
-                "name": "Product",
-                "brand": "Manufacturer",
-            })
+            ons_table[["name", "brand", "Basis"]].rename(
+                columns={
+                    "name": "Product",
+                    "brand": "Manufacturer",
+                }
+            )
         )
     with st.expander("Find an ONS", expanded=False):
         search = st.text_input("Search ONS name or flavour", key="ons_search")

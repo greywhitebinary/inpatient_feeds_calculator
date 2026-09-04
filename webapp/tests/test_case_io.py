@@ -15,7 +15,9 @@ from data import load_master_formulas, load_master_modulars, load_master_ons
 
 class CaseRecordTests(unittest.TestCase):
     def test_default_website_metadata_is_safe_and_not_hyperlinked(self):
-        payload = export_case_record_workbook({}, load_master_formulas().head(0), load_master_modulars().head(0))
+        payload = export_case_record_workbook(
+            {}, load_master_formulas().head(0), load_master_modulars().head(0)
+        )
         workbook = load_workbook(BytesIO(payload))
         sheet = workbook["Case record"]
 
@@ -26,16 +28,27 @@ class CaseRecordTests(unittest.TestCase):
         self.assertIn("hosted session processes entered values", sheet["A4"].value)
 
     def test_live_configured_website_is_hyperlinked(self):
-        with patch.dict(os.environ, {"CALCULATOR_WEBSITE_URL": "https://feeds.example.org/calculator"}):
-            payload = export_case_record_workbook({}, load_master_formulas().head(0), load_master_modulars().head(0))
+        with patch.dict(
+            os.environ,
+            {"CALCULATOR_WEBSITE_URL": "https://feeds.example.org/calculator"},
+        ):
+            payload = export_case_record_workbook(
+                {}, load_master_formulas().head(0), load_master_modulars().head(0)
+            )
         sheet = load_workbook(BytesIO(payload))["Case record"]
 
         self.assertEqual(sheet["B2"].value, "https://feeds.example.org/calculator")
-        self.assertEqual(sheet["B2"].hyperlink.target, "https://feeds.example.org/calculator")
+        self.assertEqual(
+            sheet["B2"].hyperlink.target, "https://feeds.example.org/calculator"
+        )
 
     def test_localhost_configuration_is_not_written_to_workbook(self):
-        with patch.dict(os.environ, {"CALCULATOR_WEBSITE_URL": "http://localhost:8501"}):
-            payload = export_case_record_workbook({}, load_master_formulas().head(0), load_master_modulars().head(0))
+        with patch.dict(
+            os.environ, {"CALCULATOR_WEBSITE_URL": "http://localhost:8501"}
+        ):
+            payload = export_case_record_workbook(
+                {}, load_master_formulas().head(0), load_master_modulars().head(0)
+            )
         sheet = load_workbook(BytesIO(payload))["Case record"]
 
         self.assertEqual(sheet["B2"].value, "To be added after deployment")
@@ -44,7 +57,9 @@ class CaseRecordTests(unittest.TestCase):
     def test_import_accepts_workbook_without_new_website_field(self):
         formulas = load_master_formulas().head(0)
         modulars = load_master_modulars().head(0)
-        payload = export_case_record_workbook({"case_record_label": "Older record"}, formulas, modulars)
+        payload = export_case_record_workbook(
+            {"case_record_label": "Older record"}, formulas, modulars
+        )
         workbook = load_workbook(BytesIO(payload))
         workbook["Case record"].delete_rows(2, 1)
         legacy = BytesIO()
@@ -119,9 +134,11 @@ class CaseRecordTests(unittest.TestCase):
     def test_round_trip_preserves_ons_snapshot_and_order(self):
         formulas = load_master_formulas().head(1)
         modulars = load_master_modulars().head(0)
-        ons = load_master_ons().loc[
-            lambda frame: frame["name"] == "BOOST Plus Calories — Vanilla"
-        ].copy()
+        ons = (
+            load_master_ons()
+            .loc[lambda frame: frame["name"] == "BOOST Plus Calories — Vanilla"]
+            .copy()
+        )
         product_id = ons.iloc[0]["id"]
         state = {
             "scenario_standard_chosen_ons": [ons.iloc[0]["name"]],
@@ -129,12 +146,8 @@ class CaseRecordTests(unittest.TestCase):
             f"scenario_standard_ons_times_{product_id}": 2.0,
         }
 
-        payload = export_case_record_workbook(
-            state, formulas, modulars, ons
-        )
-        restored, _, _, restored_ons = import_case_record_workbook(
-            BytesIO(payload)
-        )
+        payload = export_case_record_workbook(state, formulas, modulars, ons)
+        restored, _, _, restored_ons = import_case_record_workbook(BytesIO(payload))
 
         self.assertEqual(
             restored["scenario_standard_chosen_ons"],
@@ -143,9 +156,7 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(
             restored[f"scenario_standard_ons_containers_{product_id}"], 1.0
         )
-        self.assertEqual(
-            restored[f"scenario_standard_ons_times_{product_id}"], 2.0
-        )
+        self.assertEqual(restored[f"scenario_standard_ons_times_{product_id}"], 2.0)
         self.assertEqual(
             restored_ons["name"].tolist(), ["BOOST Plus Calories — Vanilla"]
         )
@@ -379,7 +390,9 @@ class CaseRecordTests(unittest.TestCase):
         self.assertEqual(restored[f"scenario_primary_modular_doses_{product_id}"], 2.0)
         self.assertTrue(restored["scenario_alternate_include_propofol"])
         self.assertEqual(restored["scenario_alternate_propofol_rate"], 20.0)
-        self.assertEqual(restored[f"scenario_alternate_modular_doses_{product_id}"], 4.0)
+        self.assertEqual(
+            restored[f"scenario_alternate_modular_doses_{product_id}"], 4.0
+        )
 
     def test_round_trip_preserves_independent_standard_and_icu_workflows(self):
         formulas = load_master_formulas().head(1)
@@ -466,9 +479,7 @@ class CaseRecordTests(unittest.TestCase):
             restored["scenario_propofol_propofol_method"], "Changing Propofol rates"
         )
         self.assertEqual(restored["scenario_propofol_prescription_target_pct"], 110.0)
-        self.assertTrue(
-            restored["scenario_propofol_prescription_interruption_note"]
-        )
+        self.assertTrue(restored["scenario_propofol_prescription_interruption_note"])
         self.assertEqual(restored["scenario_propofol_higher_propofol_hours"], 6.0)
         self.assertEqual(
             restored["scenario_propofol_conditional_lower_rate_ml_hr"], 55.0
@@ -540,4 +551,3 @@ class IVFluidRecordTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             import_case_record_workbook(BytesIO(payload))
-

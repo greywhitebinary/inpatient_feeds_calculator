@@ -90,7 +90,11 @@ class CalculationTests(unittest.TestCase):
         self.assertAlmostEqual(mg_to_mmol("sodium", 2300), 100.043497, places=6)
 
     def test_feed_delivery_uses_achieved_percentage(self):
-        formula = {"kcal_per_mL": 1.5, "protein_per_mL": 0.07, "free_water_per_mL": 0.766}
+        formula = {
+            "kcal_per_mL": 1.5,
+            "protein_per_mL": 0.07,
+            "free_water_per_mL": 0.766,
+        }
         result = feed_delivery(formula, 1800, 20, 80)
         self.assertEqual(result["planned_volume_ml"], 1200)
         self.assertEqual(result["delivered_volume_ml"], 960)
@@ -116,7 +120,9 @@ class CalculationTests(unittest.TestCase):
             "sodium_mg_per_basis": 180,
         }
         result = modular_delivery(
-            product, units_per_dose=45, doses_per_day=2,
+            product,
+            units_per_dose=45,
+            doses_per_day=2,
             preparation_water_ml_per_dose=30,
         )
         # 45 mL twice daily is three 30-mL label servings per day.
@@ -164,7 +170,11 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(totals["free_water_ml"], 186)
 
     def test_practical_continuous_delivery_rounds_the_pump_rate_to_five_ml(self):
-        formula = {"kcal_per_mL": 1.5, "protein_per_mL": 0.07, "free_water_per_mL": 0.766}
+        formula = {
+            "kcal_per_mL": 1.5,
+            "protein_per_mL": 0.07,
+            "free_water_per_mL": 0.766,
+        }
         result = practical_feed_delivery(formula, 1900, 20)
         self.assertEqual(result["ordered_rate_ml_hr"], 65)
         self.assertEqual(result["planned_volume_ml"], 1300)
@@ -210,8 +220,12 @@ class CalculationTests(unittest.TestCase):
             "free_water_per_mL": 0.8,
         }
         result = ordered_feed_delivery(
-            formula, 275, 24, 80,
-            schedule_type="Intermittent", feeds_per_day=4,
+            formula,
+            275,
+            24,
+            80,
+            schedule_type="Intermittent",
+            feeds_per_day=4,
         )
         self.assertEqual(result["ordered_volume_per_feed_ml"], 275)
         self.assertEqual(result["planned_volume_ml"], 1100)
@@ -260,10 +274,12 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(result["fat_g"], 24)
 
     def test_propofol_conditions_sum_to_one_projected_daily_exposure(self):
-        result = total_propofol_intake([
-            {"rate_ml_hr": 0, "hours": 18},
-            {"rate_ml_hr": 20, "hours": 6},
-        ])
+        result = total_propofol_intake(
+            [
+                {"rate_ml_hr": 0, "hours": 18},
+                {"rate_ml_hr": 20, "hours": 6},
+            ]
+        )
         self.assertEqual(result["volume_ml"], 120)
         self.assertEqual(result["kcal"], 132)
         self.assertEqual(result["fat_g"], 12)
@@ -284,12 +300,13 @@ class CalculationTests(unittest.TestCase):
         ]
         self.assertEqual(rates, [50, 35])
         delivery = conditional_feed_delivery(formula, 23, conditions, rates)
-        combined_energy = delivery["energy_kcal"] + total_propofol_intake(conditions)["kcal"]
+        combined_energy = (
+            delivery["energy_kcal"] + total_propofol_intake(conditions)["kcal"]
+        )
         # Bedside rates are rounded to 5 mL/hour, so the projected total is close
         # to, rather than mathematically identical to, the unrounded target.
         self.assertAlmostEqual(delivery["planned_volume_ml"], 1063.75)
         self.assertAlmostEqual(combined_energy, 1727.625)
-
 
 
 class UndisclosedValueTests(unittest.TestCase):
@@ -308,28 +325,42 @@ class UndisclosedValueTests(unittest.TestCase):
 
     def test_modular_delivery_reports_undisclosed_columns(self):
         product = {
-            "basis_amount": 30, "kcal_per_basis": 60, "protein_g_per_basis": 15,
-            "carbohydrate_g_per_basis": 0, "fat_g_per_basis": 0,
-            "fibre_g_per_basis": 0, "sodium_mg_per_basis": 40,
-            "potassium_mg_per_basis": 10, "calcium_mg_per_basis": 0,
-            "magnesium_mg_per_basis": None, "phosphorus_mg_per_basis": None,
+            "basis_amount": 30,
+            "kcal_per_basis": 60,
+            "protein_g_per_basis": 15,
+            "carbohydrate_g_per_basis": 0,
+            "fat_g_per_basis": 0,
+            "fibre_g_per_basis": 0,
+            "sodium_mg_per_basis": 40,
+            "potassium_mg_per_basis": 10,
+            "calcium_mg_per_basis": 0,
+            "magnesium_mg_per_basis": None,
+            "phosphorus_mg_per_basis": None,
             "free_water_ml_per_basis": None,
         }
         order = modular_delivery(product, 30, 3)
         self.assertEqual(order["sodium_mg"], 120)
         self.assertEqual(order["disclosed"]["sodium_mg"], 1)
-        self.assertEqual(order["disclosed"]["calcium_mg"], 1, "a declared 0 is disclosed")
+        self.assertEqual(
+            order["disclosed"]["calcium_mg"], 1, "a declared 0 is disclosed"
+        )
         self.assertEqual(order["disclosed"]["phosphorus_mg"], 0)
         self.assertEqual(order["phosphorus_mg"], 0, "undisclosed contributes nothing")
         self.assertEqual(order["product_count"], 1)
 
     def test_unordered_product_is_not_a_coverage_source(self):
         product = {
-            "basis_amount": 30, "kcal_per_basis": 60, "protein_g_per_basis": 15,
-            "carbohydrate_g_per_basis": 0, "fat_g_per_basis": 0,
-            "fibre_g_per_basis": 0, "sodium_mg_per_basis": 40,
-            "potassium_mg_per_basis": 10, "calcium_mg_per_basis": 0,
-            "magnesium_mg_per_basis": None, "phosphorus_mg_per_basis": None,
+            "basis_amount": 30,
+            "kcal_per_basis": 60,
+            "protein_g_per_basis": 15,
+            "carbohydrate_g_per_basis": 0,
+            "fat_g_per_basis": 0,
+            "fibre_g_per_basis": 0,
+            "sodium_mg_per_basis": 40,
+            "potassium_mg_per_basis": 10,
+            "calcium_mg_per_basis": 0,
+            "magnesium_mg_per_basis": None,
+            "phosphorus_mg_per_basis": None,
             "free_water_ml_per_basis": None,
         }
         order = modular_delivery(product, 0, 0)
@@ -338,19 +369,22 @@ class UndisclosedValueTests(unittest.TestCase):
 
     def test_total_modular_delivery_accumulates_coverage(self):
         disclosed_order = {
-            "sodium_mg": 100, "phosphorus_mg": 50,
-            "disclosed": {"sodium_mg": 1, "phosphorus_mg": 1}, "product_count": 1,
+            "sodium_mg": 100,
+            "phosphorus_mg": 50,
+            "disclosed": {"sodium_mg": 1, "phosphorus_mg": 1},
+            "product_count": 1,
         }
         partial_order = {
-            "sodium_mg": 40, "phosphorus_mg": 0,
-            "disclosed": {"sodium_mg": 1, "phosphorus_mg": 0}, "product_count": 1,
+            "sodium_mg": 40,
+            "phosphorus_mg": 0,
+            "disclosed": {"sodium_mg": 1, "phosphorus_mg": 0},
+            "product_count": 1,
         }
         totals = total_modular_delivery([disclosed_order, partial_order])
         self.assertEqual(totals["product_count"], 2)
         self.assertEqual(totals["sodium_mg"], 140)
         self.assertEqual(totals["disclosed"]["sodium_mg"], 2)
         self.assertEqual(totals["disclosed"]["phosphorus_mg"], 1)
-
 
 
 class OptionalWaterGoalTests(unittest.TestCase):
@@ -375,7 +409,6 @@ class OptionalWaterGoalTests(unittest.TestCase):
         self.assertGreater(real_goal["hydration_flush_each_ml"], 0)
 
 
-
 class ConditionalDeliveryCharacterisationTests(unittest.TestCase):
     """Today's propofol figures, pinned before the entry-form work begins.
 
@@ -386,18 +419,19 @@ class ConditionalDeliveryCharacterisationTests(unittest.TestCase):
     """
 
     def setUp(self):
-        self.feed = load_master_formulas().loc[
-            lambda frame: frame["name"] == "Peptamen 1.5"
-        ].iloc[0].to_dict()
+        self.feed = (
+            load_master_formulas()
+            .loc[lambda frame: frame["name"] == "Peptamen 1.5"]
+            .iloc[0]
+            .to_dict()
+        )
         self.conditions = [
             {"id": "lower", "rate_ml_hr": 10, "hours": 16},
             {"id": "higher", "rate_ml_hr": 30, "hours": 8},
         ]
 
     def test_conditional_delivery_figures_are_unchanged(self):
-        result = conditional_feed_delivery(
-            self.feed, 23, self.conditions, [45, 25]
-        )
+        result = conditional_feed_delivery(self.feed, 23, self.conditions, [45, 25])
         self.assertAlmostEqual(result["planned_volume_ml"], 881.6666666666666)
         self.assertAlmostEqual(result["energy_kcal"], 1322.5)
         self.assertAlmostEqual(result["protein_g"], 59.95333333333333)
@@ -424,11 +458,14 @@ class ConditionalDeliveryCharacterisationTests(unittest.TestCase):
             self.feed, 1800, 23, 100, "Continuous / cyclic", 1
         )
         typed = ordered_feed_delivery(
-            self.feed, suggested["ordered_rate_ml_hr"], 23, 100,
-            "Continuous / cyclic", 1,
+            self.feed,
+            suggested["ordered_rate_ml_hr"],
+            23,
+            100,
+            "Continuous / cyclic",
+            1,
         )
         self.assertEqual(suggested, typed)
-
 
 
 class OrderedFlushTests(unittest.TestCase):
@@ -436,37 +473,45 @@ class OrderedFlushTests(unittest.TestCase):
 
     def test_ordered_flush_schedule_totals_peri_feed_and_overnight_lines(self):
         # 150 mL before and after each of three feeds, plus 150 mL overnight.
-        schedule = ordered_flush_schedule([
-            {"volume_each_ml": 150, "times_per_day": 6},
-            {"volume_each_ml": 150, "times_per_day": 1},
-        ])
+        schedule = ordered_flush_schedule(
+            [
+                {"volume_each_ml": 150, "times_per_day": 6},
+                {"volume_each_ml": 150, "times_per_day": 1},
+            ]
+        )
         self.assertEqual(schedule["hydration_flush_total_ml"], 1050)
         self.assertEqual(schedule["hydration_flush_count"], 7)
         self.assertEqual(schedule["hydration_flush_each_ml"], 150)
 
     def test_untouched_lines_contribute_nothing(self):
-        schedule = ordered_flush_schedule([
-            {"volume_each_ml": 150, "times_per_day": 6},
-            {"volume_each_ml": 0, "times_per_day": 0},
-        ])
+        schedule = ordered_flush_schedule(
+            [
+                {"volume_each_ml": 150, "times_per_day": 6},
+                {"volume_each_ml": 0, "times_per_day": 0},
+            ]
+        )
         self.assertEqual(schedule["hydration_flush_total_ml"], 900)
         self.assertEqual(schedule["hydration_flush_count"], 6)
 
     def test_mixed_flush_volumes_report_no_single_each_amount(self):
         # A real total with no shared per-flush volume, which is why callers
         # must test the total rather than the each-amount.
-        schedule = ordered_flush_schedule([
-            {"volume_each_ml": 200, "times_per_day": 3},
-            {"volume_each_ml": 100, "times_per_day": 2},
-        ])
+        schedule = ordered_flush_schedule(
+            [
+                {"volume_each_ml": 200, "times_per_day": 3},
+                {"volume_each_ml": 100, "times_per_day": 2},
+            ]
+        )
         self.assertEqual(schedule["hydration_flush_total_ml"], 800)
         self.assertEqual(schedule["hydration_flush_each_ml"], 0.0)
 
     def test_ordered_flushes_replace_the_goal_derived_hydration_volume(self):
-        schedule = ordered_flush_schedule([
-            {"volume_each_ml": 150, "times_per_day": 6},
-            {"volume_each_ml": 150, "times_per_day": 1},
-        ])
+        schedule = ordered_flush_schedule(
+            [
+                {"volume_each_ml": 150, "times_per_day": 6},
+                {"volume_each_ml": 150, "times_per_day": 1},
+            ]
+        )
         derived = water_plan(1900, 827, 0, 0, 0, 0, 7)
         ordered = water_plan(1900, 827, 0, 0, 0, 0, 7, schedule)
         self.assertNotEqual(derived["hydration_flush_total_ml"], 1050)
@@ -486,10 +531,12 @@ class OrderedFlushTests(unittest.TestCase):
         # 200 mL three times plus 100 mL twice totals 800 over five flushes.
         # Dividing would report 160 mL, which no flush actually is, and that
         # invented figure would reach the chart note.
-        schedule = ordered_flush_schedule([
-            {"volume_each_ml": 200, "times_per_day": 3},
-            {"volume_each_ml": 100, "times_per_day": 2},
-        ])
+        schedule = ordered_flush_schedule(
+            [
+                {"volume_each_ml": 200, "times_per_day": 3},
+                {"volume_each_ml": 100, "times_per_day": 2},
+            ]
+        )
         plan = water_plan(1900, 827, 0, 0, 0, 0, 5, schedule)
         self.assertEqual(plan["hydration_flush_total_ml"], 800)
         self.assertEqual(plan["hydration_flush_each_ml"], 0.0)
@@ -514,21 +561,32 @@ class OrderedFlushTests(unittest.TestCase):
         # 2 hours three times daily, with 150 mL flushes before and after each
         # feed plus 150 mL overnight. Run against the real formulary row, so a
         # change to that data will surface here.
-        feed = load_master_formulas().loc[
-            lambda frame: frame["name"] == "Isosource Fibre 1.5"
-        ].iloc[0].to_dict()
+        feed = (
+            load_master_formulas()
+            .loc[lambda frame: frame["name"] == "Isosource Fibre 1.5"]
+            .iloc[0]
+            .to_dict()
+        )
         delivery = ordered_feed_delivery(feed, 360, 24, 100, "Intermittent", 3)
         self.assertEqual(delivery["planned_volume_ml"], 1080)
         self.assertAlmostEqual(delivery["energy_kcal"], 1620, places=6)
         self.assertAlmostEqual(delivery["protein_g"], 75.6, places=6)
 
-        schedule = ordered_flush_schedule([
-            {"volume_each_ml": 150, "times_per_day": 6},
-            {"volume_each_ml": 150, "times_per_day": 1},
-        ])
+        schedule = ordered_flush_schedule(
+            [
+                {"volume_each_ml": 150, "times_per_day": 6},
+                {"volume_each_ml": 150, "times_per_day": 1},
+            ]
+        )
         plan = water_plan(
-            1900, delivery["free_water_ml"], 0, 0, 0, 0,
-            schedule["hydration_flush_count"], schedule,
+            1900,
+            delivery["free_water_ml"],
+            0,
+            0,
+            0,
+            0,
+            schedule["hydration_flush_count"],
+            schedule,
         )
         self.assertEqual(plan["hydration_flush_total_ml"], 1050)
         self.assertAlmostEqual(plan["total_water_ml"], 1877.28, places=2)
@@ -538,7 +596,6 @@ class OrderedFlushTests(unittest.TestCase):
             water_plan(2000, 1100, 0, 0, 100, 0, 6),
             water_plan(2000, 1100, 0, 0, 100, 0, 6, None),
         )
-
 
 
 class IVFluidTests(unittest.TestCase):
@@ -555,32 +612,51 @@ class IVFluidTests(unittest.TestCase):
         delivery = iv_fluid_delivery(IV_FLUIDS["NS"], 100)
         self.assertEqual(delivery["energy_kcal"], 0)
         self.assertEqual(delivery["carbohydrate_g"], 0)
-        self.assertAlmostEqual(mg_to_mmol("sodium", delivery["sodium_mg"]), 369.6, places=1)
+        self.assertAlmostEqual(
+            mg_to_mmol("sodium", delivery["sodium_mg"]), 369.6, places=1
+        )
 
     def test_lactated_ringers_energy_is_small_but_reported(self):
         delivery = iv_fluid_delivery(IV_FLUIDS["LR"], 100)
         self.assertAlmostEqual(delivery["energy_kcal"], 21.6, places=6)
-        self.assertAlmostEqual(mg_to_mmol("potassium", delivery["potassium_mg"]), 9.6, places=1)
-        self.assertAlmostEqual(mg_to_mmol("calcium", delivery["calcium_mg"]), 3.36, places=2)
+        self.assertAlmostEqual(
+            mg_to_mmol("potassium", delivery["potassium_mg"]), 9.6, places=1
+        )
+        self.assertAlmostEqual(
+            mg_to_mmol("calcium", delivery["calcium_mg"]), 3.36, places=2
+        )
 
     def test_partial_day_and_zero_rate(self):
         fluid = IV_FLUIDS["D5W"]
-        self.assertAlmostEqual(iv_fluid_delivery(fluid, 100, 12)["energy_kcal"], 204, places=6)
+        self.assertAlmostEqual(
+            iv_fluid_delivery(fluid, 100, 12)["energy_kcal"], 204, places=6
+        )
         self.assertEqual(iv_fluid_delivery(fluid, 0)["volume_ml"], 0)
         self.assertEqual(iv_fluid_delivery(fluid, -50)["volume_ml"], 0)
 
     def test_concurrent_lines_are_summed(self):
-        totals = total_iv_fluid_delivery([
-            iv_fluid_delivery(IV_FLUIDS["D5W"], 50),
-            iv_fluid_delivery(IV_FLUIDS["NS"], 50),
-        ])
+        totals = total_iv_fluid_delivery(
+            [
+                iv_fluid_delivery(IV_FLUIDS["D5W"], 50),
+                iv_fluid_delivery(IV_FLUIDS["NS"], 50),
+            ]
+        )
         self.assertEqual(totals["volume_ml"], 2400)
         self.assertAlmostEqual(totals["energy_kcal"], 204, places=6)
-        self.assertAlmostEqual(mg_to_mmol("sodium", totals["sodium_mg"]), 184.8, places=1)
+        self.assertAlmostEqual(
+            mg_to_mmol("sodium", totals["sodium_mg"]), 184.8, places=1
+        )
 
     def test_every_listed_fluid_returns_a_complete_shape(self):
-        required = {"volume_ml", "energy_kcal", "carbohydrate_g",
-                    "sodium_mg", "potassium_mg", "calcium_mg", "magnesium_mg"}
+        required = {
+            "volume_ml",
+            "energy_kcal",
+            "carbohydrate_g",
+            "sodium_mg",
+            "potassium_mg",
+            "calcium_mg",
+            "magnesium_mg",
+        }
         for name, fluid in IV_FLUIDS.items():
             with self.subTest(fluid=name):
                 self.assertEqual(set(iv_fluid_delivery(fluid, 100)), required)
@@ -593,8 +669,9 @@ class IVFluidTests(unittest.TestCase):
                 # than dextrose, so it is the one exception.
                 is_ringers = name in {"LR", "D5LR"}
                 if not has_dextrose and not is_ringers:
-                    self.assertEqual(fluid["kcal_per_l"], 0, f"{name} should carry no energy")
-
+                    self.assertEqual(
+                        fluid["kcal_per_l"], 0, f"{name} should carry no energy"
+                    )
 
 
 class WaterModeTests(unittest.TestCase):

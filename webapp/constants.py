@@ -125,52 +125,79 @@ PROTEIN_WEIGHT_SAME_AS_ENERGY = "Same as energy weight"
 # table through the same path as every other source.
 IV_FLUIDS: dict[str, dict[str, float]] = {
     "NS": {
-        "kcal_per_l": 0.0, "dextrose_g_per_l": 0.0,
-        "sodium_mmol_per_l": 154.0, "potassium_mmol_per_l": 0.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 0.0,
+        "dextrose_g_per_l": 0.0,
+        "sodium_mmol_per_l": 154.0,
+        "potassium_mmol_per_l": 0.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     "1/2 NS": {
-        "kcal_per_l": 0.0, "dextrose_g_per_l": 0.0,
-        "sodium_mmol_per_l": 77.0, "potassium_mmol_per_l": 0.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 0.0,
+        "dextrose_g_per_l": 0.0,
+        "sodium_mmol_per_l": 77.0,
+        "potassium_mmol_per_l": 0.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     "D5W": {
-        "kcal_per_l": 170.0, "dextrose_g_per_l": 50.0,
-        "sodium_mmol_per_l": 0.0, "potassium_mmol_per_l": 0.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 170.0,
+        "dextrose_g_per_l": 50.0,
+        "sodium_mmol_per_l": 0.0,
+        "potassium_mmol_per_l": 0.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     "D10W": {
-        "kcal_per_l": 340.0, "dextrose_g_per_l": 100.0,
-        "sodium_mmol_per_l": 0.0, "potassium_mmol_per_l": 0.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 340.0,
+        "dextrose_g_per_l": 100.0,
+        "sodium_mmol_per_l": 0.0,
+        "potassium_mmol_per_l": 0.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     "D5NS": {
-        "kcal_per_l": 170.0, "dextrose_g_per_l": 50.0,
-        "sodium_mmol_per_l": 154.0, "potassium_mmol_per_l": 0.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 170.0,
+        "dextrose_g_per_l": 50.0,
+        "sodium_mmol_per_l": 154.0,
+        "potassium_mmol_per_l": 0.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     "D5 1/2 NS": {
-        "kcal_per_l": 170.0, "dextrose_g_per_l": 50.0,
-        "sodium_mmol_per_l": 77.0, "potassium_mmol_per_l": 0.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 170.0,
+        "dextrose_g_per_l": 50.0,
+        "sodium_mmol_per_l": 77.0,
+        "potassium_mmol_per_l": 0.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     # A standard maintenance bag. The potassium here is routine maintenance,
     # not a corrective infusion for a low result, so it belongs with the other
     # maintenance fluids.
     "D5 1/2 NS + 20 mmol/L KCl": {
-        "kcal_per_l": 170.0, "dextrose_g_per_l": 50.0,
-        "sodium_mmol_per_l": 77.0, "potassium_mmol_per_l": 20.0,
-        "calcium_mmol_per_l": 0.0, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 170.0,
+        "dextrose_g_per_l": 50.0,
+        "sodium_mmol_per_l": 77.0,
+        "potassium_mmol_per_l": 20.0,
+        "calcium_mmol_per_l": 0.0,
+        "magnesium_mmol_per_l": 0.0,
     },
     "LR": {
-        "kcal_per_l": 9.0, "dextrose_g_per_l": 0.0,
-        "sodium_mmol_per_l": 130.0, "potassium_mmol_per_l": 4.0,
-        "calcium_mmol_per_l": 1.4, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 9.0,
+        "dextrose_g_per_l": 0.0,
+        "sodium_mmol_per_l": 130.0,
+        "potassium_mmol_per_l": 4.0,
+        "calcium_mmol_per_l": 1.4,
+        "magnesium_mmol_per_l": 0.0,
     },
     "D5LR": {
-        "kcal_per_l": 179.0, "dextrose_g_per_l": 50.0,
-        "sodium_mmol_per_l": 130.0, "potassium_mmol_per_l": 4.0,
-        "calcium_mmol_per_l": 1.4, "magnesium_mmol_per_l": 0.0,
+        "kcal_per_l": 179.0,
+        "dextrose_g_per_l": 50.0,
+        "sodium_mmol_per_l": 130.0,
+        "potassium_mmol_per_l": 4.0,
+        "calcium_mmol_per_l": 1.4,
+        "magnesium_mmol_per_l": 0.0,
     },
 }
 
@@ -189,9 +216,7 @@ WATER_MODE_FLUSHES = (
     "Chart water requirement range and use the water goal to calculate "
     "required hydration flushes"
 )
-WATER_MODE_CHART_ONLY = (
-    "IV fluids running — chart water requirement range only"
-)
+WATER_MODE_CHART_ONLY = "IV fluids running — chart water requirement range only"
 WATER_MODES = (WATER_MODE_FLUSHES, WATER_MODE_CHART_ONLY)
 
 
@@ -229,7 +254,9 @@ RUNNING_CONTINUOUS = "Continuous, at a rate over so many hours"
 RUNNING_RATE_PER_FEED = "Intermittent, each feed run at a rate for a set time"
 RUNNING_VOLUME_PER_FEED = "Intermittent, each feed a set volume"
 RUNNING_SHAPES = (
-    RUNNING_CONTINUOUS, RUNNING_RATE_PER_FEED, RUNNING_VOLUME_PER_FEED,
+    RUNNING_CONTINUOUS,
+    RUNNING_RATE_PER_FEED,
+    RUNNING_VOLUME_PER_FEED,
 )
 RUNNING_SHAPE_MEANINGS = {
     RUNNING_CONTINUOUS: ("Continuous / cyclic", ORDER_FORM_RATE_AND_HOURS),

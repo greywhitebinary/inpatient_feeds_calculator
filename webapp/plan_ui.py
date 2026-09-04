@@ -117,9 +117,7 @@ def _render_en_prescription(
     )
     # Conditional sedation rates keep the prescription layout, so the
     # schedule is still rendered here for them.
-    reviewing = (
-        regimen_source == REGIMEN_SOURCE_EXISTING and not conditional_mode
-    )
+    reviewing = regimen_source == REGIMEN_SOURCE_EXISTING and not conditional_mode
     if reviewing:
         # Reviewing sets no target: the goal is the assessed requirement and
         # the running order is measured against it. A prescription percentage
@@ -127,7 +125,11 @@ def _render_en_prescription(
         # question when the order already exists.
         st.session_state[scenario_key(scenario_id, "prescription_target_pct")] = 100.0
         return (
-            str(regimen_source), 100.0, False, estimated_energy_requirement, None,
+            str(regimen_source),
+            100.0,
+            False,
+            estimated_energy_requirement,
+            None,
         )
 
     with st.container(border=True):
@@ -136,8 +138,11 @@ def _render_en_prescription(
 
         target_a, target_b = st.columns([1, 1.7], vertical_alignment="bottom")
         prescription_target_pct = target_a.number_input(
-            "EN prescription target (%)", min_value=1.0, max_value=200.0,
-            step=5.0, format="%.0f",
+            "EN prescription target (%)",
+            min_value=1.0,
+            max_value=200.0,
+            step=5.0,
+            format="%.0f",
             key=scenario_key(scenario_id, "prescription_target_pct"),
             help=(
                 "Values above 100% increase the EN prescription to account for "
@@ -149,8 +154,8 @@ def _render_en_prescription(
         with target_b.container(key=f"prescription_target_summary_{scenario_id}"):
             st.markdown(
                 '<p class="formula-energy-calculation"><strong>EN energy target: '
-                f'{prescription_energy_target:,.0f} kcal/day</strong> '
-                f'({estimated_energy_requirement:,.0f} kcal/day × {target_pct:g}%).</p>',
+                f"{prescription_energy_target:,.0f} kcal/day</strong> "
+                f"({estimated_energy_requirement:,.0f} kcal/day × {target_pct:g}%).</p>",
                 unsafe_allow_html=True,
             )
             interruption_key = scenario_key(
@@ -158,8 +163,8 @@ def _render_en_prescription(
             )
             if target_pct > 100:
                 include_interruption_note = st.checkbox(
-                    'Include “to account for anticipated interruptions” in the '
-                    '**Chart note below**',
+                    "Include “to account for anticipated interruptions” in the "
+                    "**Chart note below**",
                     key=interruption_key,
                 )
             else:
@@ -167,8 +172,11 @@ def _render_en_prescription(
                 include_interruption_note = False
 
     return (
-        str(regimen_source), target_pct, bool(include_interruption_note),
-        prescription_energy_target, None if reviewing else schedule,
+        str(regimen_source),
+        target_pct,
+        bool(include_interruption_note),
+        prescription_energy_target,
+        None if reviewing else schedule,
     )
 
 
@@ -202,12 +210,22 @@ def _render_running_shape(
         st.session_state[scenario_key(scenario_id, "order_entry_form")] = (
             ORDER_FORM_RATE_AND_HOURS
         )
-        hours = number(st.number_input(
-            "Feeding hours/day", min_value=1.0, max_value=24.0, step=1.0,
-            format="%.0f", key=scenario_key(scenario_id, "feeding_hours"),
-        ))
+        hours = number(
+            st.number_input(
+                "Feeding hours/day",
+                min_value=1.0,
+                max_value=24.0,
+                step=1.0,
+                format="%.0f",
+                key=scenario_key(scenario_id, "feeding_hours"),
+            )
+        )
         schedule = (
-            "Continuous / cyclic", hours, 1, ORDER_FORM_RATE_AND_HOURS, 0.0,
+            "Continuous / cyclic",
+            hours,
+            1,
+            ORDER_FORM_RATE_AND_HOURS,
+            0.0,
         )
         return (schedule, None) if pair_amount else schedule
 
@@ -229,33 +247,59 @@ def _render_running_shape(
         qualifier = st.container()
 
     if order_form == ORDER_FORM_RATE_AND_HOURS:
-        hours = number(qualifier.number_input(
-            "Hours a day", min_value=1.0, max_value=24.0, step=1.0,
-            format="%.0f", key=scenario_key(scenario_id, "feeding_hours"),
-        ))
+        hours = number(
+            qualifier.number_input(
+                "Hours a day",
+                min_value=1.0,
+                max_value=24.0,
+                step=1.0,
+                format="%.0f",
+                key=scenario_key(scenario_id, "feeding_hours"),
+            )
+        )
     elif order_form == ORDER_FORM_RATE_PER_FEED:
         # Running at a rate for a set time each feed is arithmetically the same
         # as that rate over the summed hours, which is why the calculation does
         # not have to know this shape exists.
-        hours_per_feed = number(qualifier.number_input(
-            "Hours each feed", min_value=0.5, max_value=24.0, step=0.5,
-            format="%.1f", key=scenario_key(scenario_id, "hours_per_feed"),
-        ))
-        feeds_per_day = int(st.number_input(
-            "Feeds a day", min_value=1, max_value=12, step=1,
-            key=scenario_key(scenario_id, "feeds_per_day"),
-        ))
+        hours_per_feed = number(
+            qualifier.number_input(
+                "Hours each feed",
+                min_value=0.5,
+                max_value=24.0,
+                step=0.5,
+                format="%.1f",
+                key=scenario_key(scenario_id, "hours_per_feed"),
+            )
+        )
+        feeds_per_day = int(
+            st.number_input(
+                "Feeds a day",
+                min_value=1,
+                max_value=12,
+                step=1,
+                key=scenario_key(scenario_id, "feeds_per_day"),
+            )
+        )
         hours = hours_per_feed * feeds_per_day
         _warn_if_over_a_day(hours, hours_per_feed, feeds_per_day)
     else:
         hours = 24.0
-        feeds_per_day = int(qualifier.number_input(
-            "Feeds a day", min_value=1, max_value=12, step=1,
-            key=scenario_key(scenario_id, "feeds_per_day"),
-        ))
+        feeds_per_day = int(
+            qualifier.number_input(
+                "Feeds a day",
+                min_value=1,
+                max_value=12,
+                step=1,
+                key=scenario_key(scenario_id, "feeds_per_day"),
+            )
+        )
 
     schedule = (
-        schedule_type, number(hours), feeds_per_day, order_form, hours_per_feed,
+        schedule_type,
+        number(hours),
+        feeds_per_day,
+        order_form,
+        hours_per_feed,
     )
     return (schedule, amount_column) if pair_amount else schedule
 
@@ -303,11 +347,16 @@ def _render_ordered_flush_entry(
             PERI_FEED_FLUSH_PATTERNS,
             key=scenario_key(scenario_id, "peri_feed_flush_pattern"),
         )
-        peri_volume = number(peri_b.number_input(
-            "Volume each (mL)", min_value=0.0, step=10.0, format="%.0f",
-            key=scenario_key(scenario_id, "peri_feed_flush_volume_ml"),
-            disabled=pattern == PERI_FEED_FLUSH_NONE,
-        ))
+        peri_volume = number(
+            peri_b.number_input(
+                "Volume each (mL)",
+                min_value=0.0,
+                step=10.0,
+                format="%.0f",
+                key=scenario_key(scenario_id, "peri_feed_flush_volume_ml"),
+                disabled=pattern == PERI_FEED_FLUSH_NONE,
+            )
+        )
         per_feed = PERI_FEED_FLUSHES_PER_FEED[pattern]
         peri_times = per_feed * max(int(feeds_per_day), 1)
         if peri_times and peri_volume > 0:
@@ -318,26 +367,43 @@ def _render_ordered_flush_entry(
     # A separate key from the calculated mode's `hydration_flushes`, which has a
     # minimum of one. Sharing it would leave a zero in state that the calculated
     # widget rejects the moment the clinician switches back.
-    scheduled_times = int(scheduled_a.number_input(
-        "Other flushes (number/day)", min_value=0, max_value=24, step=1,
-        help=(
-            "Flushes written against the clock rather than against a feed, "
-            "such as an overnight flush."
-        ),
-        key=scenario_key(scenario_id, "ordered_flush_times_per_day"),
-    ))
-    scheduled_volume = number(scheduled_b.number_input(
-        "Volume each (mL) ", min_value=0.0, step=10.0, format="%.0f",
-        key=scenario_key(scenario_id, "ordered_flush_volume_ml"),
-        disabled=scheduled_times == 0,
-    ))
+    scheduled_times = int(
+        scheduled_a.number_input(
+            "Other flushes (number/day)",
+            min_value=0,
+            max_value=24,
+            step=1,
+            help=(
+                "Flushes written against the clock rather than against a feed, "
+                "such as an overnight flush."
+            ),
+            key=scenario_key(scenario_id, "ordered_flush_times_per_day"),
+        )
+    )
+    scheduled_volume = number(
+        scheduled_b.number_input(
+            "Volume each (mL) ",
+            min_value=0.0,
+            step=10.0,
+            format="%.0f",
+            key=scenario_key(scenario_id, "ordered_flush_volume_ml"),
+            disabled=scheduled_times == 0,
+        )
+    )
     if scheduled_times and scheduled_volume > 0:
-        lines.append({
-            "volume_each_ml": scheduled_volume, "times_per_day": scheduled_times,
-        })
+        lines.append(
+            {
+                "volume_each_ml": scheduled_volume,
+                "times_per_day": scheduled_times,
+            }
+        )
         described.append(
             f"{scheduled_volume:,.0f} mL "
-            + ("once daily" if scheduled_times == 1 else f"{scheduled_times} times daily")
+            + (
+                "once daily"
+                if scheduled_times == 1
+                else f"{scheduled_times} times daily"
+            )
         )
 
     schedule = ordered_flush_schedule(lines)
@@ -362,29 +428,34 @@ def render_en_scenario(
     estimated_energy_requirement: float | None = None,
 ) -> dict[str, object]:
     """Render one schedule-first regimen and return its final calculation outputs."""
-    conditions = propofol_conditions or [{
-        "label": "Projected Propofol",
-        "rate_ml_hr": propofol_rate,
-        "hours": propofol_hours,
-    }]
+    conditions = propofol_conditions or [
+        {
+            "label": "Projected Propofol",
+            "rate_ml_hr": propofol_rate,
+            "hours": propofol_hours,
+        }
+    ]
     propofol = (
         total_propofol_intake(conditions)
         if propofol_conditions is not None
         else propofol_intake(propofol_rate, propofol_hours)
     )
     conditional_mode = propofol_method in {
-        "Changing Propofol rates", "Conditional EN rates",
+        "Changing Propofol rates",
+        "Conditional EN rates",
     }
     energy_requirement = (
         estimated_energy_requirement
-        if estimated_energy_requirement is not None else total_energy_target
+        if estimated_energy_requirement is not None
+        else total_energy_target
     )
     (
-        regimen_source, prescription_target_pct, prescription_interruption_note,
-        total_energy_target, schedule,
-    ) = _render_en_prescription(
-        scenario_id, conditional_mode, energy_requirement
-    )
+        regimen_source,
+        prescription_target_pct,
+        prescription_interruption_note,
+        total_energy_target,
+        schedule,
+    ) = _render_en_prescription(scenario_id, conditional_mode, energy_requirement)
     # Starting a feed is a browsing job, so the schedule sits with the
     # prescription above a comparison of candidate feeds. Reviewing a running
     # feed is a transcription job: the schedule, the amount and the result
@@ -434,7 +505,9 @@ def render_en_scenario(
         if conditional_mode:
             condition_rates = [
                 suggested_conditional_formula_rate(
-                    candidate_dict, total_energy_target, hours,
+                    candidate_dict,
+                    total_energy_target,
+                    hours,
                     number(condition.get("rate_ml_hr")),
                 )
                 for condition in conditions
@@ -452,34 +525,47 @@ def render_en_scenario(
             }
         else:
             delivery = practical_feed_delivery(
-                candidate_dict, comparison_energy_target, hours, 100,
-                schedule_type, feeds_per_day,
+                candidate_dict,
+                comparison_energy_target,
+                hours,
+                100,
+                schedule_type,
+                feeds_per_day,
             )
             delivery_column = (
                 "Rate (mL/hour)"
-                if schedule_type == "Continuous / cyclic" else "Volume/feed (mL)"
-            )
-            delivery_values = {delivery_column: (
-                delivery["ordered_rate_ml_hr"]
                 if schedule_type == "Continuous / cyclic"
-                else delivery["ordered_volume_per_feed_ml"]
-            )}
+                else "Volume/feed (mL)"
+            )
+            delivery_values = {
+                delivery_column: (
+                    delivery["ordered_rate_ml_hr"]
+                    if schedule_type == "Continuous / cyclic"
+                    else delivery["ordered_volume_per_feed_ml"]
+                )
+            }
         volume_column = (
-            "Projected EN volume (mL/day)"
-            if conditional_mode else "Volume (mL/day)"
+            "Projected EN volume (mL/day)" if conditional_mode else "Volume (mL/day)"
         )
-        comparison_rows.append({
-            "Feed": candidate["name"], volume_column: delivery["planned_volume_ml"],
-            **delivery_values, "Energy (kcal/day)": delivery["energy_kcal"],
-            "Protein (g/day)": delivery["protein_g"], "Free water (mL/day)": delivery["free_water_ml"],
-            "Na (mmol/day)": mmol_from_delivery(delivery, "sodium"),
-            "K (mmol/day)": mmol_from_delivery(delivery, "potassium"),
-            "Ca (mmol/day)": mmol_from_delivery(delivery, "calcium"),
-            "P (mmol/day)": mmol_from_delivery(delivery, "phosphorus"),
-            "Mg (mmol/day)": mmol_from_delivery(delivery, "magnesium"),
-        })
+        comparison_rows.append(
+            {
+                "Feed": candidate["name"],
+                volume_column: delivery["planned_volume_ml"],
+                **delivery_values,
+                "Energy (kcal/day)": delivery["energy_kcal"],
+                "Protein (g/day)": delivery["protein_g"],
+                "Free water (mL/day)": delivery["free_water_ml"],
+                "Na (mmol/day)": mmol_from_delivery(delivery, "sodium"),
+                "K (mmol/day)": mmol_from_delivery(delivery, "potassium"),
+                "Ca (mmol/day)": mmol_from_delivery(delivery, "calcium"),
+                "P (mmol/day)": mmol_from_delivery(delivery, "phosphorus"),
+                "Mg (mmol/day)": mmol_from_delivery(delivery, "magnesium"),
+            }
+        )
     if not regimen_already_running:
-        with st.container(key=f"fullbleed_formula_comparison_{scenario_id}", border=True):
+        with st.container(
+            key=f"fullbleed_formula_comparison_{scenario_id}", border=True
+        ):
             render_box_heading("Formula comparison")
             comparison_note = (
                 "Suggested rates are rounded to the nearest 5 mL/hour."
@@ -490,10 +576,10 @@ def render_en_scenario(
             if propofol["kcal"] > 0:
                 st.markdown(
                     '<p class="formula-energy-calculation">'
-                    f'<strong>{total_energy_target:,.0f} kcal EN energy target − '
+                    f"<strong>{total_energy_target:,.0f} kcal EN energy target − "
                     f'{propofol["kcal"]:,.0f} kcal from propofol = '
-                    f'{comparison_energy_target:,.0f} kcal</strong> used to calculate '
-                    'suggested formula volumes and rates.</p>',
+                    f"{comparison_energy_target:,.0f} kcal</strong> used to calculate "
+                    "suggested formula volumes and rates.</p>",
                     unsafe_allow_html=True,
                 )
             if propofol["kcal"] >= total_energy_target and propofol["kcal"] > 0:
@@ -504,7 +590,8 @@ def render_en_scenario(
                     "allocation does not meet protein or micronutrient needs.",
                 )
             render_report_table(
-                pd.DataFrame(comparison_rows), wide=True,
+                pd.DataFrame(comparison_rows),
+                wide=True,
                 decimals=FORMULA_COMPARISON_DECIMALS,
             )
             # Choosing from the comparison and setting the amount belong in the
@@ -518,7 +605,8 @@ def render_en_scenario(
     if regimen_already_running:
         with formula_slot:
             selected_name = st.selectbox(
-                "Formula", candidate_frame["name"].tolist(),
+                "Formula",
+                candidate_frame["name"].tolist(),
                 key=scenario_key(scenario_id, "selected_formula"),
             )
         # The suggested figure sits directly beneath the box it refers to, so
@@ -535,7 +623,8 @@ def render_en_scenario(
                 vertical_alignment="top",
             )
             selected_name = formula_columns[0].selectbox(
-                "Formula", candidate_frame["name"].tolist(),
+                "Formula",
+                candidate_frame["name"].tolist(),
                 key=scenario_key(scenario_id, "selected_formula"),
             )
             if not conditional_mode:
@@ -549,7 +638,9 @@ def render_en_scenario(
                 order_summary_slot = st.empty()
                 trickle_note_slot = st.empty()
 
-    formula = candidate_frame.loc[candidate_frame["name"] == selected_name].iloc[0].to_dict()
+    formula = (
+        candidate_frame.loc[candidate_frame["name"] == selected_name].iloc[0].to_dict()
+    )
     ordered_formula_key = scenario_key(scenario_id, "ordered_formula_name")
     ordered_rate_key = scenario_key(scenario_id, "ordered_rate_ml_hr")
     ordered_volume_key = scenario_key(scenario_id, "ordered_volume_per_feed_ml")
@@ -566,12 +657,14 @@ def render_en_scenario(
             st.session_state[order_edited_key] = False
             for condition in conditions:
                 condition_id = str(condition.get("id", "condition"))
-                st.session_state[scenario_key(
-                    scenario_id, f"conditional_{condition_id}_rate_ml_hr"
-                )] = None
-                st.session_state[scenario_key(
-                    scenario_id, f"conditional_{condition_id}_rate_user_edited"
-                )] = False
+                st.session_state[
+                    scenario_key(scenario_id, f"conditional_{condition_id}_rate_ml_hr")
+                ] = None
+                st.session_state[
+                    scenario_key(
+                        scenario_id, f"conditional_{condition_id}_rate_user_edited"
+                    )
+                ] = False
     # Changing schedule or entry form changes the units of the entered number,
     # from a rate to a volume per feed to a daily total, so a stale value would
     # be misread. This clears in both directions of work, unlike the feed
@@ -605,7 +698,7 @@ def render_en_scenario(
             )
             header_columns[1].markdown(
                 '<p class="inline-field-label">Suggested formula rate'
-                '<br><span>(mL/hour)</span></p>',
+                "<br><span>(mL/hour)</span></p>",
                 unsafe_allow_html=True,
             )
             header_columns[2].markdown(
@@ -639,8 +732,7 @@ def render_en_scenario(
                     st.session_state[order_key] = suggestion
                     st.session_state[edited_key] = False
                 elif (
-                    not bool(st.session_state.get(edited_key))
-                    and not reviewing_regimen
+                    not bool(st.session_state.get(edited_key)) and not reviewing_regimen
                 ):
                     st.session_state[order_key] = suggestion
                     st.session_state[edited_key] = False
@@ -654,7 +746,7 @@ def render_en_scenario(
                 )
                 condition_columns[0].markdown(
                     f'<p class="inline-field-label">{escape(condition_label)}<br>'
-                    f'<span>Propofol {condition_propofol_rate:g} mL/hour</span></p>',
+                    f"<span>Propofol {condition_propofol_rate:g} mL/hour</span></p>",
                     unsafe_allow_html=True,
                 )
                 condition_columns[1].markdown(
@@ -663,7 +755,10 @@ def render_en_scenario(
                 )
                 ordered_condition_rate = condition_columns[2].number_input(
                     f"Formula rate for {condition_label} (mL/hour)",
-                    min_value=0.0, step=5.0, format="%.0f", key=widget_key,
+                    min_value=0.0,
+                    step=5.0,
+                    format="%.0f",
+                    key=widget_key,
                     label_visibility="collapsed",
                     on_change=sync_propofol_widget,
                     args=(widget_key, order_key, edited_key),
@@ -674,16 +769,19 @@ def render_en_scenario(
                         key=scenario_key(
                             scenario_id, f"conditional_{condition_id}_use_suggested"
                         ),
-                        on_click=request_suggested_order, args=(pending_key,),
+                        on_click=request_suggested_order,
+                        args=(pending_key,),
                     )
                 conditional_rates.append(number(ordered_condition_rate))
-                conditional_orders.append({
-                    "id": condition_id,
-                    "label": condition_label,
-                    "propofol_rate_ml_hr": condition_propofol_rate,
-                    "propofol_hours": number(condition.get("hours")),
-                    "formula_rate_ml_hr": number(ordered_condition_rate),
-                })
+                conditional_orders.append(
+                    {
+                        "id": condition_id,
+                        "label": condition_label,
+                        "propofol_rate_ml_hr": condition_propofol_rate,
+                        "propofol_hours": number(condition.get("hours")),
+                        "formula_rate_ml_hr": number(ordered_condition_rate),
+                    }
+                )
             order_summary_slot = st.empty()
             trickle_note_slot = st.empty()
         final_planned_delivery = conditional_feed_delivery(
@@ -697,13 +795,12 @@ def render_en_scenario(
         for condition, rate in zip(conditions, conditional_rates):
             allocated_hours = (
                 hours * number(condition.get("hours")) / total_condition_hours
-                if total_condition_hours > 0 else 0
+                if total_condition_hours > 0
+                else 0
             )
-            equation_terms.append(
-                f"{rate:.0f} mL/hour × {allocated_hours:g} hours"
-            )
+            equation_terms.append(f"{rate:.0f} mL/hour × {allocated_hours:g} hours")
         order_summary = (
-            'Projected formula delivery: ('
+            "Projected formula delivery: ("
             + ") + (".join(escape(term) for term in equation_terms)
             + ") = "
             f'<strong>{final_planned_delivery["planned_volume_ml"]:,.0f} mL/day</strong>.'
@@ -720,8 +817,12 @@ def render_en_scenario(
         if order_form == ORDER_FORM_RATE_PER_FEED:
             order_key = ordered_rate_key
             suggestion = practical_feed_delivery(
-                formula, comparison_energy_target, max(hours, 1), 100,
-                "Continuous / cyclic", 1,
+                formula,
+                comparison_energy_target,
+                max(hours, 1),
+                100,
+                "Continuous / cyclic",
+                1,
             )["ordered_rate_ml_hr"]
             order_label = "Formula rate (mL/hour)"
             use_suggestion_label = "Use suggested rate"
@@ -763,25 +864,32 @@ def render_en_scenario(
                 st.session_state[display_order_key] = st.session_state[order_key]
             order_change_callback = sync_propofol_widget
             order_change_args = (
-                display_order_key, order_key, order_edited_key,
+                display_order_key,
+                order_key,
+                order_edited_key,
             )
         calculated_order_slot.markdown(
             f'<p class="worked-bounds">Suggested: '
-            f'<strong>{suggestion:.0f} {order_unit}</strong></p>',
+            f"<strong>{suggestion:.0f} {order_unit}</strong></p>",
             unsafe_allow_html=True,
         )
         with entered_order_slot:
             ordered_amount = st.number_input(
-                order_label, min_value=0.0, step=5.0, format="%.0f",
+                order_label,
+                min_value=0.0,
+                step=5.0,
+                format="%.0f",
                 key=display_order_key,
-                on_change=order_change_callback, args=order_change_args,
+                on_change=order_change_callback,
+                args=order_change_args,
             )
         if st.session_state.get(order_edited_key):
             reset_order_slot.button(
                 use_suggestion_label,
                 key=scenario_key(scenario_id, "use_suggested_order"),
                 disabled=False,
-                on_click=request_suggested_order, args=(pending_reset_key,),
+                on_click=request_suggested_order,
+                args=(pending_reset_key,),
             )
         else:
             reset_order_slot.empty()
@@ -790,32 +898,30 @@ def render_en_scenario(
         # The forms collapse here. Whatever was typed becomes the quantity the
         # existing calculation already expects for this schedule, so nothing
         # downstream of this point knows which form produced it.
-        engine_amount = _engine_order_amount(
-            ordered_amount, order_form, hours_per_feed
-        )
+        engine_amount = _engine_order_amount(ordered_amount, order_form, hours_per_feed)
         final_planned_delivery = ordered_feed_delivery(
             formula, engine_amount, hours, 100, schedule_type, feeds_per_day
         )
         daily_volume = final_planned_delivery["planned_volume_ml"]
         if order_form == ORDER_FORM_RATE_PER_FEED:
             order_summary = (
-                f'At <strong>{ordered_amount:.0f} mL/hour</strong> for '
-                f'<strong>{hours_per_feed:g} hours per feed</strong>, '
-                f'<strong>{feeds_per_day} feeds daily</strong>: '
-                f'<strong>{engine_amount:.0f} mL per feed</strong>, '
-                f'<strong>{daily_volume:.0f} mL</strong> formula/day.'
+                f"At <strong>{ordered_amount:.0f} mL/hour</strong> for "
+                f"<strong>{hours_per_feed:g} hours per feed</strong>, "
+                f"<strong>{feeds_per_day} feeds daily</strong>: "
+                f"<strong>{engine_amount:.0f} mL per feed</strong>, "
+                f"<strong>{daily_volume:.0f} mL</strong> formula/day."
             )
         elif schedule_type == "Continuous / cyclic":
             order_summary = (
-                f'At <strong>{ordered_amount:.0f} mL/hour</strong> for '
-                f'<strong>{hours:g} hours</strong>: '
-                f'<strong>{daily_volume:.0f} mL</strong> formula/day.'
+                f"At <strong>{ordered_amount:.0f} mL/hour</strong> for "
+                f"<strong>{hours:g} hours</strong>: "
+                f"<strong>{daily_volume:.0f} mL</strong> formula/day."
             )
         else:
             order_summary = (
-                f'At <strong>{ordered_amount:.0f} mL per feed</strong>, '
-                f'<strong>{feeds_per_day} feeds daily</strong>: '
-                f'<strong>{daily_volume:.0f} mL</strong> formula/day.'
+                f"At <strong>{ordered_amount:.0f} mL per feed</strong>, "
+                f"<strong>{feeds_per_day} feeds daily</strong>: "
+                f"<strong>{daily_volume:.0f} mL</strong> formula/day."
             )
     order_summary_slot.markdown(
         f'<p class="order-preview">{order_summary}</p>',
@@ -827,7 +933,8 @@ def render_en_scenario(
         schedule_type == "Continuous / cyclic"
         and (
             max(conditional_rates, default=ordered_amount) <= 30
-            if conditional_mode else ordered_amount <= 30
+            if conditional_mode
+            else ordered_amount <= 30
         )
         and 23 <= hours <= 24
     )
@@ -843,21 +950,24 @@ def render_en_scenario(
 
     formula_only_gap = protein_target - final_planned_delivery["protein_g"]
     with st.container(border=True):
-        render_box_heading("Protein from formula" if propofol_method else "Protein from selected formula")
+        render_box_heading(
+            "Protein from formula"
+            if propofol_method
+            else "Protein from selected formula"
+        )
         gap_label = (
             "Projected protein gap"
             if propofol_method and formula_only_gap >= 0
-            else "Shortfall" if formula_only_gap >= 0
-            else "Exceeds goal by"
+            else "Shortfall" if formula_only_gap >= 0 else "Exceeds goal by"
         )
         gap_class = " protein-shortfall" if formula_only_gap > 0 else ""
         st.markdown(
             '<p class="summary-line">'
-            f'Goal: <strong>{protein_target:.0f} g/day</strong> &nbsp;|&nbsp; '
+            f"Goal: <strong>{protein_target:.0f} g/day</strong> &nbsp;|&nbsp; "
             f'{"Formula" if propofol_method else "Selected EN feed"}: '
             f'<strong>{final_planned_delivery["protein_g"]:.0f} g/day</strong> '
             f'&nbsp;|&nbsp; <span class="protein-gap{gap_class}">{gap_label}: '
-            f'<strong>{abs(formula_only_gap):.0f} g/day</strong></span></p>',
+            f"<strong>{abs(formula_only_gap):.0f} g/day</strong></span></p>",
             unsafe_allow_html=True,
         )
 
@@ -866,7 +976,11 @@ def render_en_scenario(
     # Products whose label does not publish a figure for each electrolyte, so
     # the intake table can say so instead of implying a measured zero.
     modular_undisclosed: dict[str, list[str]] = {
-        "sodium": [], "potassium": [], "calcium": [], "phosphorus": [], "magnesium": [],
+        "sodium": [],
+        "potassium": [],
+        "calcium": [],
+        "phosphorus": [],
+        "magnesium": [],
     }
     modular_protein_sources: list[str] = []
     modular_fat_sources: list[str] = []
@@ -875,52 +989,59 @@ def render_en_scenario(
     with st.container(border=True):
         render_box_heading("Add modulars")
         if saved_modulars.empty:
-            st.caption(
-                "Missing a modular? Add it to My Modulars on the Formulary tab."
-            )
+            st.caption("Missing a modular? Add it to My Modulars on the Formulary tab.")
         else:
             modular_ids_by_name = {
                 str(product["name"]): str(product["id"])
                 for _, product in saved_modulars.iterrows()
             }
             chosen_modulars = st.multiselect(
-                "Modulars", saved_modulars["name"].tolist(),
-                max_selections=6, key=scenario_key(scenario_id, "chosen_modulars"),
+                "Modulars",
+                saved_modulars["name"].tolist(),
+                max_selections=6,
+                key=scenario_key(scenario_id, "chosen_modulars"),
                 on_change=reset_new_modular_orders,
                 args=(scenario_id, modular_ids_by_name),
             )
-            st.caption(
-                "Missing a modular? Add it to My Modulars on the Formulary tab."
-            )
+            st.caption("Missing a modular? Add it to My Modulars on the Formulary tab.")
             for modular_name in chosen_modulars:
-                product = saved_modulars.loc[
-                    saved_modulars["name"] == modular_name
-                ].iloc[0].to_dict()
+                product = (
+                    saved_modulars.loc[saved_modulars["name"] == modular_name]
+                    .iloc[0]
+                    .to_dict()
+                )
                 st.markdown(f"**{modular_name}** — {product['basis_description']}")
                 a, b, c = st.columns(3)
                 product_id = str(product["id"])
                 units_key = scenario_key(scenario_id, f"modular_units_{product_id}")
                 doses_key = scenario_key(scenario_id, f"modular_doses_{product_id}")
                 unit_label = (
-                    "Packets each time" if modular_unit(product) == "packet"
+                    "Packets each time"
+                    if modular_unit(product) == "packet"
                     else f"{product['dose_unit']} each time"
                 )
                 packet_order = modular_unit(product) == "packet"
                 units = a.number_input(
-                    unit_label, min_value=0.0,
+                    unit_label,
+                    min_value=0.0,
                     step=1.0 if packet_order else 0.5,
                     format="%.0f" if packet_order else "%.1f",
                     key=units_key,
                 )
                 doses = b.number_input(
-                    "Times per day", min_value=0.0, step=1.0, format="%.0f",
+                    "Times per day",
+                    min_value=0.0,
+                    step=1.0,
+                    format="%.0f",
                     key=doses_key,
                 )
                 preparation = 0.0
                 if str(product.get("preparation_water_rule", "none")) != "none":
                     preparation = c.number_input(
-                        "Preparation water (mL each time)", min_value=0.0,
-                        step=5.0, format="%.0f",
+                        "Preparation water (mL each time)",
+                        min_value=0.0,
+                        step=5.0,
+                        format="%.0f",
                         key=scenario_key(scenario_id, f"modular_water_{product_id}"),
                     )
                 else:
@@ -934,8 +1055,13 @@ def render_en_scenario(
                 )
                 modular_orders.append(order)
                 if order_is_complete:
-                    for nutrient in ("sodium", "potassium", "calcium",
-                                     "phosphorus", "magnesium"):
+                    for nutrient in (
+                        "sodium",
+                        "potassium",
+                        "calcium",
+                        "phosphorus",
+                        "magnesium",
+                    ):
                         if not order["disclosed"][f"{nutrient}_mg"]:
                             modular_undisclosed[nutrient].append(modular_name)
                     daily_amount = modular_daily_amount(
@@ -952,20 +1078,22 @@ def render_en_scenario(
                         modular_fat_sources.append(
                             f"{order['fat_g']:.0f} g from {modular_name} ({daily_amount})"
                         )
-                    chart_modulars.append({
-                        "name": modular_name,
-                        "order": modular_chart_amount(
-                            product, number(units), number(doses)
-                        ),
-                        "daily_amount": daily_amount,
-                        "energy_kcal": order["energy_kcal"],
-                        "protein_g": order["protein_g"],
-                        "carbohydrate_g": order["carbohydrate_g"],
-                        "fat_g": order["fat_g"],
-                        "free_water_ml": order["free_water_ml"],
-                        "preparation_water_ml": order["preparation_water_ml"],
-                        "preparation_water_per_dose_ml": number(preparation),
-                    })
+                    chart_modulars.append(
+                        {
+                            "name": modular_name,
+                            "order": modular_chart_amount(
+                                product, number(units), number(doses)
+                            ),
+                            "daily_amount": daily_amount,
+                            "energy_kcal": order["energy_kcal"],
+                            "protein_g": order["protein_g"],
+                            "carbohydrate_g": order["carbohydrate_g"],
+                            "fat_g": order["fat_g"],
+                            "free_water_ml": order["free_water_ml"],
+                            "preparation_water_ml": order["preparation_water_ml"],
+                            "preparation_water_per_dose_ml": number(preparation),
+                        }
+                    )
                 else:
                     st.caption(
                         "Enter both the amount and frequency to include this modular."
@@ -979,7 +1107,8 @@ def render_en_scenario(
         available_ons_names = set(saved_ons["name"].tolist())
         if chosen_key in st.session_state:
             st.session_state[chosen_key] = [
-                name for name in st.session_state[chosen_key]
+                name
+                for name in st.session_state[chosen_key]
                 if name in available_ons_names
             ]
         with st.container(border=True):
@@ -995,12 +1124,14 @@ def render_en_scenario(
                 )
                 st.caption("Missing an ONS? Add it to My ONS on the Formulary tab.")
                 for ons_name in chosen_ons:
-                    product = saved_ons.loc[
-                        saved_ons["name"] == ons_name
-                    ].iloc[0].to_dict()
+                    product = (
+                        saved_ons.loc[saved_ons["name"] == ons_name].iloc[0].to_dict()
+                    )
                     serving_based = (
                         str(product.get("calculation_basis", "container_ml"))
-                        .strip().casefold() == "serving"
+                        .strip()
+                        .casefold()
+                        == "serving"
                     )
                     if serving_based:
                         basis_description = (
@@ -1018,10 +1149,7 @@ def render_en_scenario(
                         quantity_label = "Containers each time"
                         quantity_prefix = "ons_containers_"
                         quantity_caption = "containers"
-                    st.markdown(
-                        f"**{escape(ons_name)}** — "
-                        f"{basis_description}"
-                    )
+                    st.markdown(f"**{escape(ons_name)}** — {basis_description}")
                     a, b = st.columns(2)
                     product_id = str(product["id"])
                     quantity_each_time = a.number_input(
@@ -1029,9 +1157,7 @@ def render_en_scenario(
                         min_value=0.0,
                         step=0.5,
                         format="%.1f",
-                        key=scenario_key(
-                            scenario_id, f"{quantity_prefix}{product_id}"
-                        ),
+                        key=scenario_key(scenario_id, f"{quantity_prefix}{product_id}"),
                     )
                     times_per_day = b.number_input(
                         "Times per day",
@@ -1041,8 +1167,7 @@ def render_en_scenario(
                         key=scenario_key(scenario_id, f"ons_times_{product_id}"),
                     )
                     order_is_complete = (
-                        number(quantity_each_time) > 0
-                        and number(times_per_day) > 0
+                        number(quantity_each_time) > 0 and number(times_per_day) > 0
                     )
                     order = ons_delivery(
                         product,
@@ -1051,28 +1176,33 @@ def render_en_scenario(
                     )
                     ons_orders.append(order)
                     if order_is_complete:
-                        chart_ons.append({
-                            "name": ons_name,
-                            "product_name": product["product_name"],
-                            "flavour": product["flavour"],
-                            "package_unit": product["package_unit"],
-                            "quantity_each_time": number(quantity_each_time),
-                            "quantity_unit": (
-                                product["serving_unit"]
-                                if serving_based else product["package_unit"]
-                            ),
-                            "calculation_basis": (
-                                "serving" if serving_based else "container_ml"
-                            ),
-                            "containers_each_time": (
-                                number(quantity_each_time) if not serving_based else 0
-                            ),
-                            "servings_each_time": (
-                                number(quantity_each_time) if serving_based else 0
-                            ),
-                            "times_per_day": number(times_per_day),
-                            **order,
-                        })
+                        chart_ons.append(
+                            {
+                                "name": ons_name,
+                                "product_name": product["product_name"],
+                                "flavour": product["flavour"],
+                                "package_unit": product["package_unit"],
+                                "quantity_each_time": number(quantity_each_time),
+                                "quantity_unit": (
+                                    product["serving_unit"]
+                                    if serving_based
+                                    else product["package_unit"]
+                                ),
+                                "calculation_basis": (
+                                    "serving" if serving_based else "container_ml"
+                                ),
+                                "containers_each_time": (
+                                    number(quantity_each_time)
+                                    if not serving_based
+                                    else 0
+                                ),
+                                "servings_each_time": (
+                                    number(quantity_each_time) if serving_based else 0
+                                ),
+                                "times_per_day": number(times_per_day),
+                                **order,
+                            }
+                        )
                     else:
                         st.caption(
                             f"Enter both the number of {quantity_caption} and frequency "
@@ -1083,20 +1213,16 @@ def render_en_scenario(
     if saved_ons is not None and chart_ons:
         en_provision = {
             "Energy (kcal/day)": (
-                final_planned_delivery["energy_kcal"]
-                + modular_totals["energy_kcal"]
+                final_planned_delivery["energy_kcal"] + modular_totals["energy_kcal"]
             ),
             "Protein (g/day)": (
-                final_planned_delivery["protein_g"]
-                + modular_totals["protein_g"]
+                final_planned_delivery["protein_g"] + modular_totals["protein_g"]
             ),
             "CHO (g/day)": (
                 final_planned_delivery["carbohydrate_g"]
                 + modular_totals["carbohydrate_g"]
             ),
-            "Fat (g/day)": (
-                final_planned_delivery["fat_g"] + modular_totals["fat_g"]
-            ),
+            "Fat (g/day)": (final_planned_delivery["fat_g"] + modular_totals["fat_g"]),
             "Free water (mL/day)": (
                 final_planned_delivery["free_water_ml"]
                 + modular_totals["free_water_ml"]
@@ -1111,17 +1237,22 @@ def render_en_scenario(
         }
         with st.container(border=True):
             render_box_heading("Planned EN and ONS provision")
-            render_report_table(pd.DataFrame([
-                {"Source": "EN", **en_provision},
-                {"Source": "ONS", **ons_provision},
-                {
-                    "Source": "Combined EN + ONS",
-                    **{
-                        key: en_provision[key] + ons_provision[key]
-                        for key in en_provision
-                    },
-                },
-            ]), decimals=DAILY_INTAKE_DECIMALS)
+            render_report_table(
+                pd.DataFrame(
+                    [
+                        {"Source": "EN", **en_provision},
+                        {"Source": "ONS", **ons_provision},
+                        {
+                            "Source": "Combined EN + ONS",
+                            **{
+                                key: en_provision[key] + ons_provision[key]
+                                for key in en_provision
+                            },
+                        },
+                    ]
+                ),
+                decimals=DAILY_INTAKE_DECIMALS,
+            )
     # Protein modulars supplement the established EN order. Their energy is
     # shown in the final totals, but does not silently displace formula volume.
     # Propofol remains the intentional non-enteral energy deduction.
@@ -1166,21 +1297,22 @@ def render_en_scenario(
         plan_hydration_flushes = water_target is not None and not chart_water_only
         if not plan_hydration_flushes:
             goal_text = (
-                "not set" if water_target is None
+                "not set"
+                if water_target is None
                 else f"{water_target:,.0f} mL/day, charted only"
             )
             st.markdown(
                 f'<p class="summary-line">Water goal: <strong>{goal_text}</strong> '
-                '&nbsp;|&nbsp; Water from formula and modulars: '
-                f'<strong>{free_water_before_flushes:.0f} mL/day</strong></p>',
+                "&nbsp;|&nbsp; Water from formula and modulars: "
+                f"<strong>{free_water_before_flushes:.0f} mL/day</strong></p>",
                 unsafe_allow_html=True,
             )
             st.caption(
                 "Fluid needs are charted; no hydration flushes are calculated. "
                 "Change the water setting in Assessment if flushes are being "
                 "prescribed."
-                if chart_water_only else
-                "No hydration flushes are calculated or charted without a water "
+                if chart_water_only
+                else "No hydration flushes are calculated or charted without a water "
                 "goal. Enter one in Assessment or Adjust goals if enteral water "
                 "is being managed for this patient."
             )
@@ -1188,11 +1320,11 @@ def render_en_scenario(
             remaining_before_flushes = max(water_target - free_water_before_flushes, 0)
             st.markdown(
                 '<p class="summary-line">Water goal: '
-                f'<strong>{water_target:.0f} mL/day</strong> &nbsp;|&nbsp; '
-                'Water from formula and modulars: '
-                f'<strong>{free_water_before_flushes:.0f} mL/day</strong> &nbsp;|&nbsp; '
-                'Remaining before flushes: '
-                f'<strong>{remaining_before_flushes:.0f} mL/day</strong></p>',
+                f"<strong>{water_target:.0f} mL/day</strong> &nbsp;|&nbsp; "
+                "Water from formula and modulars: "
+                f"<strong>{free_water_before_flushes:.0f} mL/day</strong> &nbsp;|&nbsp; "
+                "Remaining before flushes: "
+                f"<strong>{remaining_before_flushes:.0f} mL/day</strong></p>",
                 unsafe_allow_html=True,
             )
         if chart_ons:
@@ -1202,11 +1334,17 @@ def render_en_scenario(
             )
         water_a, water_b = st.columns(2)
         medication = water_a.number_input(
-            "Medication flushes (mL/day)", min_value=0.0, step=10.0, format="%.0f",
+            "Medication flushes (mL/day)",
+            min_value=0.0,
+            step=10.0,
+            format="%.0f",
             key=scenario_key(scenario_id, "medication_flushes"),
         )
         patency = water_b.number_input(
-            "Patency flushes (mL/day)", min_value=0.0, step=10.0, format="%.0f",
+            "Patency flushes (mL/day)",
+            min_value=0.0,
+            step=10.0,
+            format="%.0f",
             help="Enter a separate patency-flush volume only when it is part of the plan.",
             key=scenario_key(scenario_id, "patency_flushes"),
         )
@@ -1224,10 +1362,12 @@ def render_en_scenario(
         enter_flushes_as_ordered = hydration_entry_mode == HYDRATION_ENTRY_ORDERED
         ordered_flushes = None
         if enter_flushes_as_ordered:
-            flushes, ordered_flushes, hydration_schedule_text, \
-                hydration_chart_schedule_text = _render_ordered_flush_entry(
-                    scenario_id, schedule_type, feeds_per_day
-                )
+            (
+                flushes,
+                ordered_flushes,
+                hydration_schedule_text,
+                hydration_chart_schedule_text,
+            ) = _render_ordered_flush_entry(scenario_id, schedule_type, feeds_per_day)
         # The hydration schedule exists only to distribute a goal-driven volume,
         # so it is hidden whenever flushes are not being prescribed. Medication
         # and patency flushes above are ordered independently and still apply.
@@ -1249,26 +1389,37 @@ def render_en_scenario(
                 key=scenario_key(scenario_id, "hydration_schedule_format"),
             )
             if schedule_format == "qXh":
-                schedule_value = int(schedule_b.selectbox(
-                    "Flush interval (hours)",
-                    options=[1, 2, 3, 4, 6, 8, 12, 24],
-                    format_func=lambda value: f"{value} hours",
-                    key=scenario_key(scenario_id, "hydration_interval_hours"),
-                ))
+                schedule_value = int(
+                    schedule_b.selectbox(
+                        "Flush interval (hours)",
+                        options=[1, 2, 3, 4, 6, 8, 12, 24],
+                        format_func=lambda value: f"{value} hours",
+                        key=scenario_key(scenario_id, "hydration_interval_hours"),
+                    )
+                )
                 flushes = hydration_flushes_per_day(schedule_format, schedule_value)
                 hydration_schedule_text = f"q{schedule_value}h"
                 hydration_chart_schedule_text = f"q{schedule_value}h"
             else:
-                schedule_value = int(schedule_b.number_input(
-                    "Hydration flushes (number/day)", min_value=1, max_value=24,
-                    key=scenario_key(scenario_id, "hydration_flushes"),
-                ))
+                schedule_value = int(
+                    schedule_b.number_input(
+                        "Hydration flushes (number/day)",
+                        min_value=1,
+                        max_value=24,
+                        key=scenario_key(scenario_id, "hydration_flushes"),
+                    )
+                )
                 flushes = hydration_flushes_per_day(schedule_format, schedule_value)
                 hydration_schedule_text = f"{flushes} times daily"
                 hydration_chart_schedule_text = f"{flushes} times daily"
         hydration = water_plan(
-            water_target if plan_hydration_flushes else None, final_planned_delivery["free_water_ml"], modular_totals["free_water_ml"],
-            modular_totals["preparation_water_ml"], medication, patency, flushes,
+            water_target if plan_hydration_flushes else None,
+            final_planned_delivery["free_water_ml"],
+            modular_totals["free_water_ml"],
+            modular_totals["preparation_water_ml"],
+            medication,
+            patency,
+            flushes,
             ordered_flushes,
         )
         modular_preparation_water = modular_totals["preparation_water_ml"]
@@ -1281,8 +1432,9 @@ def render_en_scenario(
                 '<p class="summary-line">Ordered hydration flushes: '
                 f'<strong>{hydration_schedule_text or "none entered"}</strong>'
                 + (
-                    f' &nbsp;|&nbsp; <strong>{ordered_total:,.0f} mL/day</strong>.'
-                    if ordered_total else "."
+                    f" &nbsp;|&nbsp; <strong>{ordered_total:,.0f} mL/day</strong>."
+                    if ordered_total
+                    else "."
                 )
                 + "</p>",
                 unsafe_allow_html=True,
@@ -1291,7 +1443,7 @@ def render_en_scenario(
             st.markdown(
                 '<p class="summary-line">Calculated hydration flush schedule: '
                 f'<strong>{hydration["hydration_flush_each_ml"]:.0f} mL '
-                f'{hydration_schedule_text}.</strong></p>',
+                f"{hydration_schedule_text}.</strong></p>",
                 unsafe_allow_html=True,
             )
 
@@ -1301,34 +1453,40 @@ def render_en_scenario(
     saved_view = st.session_state.get(delivery_view_key, "Full planned EN")
     partial_active = saved_achieved < 100 and saved_view == "Achieved delivery"
     with st.expander("EN plan check", expanded=partial_active):
-        order_summary, partial_action = st.columns(
-            [3, 1], vertical_alignment="center"
-        )
+        order_summary, partial_action = st.columns([3, 1], vertical_alignment="center")
         # The daily volume is stated rather than left to be multiplied out. It
         # is the quickest check that the figures below are pulling correctly.
         order_summary.markdown(
             '<p class="summary-line">Full planned formula order (100%): '
             f'{escape(str(formula["name"]))} at '
-            f'{escape(schedule_description)} '
-            f'&nbsp;|&nbsp; <strong>'
+            f"{escape(schedule_description)} "
+            f"&nbsp;|&nbsp; <strong>"
             f'{final_planned_delivery["planned_volume_ml"]:,.0f} mL/day</strong>.</p>',
             unsafe_allow_html=True,
         )
         popover_label = (
             f"Partial delivery: {saved_achieved}%"
-            if partial_active else "Review partial delivery"
+            if partial_active
+            else "Review partial delivery"
         )
         with partial_action.popover(popover_label, width="stretch"):
-            achieved = int(st.number_input(
-                "Formula delivered (% of planned)", min_value=0, max_value=100, step=1,
-                key=achieved_key,
-                on_change=show_partial_formula_delivery, args=(scenario_id,),
-            ))
+            achieved = int(
+                st.number_input(
+                    "Formula delivered (% of planned)",
+                    min_value=0,
+                    max_value=100,
+                    step=1,
+                    key=achieved_key,
+                    on_change=show_partial_formula_delivery,
+                    args=(scenario_id,),
+                )
+            )
             if achieved == 100:
                 view_percent = 100
             else:
                 view_choice = st.selectbox(
-                    "Show intake for", ["Full planned EN", "Achieved delivery"],
+                    "Show intake for",
+                    ["Full planned EN", "Achieved delivery"],
                     key=delivery_view_key,
                     format_func=lambda option: (
                         "Full planned formula (100%)"
@@ -1365,15 +1523,13 @@ def render_en_scenario(
         if view_percent < 100:
             st.markdown(
                 '<p class="summary-line">Showing estimated intake at '
-                f'<strong>{view_percent}% formula delivery</strong>. Modulars and '
-                'flushes remain unchanged.</p>',
+                f"<strong>{view_percent}% formula delivery</strong>. Modulars and "
+                "flushes remain unchanged.</p>",
                 unsafe_allow_html=True,
             )
         other_protein_sources = list(modular_protein_sources)
         if ons_totals["protein_g"]:
-            other_protein_sources.append(
-                f"{ons_totals['protein_g']:.0f} g from ONS"
-            )
+            other_protein_sources.append(f"{ons_totals['protein_g']:.0f} g from ONS")
         other_protein_text = "; ".join(other_protein_sources) or "None"
         displayed_total_water = (
             displayed_delivery["free_water_ml"]
@@ -1383,8 +1539,7 @@ def render_en_scenario(
             + other_water_flushes
         )
         water_difference = (
-            None if water_target is None
-            else displayed_total_water - water_target
+            None if water_target is None else displayed_total_water - water_target
         )
         protein_difference = final_protein - protein_target
         energy_difference = final_energy - total_energy_target
@@ -1394,9 +1549,7 @@ def render_en_scenario(
                 f"{modular_totals['free_water_ml']:.0f} mL from modulars"
             )
         if ons_totals["free_water_ml"]:
-            water_source_parts.append(
-                f"{ons_totals['free_water_ml']:.0f} mL from ONS"
-            )
+            water_source_parts.append(f"{ons_totals['free_water_ml']:.0f} mL from ONS")
         if modular_preparation_water:
             water_source_parts.append(
                 f"{modular_preparation_water:.0f} mL from modular preparation water"
@@ -1417,7 +1570,8 @@ def render_en_scenario(
         total_column = "Planned total" if view_percent == 100 else "Estimated total"
         difference_column = (
             "Difference (planned − goal)"
-            if view_percent == 100 else "Difference (estimated − goal)"
+            if view_percent == 100
+            else "Difference (estimated − goal)"
         )
         check_rows = [
             {
@@ -1428,15 +1582,18 @@ def render_en_scenario(
                     f"{modular_totals['energy_kcal']:.0f} kcal from modulars"
                     + (
                         f"; {propofol['kcal']:.0f} kcal from propofol"
-                        if propofol["kcal"] else ""
+                        if propofol["kcal"]
+                        else ""
                     )
                     + (
                         f"; {iv_fluids['energy_kcal']:,.0f} kcal from IV fluids"
-                        if iv_fluids["energy_kcal"] else ""
+                        if iv_fluids["energy_kcal"]
+                        else ""
                     )
                     + (
                         f"; {ons_totals['energy_kcal']:.0f} kcal from ONS"
-                        if ons_totals["energy_kcal"] else ""
+                        if ons_totals["energy_kcal"]
+                        else ""
                     )
                 ),
                 total_column: final_energy,
@@ -1455,20 +1612,23 @@ def render_en_scenario(
         # omitted rather than shown with an empty goal and a meaningless
         # difference. Free water still appears in the daily intake table.
         if water_target is not None:
-            check_rows.append({
-                "Component": "Water (mL/day)",
-                "Goal": water_target,
-                "From feed": displayed_delivery["free_water_ml"],
-                "From other sources": water_sources_text,
-                total_column: displayed_total_water,
-                # When the requirement is charted rather than filled enterally,
-                # enteral falls short by design, so a difference here would read
-                # as a miss rather than as the plan working as intended.
-                difference_column: (
-                    None if chart_water_only
-                    else signed_difference(water_difference)
-                ),
-            })
+            check_rows.append(
+                {
+                    "Component": "Water (mL/day)",
+                    "Goal": water_target,
+                    "From feed": displayed_delivery["free_water_ml"],
+                    "From other sources": water_sources_text,
+                    total_column: displayed_total_water,
+                    # When the requirement is charted rather than filled enterally,
+                    # enteral falls short by design, so a difference here would read
+                    # as a miss rather than as the plan working as intended.
+                    difference_column: (
+                        None
+                        if chart_water_only
+                        else signed_difference(water_difference)
+                    ),
+                }
+            )
         final_checks = pd.DataFrame(check_rows)
         render_report_table(final_checks, decimals=PLAN_CHECK_DECIMALS)
         # Below 100% the energy goal in the table is the share the feed is
@@ -1492,79 +1652,106 @@ def render_en_scenario(
         construction is what stops the two drifting apart.
         """
         rows = [
-        {
-        "Source": formula["name"],
-        "Volume (mL)": delivery["delivered_volume_ml"],
-        "Energy (kcal)": delivery["energy_kcal"],
-        "Protein (g)": delivery["protein_g"],
-        "Carbohydrate (g)": delivery["carbohydrate_g"],
-        "Fat (g)": delivery["fat_g"],
-        "Water (mL)": delivery["free_water_ml"],
-        "Na (mmol)": mmol_from_delivery(delivery, "sodium"),
-        "K (mmol)": mmol_from_delivery(delivery, "potassium"),
-        "Ca (mmol)": mmol_from_delivery(delivery, "calcium"),
-        "P (mmol)": mmol_from_delivery(delivery, "phosphorus"),
-        "Mg (mmol)": mmol_from_delivery(delivery, "magnesium"),
-        },
-        {
-        "Source": "Modulars",
-        "Volume (mL)": modular_preparation_water,
-        "Energy (kcal)": modular_totals["energy_kcal"],
-        "Protein (g)": modular_totals["protein_g"],
-        "Carbohydrate (g)": modular_totals["carbohydrate_g"],
-        "Fat (g)": modular_totals["fat_g"],
-        "Water (mL)": modular_totals["free_water_ml"] + modular_preparation_water,
-        "Na (mmol)": mmol_if_disclosed(modular_totals, "sodium"),
-        "K (mmol)": mmol_if_disclosed(modular_totals, "potassium"),
-        "Ca (mmol)": mmol_if_disclosed(modular_totals, "calcium"),
-        "P (mmol)": mmol_if_disclosed(modular_totals, "phosphorus"),
-        "Mg (mmol)": mmol_if_disclosed(modular_totals, "magnesium"),
-        },
-        {
-        "Source": "Water flushes",
-        "Volume (mL)": other_water_flushes,
-        "Energy (kcal)": 0, "Protein (g)": 0,
-        "Carbohydrate (g)": 0, "Fat (g)": 0, "Water (mL)": other_water_flushes,
-        "Na (mmol)": 0, "K (mmol)": 0, "Ca (mmol)": 0, "P (mmol)": 0,
-        "Mg (mmol)": 0,
-        },
+            {
+                "Source": formula["name"],
+                "Volume (mL)": delivery["delivered_volume_ml"],
+                "Energy (kcal)": delivery["energy_kcal"],
+                "Protein (g)": delivery["protein_g"],
+                "Carbohydrate (g)": delivery["carbohydrate_g"],
+                "Fat (g)": delivery["fat_g"],
+                "Water (mL)": delivery["free_water_ml"],
+                "Na (mmol)": mmol_from_delivery(delivery, "sodium"),
+                "K (mmol)": mmol_from_delivery(delivery, "potassium"),
+                "Ca (mmol)": mmol_from_delivery(delivery, "calcium"),
+                "P (mmol)": mmol_from_delivery(delivery, "phosphorus"),
+                "Mg (mmol)": mmol_from_delivery(delivery, "magnesium"),
+            },
+            {
+                "Source": "Modulars",
+                "Volume (mL)": modular_preparation_water,
+                "Energy (kcal)": modular_totals["energy_kcal"],
+                "Protein (g)": modular_totals["protein_g"],
+                "Carbohydrate (g)": modular_totals["carbohydrate_g"],
+                "Fat (g)": modular_totals["fat_g"],
+                "Water (mL)": modular_totals["free_water_ml"]
+                + modular_preparation_water,
+                "Na (mmol)": mmol_if_disclosed(modular_totals, "sodium"),
+                "K (mmol)": mmol_if_disclosed(modular_totals, "potassium"),
+                "Ca (mmol)": mmol_if_disclosed(modular_totals, "calcium"),
+                "P (mmol)": mmol_if_disclosed(modular_totals, "phosphorus"),
+                "Mg (mmol)": mmol_if_disclosed(modular_totals, "magnesium"),
+            },
+            {
+                "Source": "Water flushes",
+                "Volume (mL)": other_water_flushes,
+                "Energy (kcal)": 0,
+                "Protein (g)": 0,
+                "Carbohydrate (g)": 0,
+                "Fat (g)": 0,
+                "Water (mL)": other_water_flushes,
+                "Na (mmol)": 0,
+                "K (mmol)": 0,
+                "Ca (mmol)": 0,
+                "P (mmol)": 0,
+                "Mg (mmol)": 0,
+            },
         ]
         if chart_ons:
-            rows.insert(2, {
-        "Source": "ONS",
-        "Volume (mL)": ons_totals["daily_volume_ml"],
-        "Energy (kcal)": ons_totals["energy_kcal"],
-        "Protein (g)": ons_totals["protein_g"],
-        "Carbohydrate (g)": ons_totals["carbohydrate_g"],
-        "Fat (g)": ons_totals["fat_g"],
-        "Water (mL)": ons_totals["free_water_ml"],
-        "Na (mmol)": mg_to_mmol("sodium", ons_totals["sodium_mg"]),
-        "K (mmol)": mg_to_mmol("potassium", ons_totals["potassium_mg"]),
-        "Ca (mmol)": mg_to_mmol("calcium", ons_totals["calcium_mg"]),
-        "P (mmol)": mg_to_mmol("phosphorus", ons_totals["phosphorus_mg"]),
-        "Mg (mmol)": mg_to_mmol("magnesium", ons_totals["magnesium_mg"]),
-        })
+            rows.insert(
+                2,
+                {
+                    "Source": "ONS",
+                    "Volume (mL)": ons_totals["daily_volume_ml"],
+                    "Energy (kcal)": ons_totals["energy_kcal"],
+                    "Protein (g)": ons_totals["protein_g"],
+                    "Carbohydrate (g)": ons_totals["carbohydrate_g"],
+                    "Fat (g)": ons_totals["fat_g"],
+                    "Water (mL)": ons_totals["free_water_ml"],
+                    "Na (mmol)": mg_to_mmol("sodium", ons_totals["sodium_mg"]),
+                    "K (mmol)": mg_to_mmol("potassium", ons_totals["potassium_mg"]),
+                    "Ca (mmol)": mg_to_mmol("calcium", ons_totals["calcium_mg"]),
+                    "P (mmol)": mg_to_mmol("phosphorus", ons_totals["phosphorus_mg"]),
+                    "Mg (mmol)": mg_to_mmol("magnesium", ons_totals["magnesium_mg"]),
+                },
+            )
         if iv_fluids["energy_kcal"] > 0 or iv_fluids["volume_ml"] > 0:
-            rows.insert(2, {
-        "Source": "IV fluids",
-        "Volume (mL)": iv_fluids["volume_ml"],
-        "Energy (kcal)": iv_fluids["energy_kcal"],
-        "Protein (g)": 0,
-        "Carbohydrate (g)": iv_fluids["carbohydrate_g"], "Fat (g)": 0,
-        # Volume above, but deliberately no water: the goals are entered
-        # net of intravenous fluid, and the footnote says so.
-        "Water (mL)": 0,
-        "Na (mmol)": 0, "K (mmol)": 0, "Ca (mmol)": 0, "P (mmol)": 0,
-        "Mg (mmol)": 0,
-        })
+            rows.insert(
+                2,
+                {
+                    "Source": "IV fluids",
+                    "Volume (mL)": iv_fluids["volume_ml"],
+                    "Energy (kcal)": iv_fluids["energy_kcal"],
+                    "Protein (g)": 0,
+                    "Carbohydrate (g)": iv_fluids["carbohydrate_g"],
+                    "Fat (g)": 0,
+                    # Volume above, but deliberately no water: the goals are entered
+                    # net of intravenous fluid, and the footnote says so.
+                    "Water (mL)": 0,
+                    "Na (mmol)": 0,
+                    "K (mmol)": 0,
+                    "Ca (mmol)": 0,
+                    "P (mmol)": 0,
+                    "Mg (mmol)": 0,
+                },
+            )
         if propofol["kcal"] > 0:
-            rows.insert(2, {
-        "Source": "Propofol",
-        "Volume (mL)": propofol["volume_ml"],
-        "Energy (kcal)": propofol["kcal"], "Protein (g)": 0,
-        "Carbohydrate (g)": 0, "Fat (g)": propofol["fat_g"], "Water (mL)": 0, "Na (mmol)": 0, "K (mmol)": 0,
-        "Ca (mmol)": 0, "P (mmol)": 0, "Mg (mmol)": 0,
-        })
+            rows.insert(
+                2,
+                {
+                    "Source": "Propofol",
+                    "Volume (mL)": propofol["volume_ml"],
+                    "Energy (kcal)": propofol["kcal"],
+                    "Protein (g)": 0,
+                    "Carbohydrate (g)": 0,
+                    "Fat (g)": propofol["fat_g"],
+                    "Water (mL)": 0,
+                    "Na (mmol)": 0,
+                    "K (mmol)": 0,
+                    "Ca (mmol)": 0,
+                    "P (mmol)": 0,
+                    "Mg (mmol)": 0,
+                },
+            )
         return rows
 
     source_rows = _intake_rows(displayed_delivery)
@@ -1578,7 +1765,8 @@ def render_en_scenario(
     chart_total = combined_intake(planned_rows)
     return {
         "label": label,
-        "propofol_rate": propofol_rate, "propofol_hours": propofol_hours,
+        "propofol_rate": propofol_rate,
+        "propofol_hours": propofol_hours,
         "propofol": propofol,
         "iv_fluids": iv_fluids,
         "iv_orders": iv_orders,
@@ -1590,18 +1778,23 @@ def render_en_scenario(
         "prescription_target_pct": prescription_target_pct,
         "prescription_energy_target": total_energy_target,
         "prescription_interruption_note": prescription_interruption_note,
-        "formula": formula, "formula_energy_target": final_formula_energy_target,
-        "schedule_description": schedule_description, "modulars": modular_note,
-        "source_frame": source_frame, "total": total,
+        "formula": formula,
+        "formula_energy_target": final_formula_energy_target,
+        "schedule_description": schedule_description,
+        "modulars": modular_note,
+        "source_frame": source_frame,
+        "total": total,
         "table_notes": [
-            note for note in (
+            note
+            for note in (
                 # Each note explains something on the table that does not mean
                 # what it looks like. They are conditional, so a plain plan
                 # carries none.
                 (
                     "Free water from ONS is shown as oral intake but does not "
                     "affect hydration flush calculations."
-                    if ons_totals["free_water_ml"] else ""
+                    if ons_totals["free_water_ml"]
+                    else ""
                 ),
                 (
                     "Modular water includes the product's own water and the "
@@ -1609,16 +1802,24 @@ def render_en_scenario(
                     if modular_totals["free_water_ml"] and modular_preparation_water
                     else ""
                 ),
-                uncounted_volume_note([
-                    (iv_fluids["volume_ml"], "IV fluids"),
-                    (propofol["volume_ml"], "propofol"),
-                ]),
+                uncounted_volume_note(
+                    [
+                        (iv_fluids["volume_ml"], "IV fluids"),
+                        (propofol["volume_ml"], "propofol"),
+                    ]
+                ),
                 undisclosed_note(
                     modular_undisclosed,
-                    {"sodium": "Na", "potassium": "K", "calcium": "Ca",
-                     "phosphorus": "P", "magnesium": "Mg"},
+                    {
+                        "sodium": "Na",
+                        "potassium": "K",
+                        "calcium": "Ca",
+                        "phosphorus": "P",
+                        "magnesium": "Mg",
+                    },
                 ),
-            ) if note
+            )
+            if note
         ],
         "delivery": final_planned_delivery,
         "chart_total": chart_total,
@@ -1638,7 +1839,8 @@ def render_en_scenario(
         "view_percent": view_percent,
         "intake_heading": (
             "Planned daily intake"
-            if view_percent == 100 else f"Estimated daily intake at {view_percent}% formula delivery"
+            if view_percent == 100
+            else f"Estimated daily intake at {view_percent}% formula delivery"
         ),
     }
 
@@ -1646,9 +1848,10 @@ def render_en_scenario(
 def render_en_workflow_setup(
     key_prefix: str,
     candidates_key: str,
-) -> tuple[
-    pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], float, float, float
-] | None:
+) -> (
+    tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], float, float, float]
+    | None
+):
     """Render shared Assessment goals and feed candidates for a planning workflow."""
     saved_ons = st.session_state.my_ons
     saved_feeds = st.session_state.my_formulas
@@ -1656,7 +1859,8 @@ def render_en_workflow_setup(
     if candidates_key in st.session_state:
         available_feed_names = set(saved_feeds["name"].tolist())
         st.session_state[candidates_key] = [
-            name for name in st.session_state[candidates_key]
+            name
+            for name in st.session_state[candidates_key]
             if name in available_feed_names
         ]
     total_energy_target, protein_target, water_target = render_assessment_goals(
@@ -1672,18 +1876,23 @@ def render_en_workflow_setup(
     with st.container(border=True):
         render_box_heading("Formulas to compare")
         candidates = st.multiselect(
-            "Select formulas", saved_feeds["name"].tolist(), max_selections=9, key=candidates_key
+            "Select formulas",
+            saved_feeds["name"].tolist(),
+            max_selections=9,
+            key=candidates_key,
         )
-        st.caption(
-            "Missing a feed? Add it to My Formulary on the Formulary tab."
-        )
+        st.caption("Missing a feed? Add it to My Formulary on the Formulary tab.")
     if not candidates:
         st.caption("Select at least one formula.")
         return None
     candidate_frame = saved_feeds.loc[saved_feeds["name"].isin(candidates)]
     return (
-        candidate_frame, saved_modulars, saved_ons, candidates,
-        float(total_energy_target), float(protein_target),
+        candidate_frame,
+        saved_modulars,
+        saved_ons,
+        candidates,
+        float(total_energy_target),
+        float(protein_target),
         None if water_target is None else float(water_target),
     )
 
@@ -1693,18 +1902,36 @@ def show_en_plan() -> None:
     if setup is None:
         return
     (
-        candidate_frame, saved_modulars, saved_ons, candidates,
-        total_energy_target, protein_target, water_target,
+        candidate_frame,
+        saved_modulars,
+        saved_ons,
+        candidates,
+        total_energy_target,
+        protein_target,
+        water_target,
     ) = setup
-    standard_migration = "lower" if any(
-        key.startswith("scenario_lower_") for key in st.session_state
-    ) else "primary" if any(key.startswith("scenario_primary_") for key in st.session_state) else None
+    standard_migration = (
+        "lower"
+        if any(key.startswith("scenario_lower_") for key in st.session_state)
+        else (
+            "primary"
+            if any(key.startswith("scenario_primary_") for key in st.session_state)
+            else None
+        )
+    )
     seed_scenario_state("standard", candidates, saved_modulars, standard_migration)
     st.session_state[scenario_key("standard", "propofol_rate")] = 0.0
 
     result = render_en_scenario(
-        "standard", "EN plan", candidate_frame, saved_modulars, saved_ons,
-        total_energy_target, protein_target, water_target, 0.0,
+        "standard",
+        "EN plan",
+        candidate_frame,
+        saved_modulars,
+        saved_ons,
+        total_energy_target,
+        protein_target,
+        water_target,
+        0.0,
     )
     with st.container(key="fullbleed_standard_daily_intake", border=True):
         render_box_heading(str(result["intake_heading"]))

@@ -76,7 +76,10 @@ def _render_single_daily_exposure() -> tuple[list[dict[str, object]], float, flo
         rate_state_key = scenario_key("propofol", "propofol_rate")
         rate_widget_key = seed_propofol_widget(rate_state_key)
         rate = columns[0].number_input(
-            "Propofol rate (mL/hour)", min_value=0.0, step=1.0, format="%.1f",
+            "Propofol rate (mL/hour)",
+            min_value=0.0,
+            step=1.0,
+            format="%.1f",
             key=rate_widget_key,
             on_change=sync_propofol_widget,
             args=(rate_widget_key, rate_state_key),
@@ -84,18 +87,23 @@ def _render_single_daily_exposure() -> tuple[list[dict[str, object]], float, flo
         hours_state_key = scenario_key("propofol", "propofol_hours")
         hours_widget_key = seed_propofol_widget(hours_state_key)
         hours = columns[1].number_input(
-            "Expected hours", min_value=0.0, max_value=24.0,
-            step=1.0, format="%.1f",
+            "Expected hours",
+            min_value=0.0,
+            max_value=24.0,
+            step=1.0,
+            format="%.1f",
             key=hours_widget_key,
             on_change=sync_propofol_widget,
             args=(hours_widget_key, hours_state_key),
         )
-        conditions: list[dict[str, object]] = [{
-            "id": "projected",
-            "label": "Projected exposure",
-            "rate_ml_hr": number(rate),
-            "hours": number(hours),
-        }]
+        conditions: list[dict[str, object]] = [
+            {
+                "id": "projected",
+                "label": "Projected exposure",
+                "rate_ml_hr": number(rate),
+                "hours": number(hours),
+            }
+        ]
         _render_exposure_total(conditions)
     return conditions, number(rate), number(hours)
 
@@ -114,27 +122,37 @@ def _render_conditional_exposure() -> list[dict[str, object]]:
         with columns[0].container(border=True):
             st.markdown("**Lower/no Propofol**")
             lower_rate = st.number_input(
-                "Propofol rate (mL/hour)", min_value=0.0, step=1.0,
-                format="%.1f", key=lower_widget_key,
+                "Propofol rate (mL/hour)",
+                min_value=0.0,
+                step=1.0,
+                format="%.1f",
+                key=lower_widget_key,
                 on_change=sync_propofol_widget,
                 args=(lower_widget_key, lower_state_key),
             )
             st.markdown(
                 '<p class="condition-duration">Projected duration: '
-                f'<strong>{lower_hours:g} hours/day</strong></p>',
+                f"<strong>{lower_hours:g} hours/day</strong></p>",
                 unsafe_allow_html=True,
             )
         with columns[1].container(border=True):
             st.markdown("**Higher Propofol**")
             higher_rate = st.number_input(
-                "Propofol rate (mL/hour)", min_value=0.0, step=1.0,
-                format="%.1f", key=higher_widget_key,
+                "Propofol rate (mL/hour)",
+                min_value=0.0,
+                step=1.0,
+                format="%.1f",
+                key=higher_widget_key,
                 on_change=sync_propofol_widget,
                 args=(higher_widget_key, higher_state_key),
             )
             higher_hours = st.number_input(
-                "Expected duration (hours/day)", min_value=0.0, max_value=24.0,
-                step=1.0, format="%.1f", key=higher_hours_widget_key,
+                "Expected duration (hours/day)",
+                min_value=0.0,
+                max_value=24.0,
+                step=1.0,
+                format="%.1f",
+                key=higher_hours_widget_key,
                 on_change=sync_propofol_widget,
                 args=(higher_hours_widget_key, higher_hours_state_key),
             )
@@ -158,14 +176,23 @@ def _render_conditional_exposure() -> list[dict[str, object]]:
 
 
 def show_icu_propofol() -> None:
-    if "icu_feed_candidates" not in st.session_state and st.session_state.get("feed_candidates"):
-        st.session_state.icu_feed_candidates = deepcopy(st.session_state.feed_candidates)
+    if "icu_feed_candidates" not in st.session_state and st.session_state.get(
+        "feed_candidates"
+    ):
+        st.session_state.icu_feed_candidates = deepcopy(
+            st.session_state.feed_candidates
+        )
     setup = render_en_workflow_setup("icu", "icu_feed_candidates")
     if setup is None:
         return
     (
-        candidate_frame, saved_modulars, _saved_ons, candidates, estimated_energy_requirement,
-        protein_target, water_target,
+        candidate_frame,
+        saved_modulars,
+        _saved_ons,
+        candidates,
+        estimated_energy_requirement,
+        protein_target,
+        water_target,
     ) = setup
     _seed_propofol_plan(candidates, saved_modulars)
     st.session_state.pop("assessment_propofol_rate", None)
@@ -173,24 +200,26 @@ def show_icu_propofol() -> None:
     with st.container(border=True):
         render_box_heading("Propofol planning")
         method = st.radio(
-            "Method", PROPOFOL_METHODS, horizontal=True,
+            "Method",
+            PROPOFOL_METHODS,
+            horizontal=True,
             key=scenario_key("propofol", "propofol_method"),
         )
         with st.expander("How this calculation works"):
             st.markdown(
                 '<div class="calculation-help-copy">'
-                '<p><strong>Single Propofol rate</strong><br>'
-                'Enter the expected Propofol rate and duration. The calculator subtracts '
-                'projected Propofol energy from the EN energy target before calculating '
-                'the formula rate.</p>'
-                '<p><strong>Changing Propofol rates</strong><br>'
-                'Enter the lower and higher Propofol rates and the expected hours at the '
-                'higher rate. Remaining hours use the lower rate. The calculator provides '
-                'two suggested EN rates. It uses the expected durations to calculate '
-                'planned daily formula volume and protein provision. If feeding time is '
-                'less than 24 hours/day, it is distributed proportionally according to '
-                'the expected hours at each Propofol rate.</p>'
-                '</div>',
+                "<p><strong>Single Propofol rate</strong><br>"
+                "Enter the expected Propofol rate and duration. The calculator subtracts "
+                "projected Propofol energy from the EN energy target before calculating "
+                "the formula rate.</p>"
+                "<p><strong>Changing Propofol rates</strong><br>"
+                "Enter the lower and higher Propofol rates and the expected hours at the "
+                "higher rate. Remaining hours use the lower rate. The calculator provides "
+                "two suggested EN rates. It uses the expected durations to calculate "
+                "planned daily formula volume and protein provision. If feeding time is "
+                "less than 24 hours/day, it is distributed proportionally according to "
+                "the expected hours at each Propofol rate.</p>"
+                "</div>",
                 unsafe_allow_html=True,
             )
 
@@ -202,9 +231,16 @@ def show_icu_propofol() -> None:
         conditions, displayed_rate, displayed_hours = _render_single_daily_exposure()
 
     result = render_en_scenario(
-        "propofol", "Propofol EN plan", candidate_frame, saved_modulars, None,
-        estimated_energy_requirement, protein_target, water_target,
-        displayed_rate, displayed_hours,
+        "propofol",
+        "Propofol EN plan",
+        candidate_frame,
+        saved_modulars,
+        None,
+        estimated_energy_requirement,
+        protein_target,
+        water_target,
+        displayed_rate,
+        displayed_hours,
         propofol_conditions=conditions,
         propofol_method=method,
         estimated_energy_requirement=estimated_energy_requirement,

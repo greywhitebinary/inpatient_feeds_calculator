@@ -44,27 +44,40 @@ class FormularyImportTests(unittest.TestCase):
         )
 
         pd.testing.assert_frame_equal(
-            restored_formulas.reset_index(drop=True), formulas.reset_index(drop=True),
+            restored_formulas.reset_index(drop=True),
+            formulas.reset_index(drop=True),
             check_dtype=False,
         )
         pd.testing.assert_frame_equal(
-            restored_modulars.reset_index(drop=True), modulars.reset_index(drop=True),
+            restored_modulars.reset_index(drop=True),
+            modulars.reset_index(drop=True),
             check_dtype=False,
         )
         pd.testing.assert_frame_equal(
-            restored_ons.reset_index(drop=True), ons.reset_index(drop=True),
+            restored_ons.reset_index(drop=True),
+            ons.reset_index(drop=True),
             check_dtype=False,
         )
 
     def test_legacy_ons_sheet_without_serving_columns_remains_importable(self):
-        legacy_ons = self.ons.drop(columns=[
-            "calculation_basis", "serving_size_g", "serving_unit",
-            "kcal_per_serving", "protein_g_per_serving", "fat_g_per_serving",
-            "carbohydrate_g_per_serving", "fibre_g_per_serving",
-            "sodium_mg_per_serving", "potassium_mg_per_serving",
-            "calcium_mg_per_serving", "magnesium_mg_per_serving",
-            "phosphorus_mg_per_serving", "free_water_ml_per_serving",
-        ])
+        legacy_ons = self.ons.drop(
+            columns=[
+                "calculation_basis",
+                "serving_size_g",
+                "serving_unit",
+                "kcal_per_serving",
+                "protein_g_per_serving",
+                "fat_g_per_serving",
+                "carbohydrate_g_per_serving",
+                "fibre_g_per_serving",
+                "sodium_mg_per_serving",
+                "potassium_mg_per_serving",
+                "calcium_mg_per_serving",
+                "magnesium_mg_per_serving",
+                "phosphorus_mg_per_serving",
+                "free_water_ml_per_serving",
+            ]
+        )
         _, _, restored_ons = validate_import(self.formulas, self.modulars, legacy_ons)
         self.assertEqual(restored_ons.iloc[0]["calculation_basis"], "container_ml")
 
@@ -74,9 +87,7 @@ class FormularyImportTests(unittest.TestCase):
         del workbook["My ONS"]
         legacy = BytesIO()
         workbook.save(legacy)
-        formulas, modulars, ons = import_formulary_workbook(
-            BytesIO(legacy.getvalue())
-        )
+        formulas, modulars, ons = import_formulary_workbook(BytesIO(legacy.getvalue()))
         self.assertEqual(len(formulas), 1)
         self.assertEqual(len(modulars), 1)
         self.assertTrue(ons.empty)
@@ -85,13 +96,9 @@ class FormularyImportTests(unittest.TestCase):
         ons = load_master_ons()
         self.assertEqual(len(ons), 54)
         boost = ons.loc[ons["product_name"] == "BOOST Plus Calories"]
-        self.assertEqual(
-            set(boost["flavour"]), {"Vanilla", "Chocolate", "Strawberry"}
-        )
+        self.assertEqual(set(boost["flavour"]), {"Vanilla", "Chocolate", "Strawberry"})
         for product in ("Ensure Regular", "Ensure Plus Calories"):
-            flavours = set(
-                ons.loc[ons["product_name"] == product, "flavour"]
-            )
+            flavours = set(ons.loc[ons["product_name"] == product, "flavour"])
             self.assertIn("Butter Pecan", flavours)
         glucerna = ons.loc[ons["product_name"] == "Glucerna nutritional drink"]
         self.assertEqual(
@@ -112,11 +119,13 @@ class FormularyImportTests(unittest.TestCase):
         )
         vanilla = boost.loc[boost["flavour"] == "Vanilla"].iloc[0]
         self.assertAlmostEqual(
-            vanilla["kcal_per_mL"] * vanilla["container_size_ml"], 360,
+            vanilla["kcal_per_mL"] * vanilla["container_size_ml"],
+            360,
             places=3,
         )
         self.assertAlmostEqual(
-            vanilla["protein_per_mL"] * vanilla["container_size_ml"], 14,
+            vanilla["protein_per_mL"] * vanilla["container_size_ml"],
+            14,
             places=3,
         )
         pudding = ons.loc[ons["product_name"] == "BOOST Pudding"]
@@ -225,7 +234,6 @@ class FormularyImportTests(unittest.TestCase):
         self.assertIn("2026_nestle-product-guide.pdf p.16", row["source"])
 
 
-
 class UndisclosedColumnTests(unittest.TestCase):
     """Blanks that mean "not disclosed" must survive loading and round-tripping."""
 
@@ -234,7 +242,9 @@ class UndisclosedColumnTests(unittest.TestCase):
         row = modulars[modulars["id"] == "medtrition-prosource-nocarb"].iloc[0]
         self.assertTrue(pd.isna(row["phosphorus_mg_per_basis"]))
         self.assertTrue(pd.isna(row["magnesium_mg_per_basis"]))
-        self.assertEqual(row["sodium_mg_per_basis"], 40, "declared values are unchanged")
+        self.assertEqual(
+            row["sodium_mg_per_basis"], 40, "declared values are unchanged"
+        )
 
     def test_formula_fibre_blank_still_zero_filled(self):
         # A blank fibre cell means the panel has no fibre row because the

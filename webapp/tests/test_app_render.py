@@ -23,7 +23,8 @@ class AssessmentRenderTests(unittest.TestCase):
             {item.key for item in app.radio},
         )
         modular_button_keys = {
-            item.key for item in app.button
+            item.key
+            for item in app.button
             if str(item.key).startswith(("add_modular_", "saved_modular_"))
         }
         self.assertEqual(len(modular_button_keys), 7)
@@ -32,20 +33,21 @@ class AssessmentRenderTests(unittest.TestCase):
             {item.value for item in app.caption},
         )
         ons_button_keys = {
-            item.key for item in app.button
+            item.key
+            for item in app.button
             if str(item.key).startswith(("add_ons_", "saved_ons_"))
         }
         self.assertEqual(len(ons_button_keys), 54)
         ons_filter = next(
-            item for item in app.radio
-            if item.key == "ons_reference_brand_filter"
+            item for item in app.radio if item.key == "ons_reference_brand_filter"
         )
         self.assertEqual(
             ons_filter.options,
             ["All products", "Nestlé ONS", "Abbott ONS"],
         )
         product_filter = next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "feed_reference_product_filter"
         )
         self.assertEqual(
@@ -62,9 +64,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertLess(
             subheadings.index("My Formulary"), subheadings.index("My Modulars")
         )
-        self.assertLess(
-            subheadings.index("My Modulars"), subheadings.index("My ONS")
-        )
+        self.assertLess(subheadings.index("My Modulars"), subheadings.index("My ONS"))
 
     def test_modular_plan_card_uses_compact_parallel_labels(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -88,9 +88,9 @@ class AssessmentRenderTests(unittest.TestCase):
             "Missing a feed? Add it to My Formulary on the Formulary tab.",
             captions,
         )
-        self.assertNotIn("How ONS calculations work", {
-            item.label for item in app.expander
-        })
+        self.assertNotIn(
+            "How ONS calculations work", {item.label for item in app.expander}
+        )
         # These two sit in a caption, and AppTest reports caption text as the
         # markdown source rather than rendered HTML.
         ons_guidance = "\n".join(captions)
@@ -101,19 +101,22 @@ class AssessmentRenderTests(unittest.TestCase):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
         next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "workspace_nav_assessment_en_plan"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "EN plan")
 
         next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "workspace_nav_assessment_propofol"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "Propofol")
 
         next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "workspace_nav_assessment_formulary"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "Formulary")
@@ -122,19 +125,20 @@ class AssessmentRenderTests(unittest.TestCase):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
         next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "workspace_nav_formulary_assessment"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "Assessment")
 
         next(
-            item for item in app.button
-            if item.key == "workspace_nav_formulary_en_plan"
+            item for item in app.button if item.key == "workspace_nav_formulary_en_plan"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "EN plan")
 
         next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "workspace_nav_formulary_propofol"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "Propofol")
@@ -143,14 +147,12 @@ class AssessmentRenderTests(unittest.TestCase):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
         next(
-            item for item in app.button
-            if item.key == "workspace_nav_en_plan_propofol"
+            item for item in app.button if item.key == "workspace_nav_en_plan_propofol"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "Propofol")
 
         next(
-            item for item in app.button
-            if item.key == "workspace_nav_propofol_en_plan"
+            item for item in app.button if item.key == "workspace_nav_propofol_en_plan"
         ).click().run(timeout=30)
         self.assertEqual(app.session_state["workspace_tab"], "EN plan")
 
@@ -227,9 +229,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["case_record_label"], "Imported test record")
         self.assertEqual(app.session_state["assessment_age"], 45)
-        self.assertEqual(
-            app.session_state["scenario_standard_ordered_rate_ml_hr"], 55
-        )
+        self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 55)
 
     def test_invalid_saved_record_shows_an_error_without_crashing(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
@@ -259,7 +259,8 @@ class AssessmentRenderTests(unittest.TestCase):
         sex.select("Female").run(timeout=30)
         self.assertFalse(app.exception)
         height = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_height_cm_entry"
         )
         self.assertIsNone(height.value)
@@ -270,28 +271,49 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_one_entered_protein_bound_shows_a_worked_value(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
-        lower = next(item for item in app.number_input if item.key == "assessment_protein_low_gkg")
-        upper = next(item for item in app.number_input if item.key == "assessment_protein_high_gkg")
+        lower = next(
+            item
+            for item in app.number_input
+            if item.key == "assessment_protein_low_gkg"
+        )
+        upper = next(
+            item
+            for item in app.number_input
+            if item.key == "assessment_protein_high_gkg"
+        )
         upper.set_value(None).run(timeout=30)
-        lower = next(item for item in app.number_input if item.key == "assessment_protein_low_gkg")
+        lower = next(
+            item
+            for item in app.number_input
+            if item.key == "assessment_protein_low_gkg"
+        )
         lower.set_value(1.2).run(timeout=30)
 
         self.assertFalse(app.exception)
-        self.assertTrue(any(
-            "Calculated protein requirement range" in item.value and "77 g/day" in item.value
-            for item in app.markdown
-        ))
+        self.assertTrue(
+            any(
+                "Calculated protein requirement range" in item.value
+                and "77 g/day" in item.value
+                for item in app.markdown
+            )
+        )
 
     def test_activity_and_stress_factors_adjust_non_ventilator_equations(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         activity = next(
-            item for item in app.number_input if item.key == "assessment_activity_factor"
+            item
+            for item in app.number_input
+            if item.key == "assessment_activity_factor"
         )
         stress = next(
             item for item in app.number_input if item.key == "assessment_stress_factor"
@@ -308,21 +330,26 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_energy_table_includes_weight_based_and_measured_values(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         lower = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_energy_low_kcal_kg"
         )
         lower.set_value(25).run(timeout=30)
         upper = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_energy_high_kcal_kg"
         )
         upper.set_value(30).run(timeout=30)
         measured = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_indirect_calorimetry"
         )
         measured.set_value(1650).run(timeout=30)
@@ -342,7 +369,9 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_adjusted_weight_factor_is_identified_in_the_weight_table(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         rendered_html = "\n".join(item.value for item in app.markdown)
@@ -369,10 +398,16 @@ class AssessmentRenderTests(unittest.TestCase):
     def test_height_can_be_entered_in_feet_and_inches(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
-        unit = next(item for item in app.selectbox if item.key == "assessment_height_unit")
+        unit = next(
+            item for item in app.selectbox if item.key == "assessment_height_unit"
+        )
         unit.select("ft/in").run(timeout=30)
-        feet = next(item for item in app.number_input if item.key == "assessment_height_feet")
-        inches = next(item for item in app.number_input if item.key == "assessment_height_inches")
+        feet = next(
+            item for item in app.number_input if item.key == "assessment_height_feet"
+        )
+        inches = next(
+            item for item in app.number_input if item.key == "assessment_height_inches"
+        )
         feet.set_value(5)
         inches.set_value(6).run(timeout=30)
 
@@ -386,19 +421,18 @@ class AssessmentRenderTests(unittest.TestCase):
         )
         unit.select("ft/in").run(timeout=30)
         next(
-            item for item in app.number_input
-            if item.key == "assessment_height_feet"
+            item for item in app.number_input if item.key == "assessment_height_feet"
         ).set_value(5)
         next(
-            item for item in app.number_input
-            if item.key == "assessment_height_inches"
+            item for item in app.number_input if item.key == "assessment_height_inches"
         ).set_value(6).run(timeout=30)
 
         next(
             item for item in app.selectbox if item.key == "assessment_height_unit"
         ).select("cm").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_height_cm_entry"
         ).set_value(180).run(timeout=30)
         next(
@@ -413,15 +447,27 @@ class AssessmentRenderTests(unittest.TestCase):
     def test_weights_can_be_entered_in_pounds(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
 
-        unit = next(item for item in app.selectbox if item.key == "assessment_weight_unit")
+        unit = next(
+            item for item in app.selectbox if item.key == "assessment_weight_unit"
+        )
         unit.select("lb").run(timeout=30)
-        current = next(item for item in app.number_input if item.key == "assessment_current_weight_lb")
-        usual = next(item for item in app.number_input if item.key == "assessment_usual_weight_lb")
+        current = next(
+            item
+            for item in app.number_input
+            if item.key == "assessment_current_weight_lb"
+        )
+        usual = next(
+            item
+            for item in app.number_input
+            if item.key == "assessment_usual_weight_lb"
+        )
         current.set_value(150.0)
         usual.set_value(160.0).run(timeout=30)
 
         self.assertFalse(app.exception)
-        self.assertAlmostEqual(app.session_state["assessment_current_weight"], 68.0388555)
+        self.assertAlmostEqual(
+            app.session_state["assessment_current_weight"], 68.0388555
+        )
         self.assertAlmostEqual(app.session_state["assessment_usual_weight"], 72.5747792)
 
     def test_weight_does_not_revert_when_units_are_changed_twice(self):
@@ -430,7 +476,8 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.selectbox if item.key == "assessment_weight_unit"
         ).select("lb").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_current_weight_lb"
         ).set_value(150).run(timeout=30)
 
@@ -438,7 +485,8 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.selectbox if item.key == "assessment_weight_unit"
         ).select("kg").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "assessment_current_weight_kg_entry"
         ).set_value(80).run(timeout=30)
         next(
@@ -454,11 +502,14 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_adjusting_a_plan_goal_updates_assessment_and_both_workflows(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         energy = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "en_assessment_energy_goal_editor"
         )
         energy.set_value(1900).run(timeout=30)
@@ -467,12 +518,9 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(app.session_state["assessment_energy_target"], 1900)
         self.assertEqual(app.session_state["en_total_energy_target"], 1900)
         self.assertEqual(app.session_state["icu_total_energy_target"], 1900)
-        self.assertEqual(
-            app.session_state["icu_assessment_energy_goal_editor"], 1900
-        )
+        self.assertEqual(app.session_state["icu_assessment_energy_goal_editor"], 1900)
         assessment_energy = next(
-            item for item in app.number_input
-            if item.key == "assessment_energy_target"
+            item for item in app.number_input if item.key == "assessment_energy_target"
         )
         assessment_energy.set_value(1850).run(timeout=30)
         self.assertEqual(app.session_state["assessment_energy_target"], 1850)
@@ -483,7 +531,9 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_standard_and_icu_propofol_workflows_are_independent(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         tab_labels = [item.label for item in app.tabs]
@@ -498,15 +548,16 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(app.session_state["icu_total_energy_target"], 1800.0)
 
         standard_hours = next(
-            item for item in app.number_input if item.key == "scenario_standard_feeding_hours"
+            item
+            for item in app.number_input
+            if item.key == "scenario_standard_feeding_hours"
         )
         standard_hours.set_value(16).run(timeout=30)
         self.assertEqual(app.session_state["scenario_standard_feeding_hours"], 16)
         self.assertEqual(app.session_state["scenario_propofol_feeding_hours"], 23.0)
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_propofol_running_shape"
+            item for item in app.radio if item.key == "scenario_propofol_running_shape"
         ).set_value("Intermittent, each feed a set volume").run(timeout=30)
 
         self.assertFalse(app.exception)
@@ -543,11 +594,14 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_conditional_propofol_mode_uses_one_shared_en_plan(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         method = next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_propofol_propofol_method"
         )
         method.set_value("Changing Propofol rates").run(timeout=30)
@@ -570,10 +624,17 @@ class AssessmentRenderTests(unittest.TestCase):
             "_propofol_widget_scenario_propofol_conditional_higher_rate_ml_hr",
             number_input_keys,
         )
-        self.assertEqual(app.session_state["scenario_propofol_conditional_lower_rate_ml_hr"], 50)
-        self.assertEqual(app.session_state["scenario_propofol_conditional_higher_rate_ml_hr"], 35)
         self.assertEqual(
-            [item.key for item in app.selectbox].count("scenario_propofol_selected_formula"), 1
+            app.session_state["scenario_propofol_conditional_lower_rate_ml_hr"], 50
+        )
+        self.assertEqual(
+            app.session_state["scenario_propofol_conditional_higher_rate_ml_hr"], 35
+        )
+        self.assertEqual(
+            [item.key for item in app.selectbox].count(
+                "scenario_propofol_selected_formula"
+            ),
+            1,
         )
         chart_note = app.session_state["_chart_note_generated_propofol"]
         self.assertIn(
@@ -586,9 +647,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(
             "Suggested EN rate with lower/no Propofol (mL/hour)", rendered_html
         )
-        self.assertIn(
-            "Suggested EN rate with higher Propofol (mL/hour)", rendered_html
-        )
+        self.assertIn("Suggested EN rate with higher Propofol (mL/hour)", rendered_html)
         self.assertIn(
             "Projected formula delivery: (50 mL/hour × 17.25 hours) + "
             "(35 mL/hour × 5.75 hours) = <strong>1,064 mL/day</strong>.",
@@ -602,7 +661,8 @@ class AssessmentRenderTests(unittest.TestCase):
         ).click().run(timeout=30)
 
         target = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_propofol_prescription_target_pct"
         )
         target.set_value(110).run(timeout=30)
@@ -617,14 +677,15 @@ class AssessmentRenderTests(unittest.TestCase):
             app.session_state["_chart_note_generated_propofol"],
         )
         rationale = next(
-            item for item in app.checkbox
+            item
+            for item in app.checkbox
             if item.key == "scenario_propofol_prescription_interruption_note"
         )
         self.assertFalse(rationale.value)
         self.assertEqual(
             rationale.label,
-            'Include “to account for anticipated interruptions” in the '
-            '**Chart note below**',
+            "Include “to account for anticipated interruptions” in the "
+            "**Chart note below**",
         )
         rationale.set_value(True).run(timeout=30)
         self.assertIn(
@@ -640,7 +701,8 @@ class AssessmentRenderTests(unittest.TestCase):
         ).click().run(timeout=30)
 
         target = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_prescription_target_pct"
         )
         target.set_value(110).run(timeout=30)
@@ -651,7 +713,8 @@ class AssessmentRenderTests(unittest.TestCase):
             app.session_state["scenario_propofol_prescription_target_pct"], 100
         )
         rationale = next(
-            item for item in app.checkbox
+            item
+            for item in app.checkbox
             if item.key == "scenario_standard_prescription_interruption_note"
         )
         self.assertFalse(rationale.value)
@@ -663,12 +726,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_projected_propofol_rate_and_hours_drive_the_shared_plan(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         rate = next(
-            item for item in app.number_input
-            if item.label == "Propofol rate (mL/hour)"
+            item for item in app.number_input if item.label == "Propofol rate (mL/hour)"
         )
         hours = next(
             item for item in app.number_input if item.label == "Expected hours"
@@ -691,29 +755,32 @@ class AssessmentRenderTests(unittest.TestCase):
         ).click().run(timeout=30)
 
         method = next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_propofol_propofol_method"
         )
         method.set_value("Changing Propofol rates").run(timeout=30)
         higher_rate = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "_propofol_widget_scenario_propofol_higher_propofol_rate"
         )
         higher_hours = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.label == "Expected duration (hours/day)"
         )
         self.assertEqual(higher_rate.value, 20)
         self.assertEqual(higher_hours.value, 6)
 
         method = next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_propofol_propofol_method"
         )
         method.set_value("Single Propofol rate").run(timeout=30)
         daily_rate = next(
-            item for item in app.number_input
-            if item.label == "Propofol rate (mL/hour)"
+            item for item in app.number_input if item.label == "Propofol rate (mL/hour)"
         )
         daily_hours = next(
             item for item in app.number_input if item.label == "Expected hours"
@@ -728,7 +795,8 @@ class AssessmentRenderTests(unittest.TestCase):
         ).click().run(timeout=30)
 
         achieved = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_propofol_achieved_delivery_pct"
         )
         achieved.set_value(50).run(timeout=30)
@@ -739,7 +807,9 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_formula_comparison_includes_the_full_electrolyte_profile(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         rendered_html = "\n".join(item.value for item in app.markdown)
@@ -754,7 +824,9 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_planned_daily_intake_includes_electrolytes_and_structured_checks(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         rendered_html = "\n".join(item.value for item in app.markdown)
@@ -823,20 +895,25 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_q4h_hydration_is_independent_of_feeding_hours_and_charted_as_q4h(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         feeding_hours = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_feeding_hours"
         )
         feeding_hours.set_value(12).run(timeout=30)
         frequency = next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "scenario_standard_hydration_schedule_format"
         )
         frequency.select("qXh").run(timeout=30)
         interval = next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "scenario_standard_hydration_interval_hours"
         )
         interval.select(4).run(timeout=30)
@@ -856,17 +933,13 @@ class AssessmentRenderTests(unittest.TestCase):
         # Every intermittent form names the volume per feed, whichever pair of
         # numbers was typed, so it is the invariant to compare across them.
         rendered_html = "\n".join(item.value for item in app.markdown)
-        match = re.search(
-            r"<strong>([\d,]+) mL per feed</strong>", rendered_html
-        )
+        match = re.search(r"<strong>([\d,]+) mL per feed</strong>", rendered_html)
         self.assertIsNotNone(match, "no order summary rendered")
         return int(match.group(1).replace(",", ""))
 
     def _daily_volume_from_summary(self, app):
         rendered_html = "\n".join(item.value for item in app.markdown)
-        match = re.search(
-            r"<strong>([\d,]+) mL</strong> formula/day", rendered_html
-        )
+        match = re.search(r"<strong>([\d,]+) mL</strong> formula/day", rendered_html)
         self.assertIsNotNone(match, "no order summary rendered")
         return int(match.group(1).replace(",", ""))
 
@@ -887,24 +960,29 @@ class AssessmentRenderTests(unittest.TestCase):
             ),
         ):
             app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-            next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
             next(
-                item for item in app.radio
+                item for item in app.button if item.label == "📋 Load example record"
+            ).click().run(timeout=30)
+            next(
+                item
+                for item in app.radio
                 if item.key == "scenario_standard_running_shape"
             ).set_value(form).run(timeout=30)
             next(
-                item for item in app.number_input
+                item
+                for item in app.number_input
                 if item.key == "scenario_standard_feeds_per_day"
             ).set_value(3).run(timeout=30)
             if form == "A rate in mL/hour, run for a set time each feed":
                 next(
-                    item for item in app.number_input
+                    item
+                    for item in app.number_input
                     if item.key == "scenario_standard_hours_per_feed"
                 ).set_value(2.0).run(timeout=30)
             for key, value in setup.items():
-                next(
-                    item for item in app.number_input if item.key == key
-                ).set_value(value).run(timeout=30)
+                next(item for item in app.number_input if item.key == key).set_value(
+                    value
+                ).run(timeout=30)
 
             self.assertFalse(app.exception, f"{form} raised")
             volumes[form] = self._volume_per_feed_from_summary(app)
@@ -916,13 +994,14 @@ class AssessmentRenderTests(unittest.TestCase):
         # with 150 mL flushes before and after each feed plus 150 mL overnight.
         # Entered exactly as the chart writes it, with the assessment untouched.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
         next(
-            item for item in app.text_input if item.key == "feed_search"
-        ).set_value("Isosource Fibre 1.5").run(timeout=30)
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+        next(item for item in app.text_input if item.key == "feed_search").set_value(
+            "Isosource Fibre 1.5"
+        ).run(timeout=30)
         next(
-            item for item in app.button
-            if str(item.key).startswith("add_feed_")
+            item for item in app.button if str(item.key).startswith("add_feed_")
         ).click().run(timeout=30)
         next(
             item for item in app.multiselect if item.key == "feed_candidates"
@@ -936,11 +1015,12 @@ class AssessmentRenderTests(unittest.TestCase):
             ),
             ("scenario_standard_hydration_entry_mode", "Enter flushes as ordered"),
         ):
-            next(
-                item for item in app.radio if item.key == key
-            ).set_value(value).run(timeout=30)
+            next(item for item in app.radio if item.key == key).set_value(value).run(
+                timeout=30
+            )
         next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "scenario_standard_peri_feed_flush_pattern"
         ).select("Before and after each feed").run(timeout=30)
         for key, value in (
@@ -952,11 +1032,12 @@ class AssessmentRenderTests(unittest.TestCase):
             ("scenario_standard_ordered_flush_volume_ml", 150),
             ("scenario_standard_medication_flushes", 0),
         ):
-            next(
-                item for item in app.number_input if item.key == key
-            ).set_value(value).run(timeout=30)
+            next(item for item in app.number_input if item.key == key).set_value(
+                value
+            ).run(timeout=30)
         next(
-            item for item in app.multiselect
+            item
+            for item in app.multiselect
             if item.key == "scenario_standard_chosen_modulars"
         ).set_value([]).run(timeout=30)
 
@@ -979,24 +1060,28 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_rate_and_time_per_feed_is_charted_the_way_it_was_entered(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_running_shape"
-        ).set_value(
-            "Intermittent, each feed run at a rate for a set time"
-        ).run(timeout=30)
+            item for item in app.radio if item.key == "scenario_standard_running_shape"
+        ).set_value("Intermittent, each feed run at a rate for a set time").run(
+            timeout=30
+        )
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_feeds_per_day"
         ).set_value(3).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_hours_per_feed"
         ).set_value(2.0).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         ).set_value(180).run(timeout=30)
 
@@ -1006,24 +1091,28 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_feeding_hours_beyond_a_day_warn_without_changing_the_arithmetic(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_running_shape"
-        ).set_value(
-            "Intermittent, each feed run at a rate for a set time"
-        ).run(timeout=30)
+            item for item in app.radio if item.key == "scenario_standard_running_shape"
+        ).set_value("Intermittent, each feed run at a rate for a set time").run(
+            timeout=30
+        )
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_feeds_per_day"
         ).set_value(6).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_hours_per_feed"
         ).set_value(5.0).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         ).set_value(100).run(timeout=30)
 
@@ -1037,13 +1126,15 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def _propofol_conditional(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
         next(
-            item for item in app.button
-            if item.key == "workspace_nav_en_plan_propofol"
+            item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
         next(
-            item for item in app.radio
+            item for item in app.button if item.key == "workspace_nav_en_plan_propofol"
+        ).click().run(timeout=30)
+        next(
+            item
+            for item in app.radio
             if item.key == "scenario_propofol_propofol_method"
         ).set_value("Changing Propofol rates").run(timeout=30)
         return app
@@ -1054,8 +1145,7 @@ class AssessmentRenderTests(unittest.TestCase):
         # raised before anything drew.
         app = self._propofol_conditional()
         next(
-            item for item in app.radio
-            if item.key == "scenario_propofol_regimen_source"
+            item for item in app.radio if item.key == "scenario_propofol_regimen_source"
         ).set_value("Reviewing a feed already running").run(timeout=30)
 
         self.assertFalse(app.exception)
@@ -1073,17 +1163,17 @@ class AssessmentRenderTests(unittest.TestCase):
         # carried it also carried the layout decision.
         app = self._propofol_conditional()
         next(
-            item for item in app.radio
-            if item.key == "scenario_propofol_regimen_source"
+            item for item in app.radio if item.key == "scenario_propofol_regimen_source"
         ).set_value("Reviewing a feed already running").run(timeout=30)
 
         rate_key = "_propofol_widget_scenario_propofol_conditional_lower_rate_ml_hr"
-        next(
-            item for item in app.number_input if item.key == rate_key
-        ).set_value(20).run(timeout=30)
+        next(item for item in app.number_input if item.key == rate_key).set_value(
+            20
+        ).run(timeout=30)
         # An unrelated change elsewhere reruns the page.
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_propofol_medication_flushes"
         ).set_value(40).run(timeout=30)
 
@@ -1094,13 +1184,15 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_conditional_propofol_mode_offers_no_entry_form_picker(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
         next(
-            item for item in app.button
-            if item.key == "workspace_nav_en_plan_propofol"
+            item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
         next(
-            item for item in app.radio
+            item for item in app.button if item.key == "workspace_nav_en_plan_propofol"
+        ).click().run(timeout=30)
+        next(
+            item
+            for item in app.radio
             if item.key == "scenario_propofol_propofol_method"
         ).set_value("Changing Propofol rates").run(timeout=30)
 
@@ -1117,7 +1209,9 @@ class AssessmentRenderTests(unittest.TestCase):
         # stray columns and left that row with no water value at all. Nothing
         # exercised the intake table with a line running, so it passed.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
         next(
             item for item in app.selectbox if item.key == "assessment_iv_fluid_0"
         ).select("D5W").run(timeout=30)
@@ -1137,7 +1231,9 @@ class AssessmentRenderTests(unittest.TestCase):
     def _every_source_plan(self):
         """Load a plan carrying a feed, modulars, an IV, ONS and flushes."""
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
         next(
             item for item in app.selectbox if item.key == "assessment_iv_fluid_0"
         ).select("D5 1/2 NS").run(timeout=30)
@@ -1145,16 +1241,19 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.number_input if item.key == "assessment_iv_rate_0"
         ).set_value(85).run(timeout=30)
         next(
-            item for item in app.multiselect
+            item
+            for item in app.multiselect
             if item.key == "scenario_standard_chosen_ons"
         ).set_value(["BOOST Plus Calories — Vanilla"]).run(timeout=30)
         product = "nestle-boost-plus-calories-vanilla"
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == f"scenario_standard_ons_containers_{product}"
         ).set_value(1).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == f"scenario_standard_ons_times_{product}"
         ).set_value(2).run(timeout=30)
         self.assertFalse(app.exception)
@@ -1185,18 +1284,27 @@ class AssessmentRenderTests(unittest.TestCase):
 
         self.assertEqual(
             rows["Source"][:6],
-            ["Volume (mL)", "Energy (kcal)", "Protein (g)",
-             "Carbohydrate (g)", "Fat (g)", "Water (mL)"],
+            [
+                "Volume (mL)",
+                "Energy (kcal)",
+                "Protein (g)",
+                "Carbohydrate (g)",
+                "Fat (g)",
+                "Water (mL)",
+            ],
         )
-        self.assertEqual(rows["Isosource 1.5"][:6],
-                         ["920", "1380", "63", "162", "55", "704"])
+        self.assertEqual(
+            rows["Isosource 1.5"][:6], ["920", "1380", "63", "162", "55", "704"]
+        )
         self.assertEqual(rows["Modulars"][:6], ["120", "50", "12", "0", "0", "120"])
         self.assertEqual(rows["IV fluids"][:6], ["2040", "347", "0", "102", "0", "0"])
         self.assertEqual(rows["ONS"][:6], ["474", "720", "28", "90", "28", "366"])
-        self.assertEqual(rows["Water flushes"][:6],
-                         ["1080", "0", "0", "0", "0", "1080"])
-        self.assertEqual(rows["Total"][:6],
-                         ["4634", "2497", "103", "354", "83", "2270"])
+        self.assertEqual(
+            rows["Water flushes"][:6], ["1080", "0", "0", "0", "0", "1080"]
+        )
+        self.assertEqual(
+            rows["Total"][:6], ["4634", "2497", "103", "354", "83", "2270"]
+        )
 
     def test_chart_note_totals_match_the_intake_table(self):
         # The note and the table are summed by separate code today. They must
@@ -1213,12 +1321,15 @@ class AssessmentRenderTests(unittest.TestCase):
         # feed is meant to meet, not the assessed requirement, and the column
         # header cannot say which of the two it is showing.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
         captions = "\n".join(str(item.value) for item in app.caption)
         self.assertNotIn("of the assessed requirement", captions)
 
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_prescription_target_pct"
         ).set_value(50).run(timeout=30)
 
@@ -1236,7 +1347,9 @@ class AssessmentRenderTests(unittest.TestCase):
         # rather than filled enterally, which used to zero the flushes out of
         # the totals even when they were genuinely ordered.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         water_mode = next(
             item for item in app.radio if item.key == "assessment_water_mode"
@@ -1247,15 +1360,18 @@ class AssessmentRenderTests(unittest.TestCase):
         water_mode.set_value(chart_only).run(timeout=30)
 
         next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_standard_hydration_entry_mode"
         ).set_value("Enter flushes as ordered").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_times_per_day"
         ).set_value(6).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_volume_ml"
         ).set_value(100).run(timeout=30)
 
@@ -1267,14 +1383,15 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_chart_note_says_continue_for_a_regimen_already_running(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         before = app.session_state["_chart_note_generated_en_plan"]
         self.assertIn("Enteral nutrition plan:", before)
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_regimen_source"
+            item for item in app.radio if item.key == "scenario_standard_regimen_source"
         ).set_value("Reviewing a feed already running").run(timeout=30)
 
         self.assertFalse(app.exception)
@@ -1288,7 +1405,9 @@ class AssessmentRenderTests(unittest.TestCase):
         # transcription job, where suggested rates for feeds nobody asked about
         # are noise, so the whole order sits in one box instead.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         # Both plan tabs render on every run, so count rather than search: the
         # Propofol tab keeps its own comparison while the EN plan loses one.
@@ -1303,8 +1422,7 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(counts(app), 2)
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_regimen_source"
+            item for item in app.radio if item.key == "scenario_standard_regimen_source"
         ).set_value("Reviewing a feed already running").run(timeout=30)
 
         self.assertFalse(app.exception)
@@ -1329,48 +1447,52 @@ class AssessmentRenderTests(unittest.TestCase):
         # The running order is the fact. Entering it must survive a rerun that
         # the clinician did not cause, which is what the suggestion used to win.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_regimen_source"
+            item for item in app.radio if item.key == "scenario_standard_regimen_source"
         ).set_value("Reviewing a feed already running").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         ).set_value(180).run(timeout=30)
 
         # An unrelated change elsewhere reruns the whole page.
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_medication_flushes"
         ).set_value(60).run(timeout=30)
 
         self.assertFalse(app.exception)
-        self.assertEqual(
-            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
-        )
+        self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 180)
 
     def test_existing_regimen_entry_survives_a_formula_change(self):
         # Comparing an alternative feed is not abandoning the order. The rate
         # keeps its units, so it stays and drives the comparison.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         next(
             item for item in app.multiselect if item.key == "feed_candidates"
         ).set_value(["Isosource 1.5", "Peptamen 1.5"]).run(timeout=30)
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_regimen_source"
+            item for item in app.radio if item.key == "scenario_standard_regimen_source"
         ).set_value("Reviewing a feed already running").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         ).set_value(180).run(timeout=30)
 
         next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "scenario_standard_selected_formula"
         ).select("Peptamen 1.5").run(timeout=30)
 
@@ -1378,16 +1500,16 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertEqual(
             app.session_state["scenario_standard_selected_formula"], "Peptamen 1.5"
         )
-        self.assertEqual(
-            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
-        )
+        self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 180)
 
     def test_starting_a_new_feed_still_discards_a_rate_on_a_formula_change(self):
         # The contrasting half of the test above. The default direction of work
         # must keep its existing behaviour, where a manually entered rate is
         # dropped and the suggestion returns once the feed changes.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         self.assertEqual(
             app.session_state["scenario_standard_regimen_source"],
@@ -1397,15 +1519,15 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.multiselect if item.key == "feed_candidates"
         ).set_value(["Isosource 1.5", "Peptamen 1.5"]).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         ).set_value(180).run(timeout=30)
-        self.assertEqual(
-            app.session_state["scenario_standard_ordered_rate_ml_hr"], 180
-        )
+        self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], 180)
 
         next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "scenario_standard_selected_formula"
         ).select("Peptamen 1.5").run(timeout=30)
 
@@ -1419,36 +1541,43 @@ class AssessmentRenderTests(unittest.TestCase):
         # and after each of three feeds, plus 150 mL overnight, which totals
         # 1050 mL. None of that is derivable from a water goal.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         water_goal_before = app.session_state["assessment_water_target"]
 
         next(
-            item for item in app.radio
-            if item.key == "scenario_standard_running_shape"
+            item for item in app.radio if item.key == "scenario_standard_running_shape"
         ).set_value("Intermittent, each feed a set volume").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_feeds_per_day"
         ).set_value(3).run(timeout=30)
         next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_standard_hydration_entry_mode"
         ).set_value("Enter flushes as ordered").run(timeout=30)
         next(
-            item for item in app.selectbox
+            item
+            for item in app.selectbox
             if item.key == "scenario_standard_peri_feed_flush_pattern"
         ).select("Before and after each feed").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_peri_feed_flush_volume_ml"
         ).set_value(150).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_times_per_day"
         ).set_value(1).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_volume_ml"
         ).set_value(150).run(timeout=30)
 
@@ -1464,18 +1593,23 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_ordered_flush_entry_does_not_round_away_the_entered_volume(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_standard_hydration_entry_mode"
         ).set_value("Enter flushes as ordered").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_times_per_day"
         ).set_value(7).run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_volume_ml"
         ).set_value(149).run(timeout=30)
 
@@ -1488,21 +1622,26 @@ class AssessmentRenderTests(unittest.TestCase):
         # The two modes hold their counts in separate keys, because the ordered
         # mode allows zero and the calculated one does not.
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         mode = next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_standard_hydration_entry_mode"
         )
         mode.set_value("Enter flushes as ordered").run(timeout=30)
         next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_flush_times_per_day"
         ).set_value(0).run(timeout=30)
         self.assertFalse(app.exception)
 
         next(
-            item for item in app.radio
+            item
+            for item in app.radio
             if item.key == "scenario_standard_hydration_entry_mode"
         ).set_value("Calculate flushes from the water goal").run(timeout=30)
 
@@ -1521,7 +1660,8 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertNotIn("Patency flushes", before)
 
         patency = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_patency_flushes"
         )
         patency.set_value(120).run(timeout=30)
@@ -1534,10 +1674,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_adding_formulary_products_preserves_the_existing_en_plan(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         ordered_rate = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         )
         ordered_rate.set_value(55).run(timeout=30)
@@ -1556,20 +1699,42 @@ class AssessmentRenderTests(unittest.TestCase):
             ],
         }
 
-        next(item for item in app.button if item.key == "add_feed_Nepro").click().run(timeout=30)
-        next(item for item in app.button if item.key == "add_modular_MCT Oil").click().run(timeout=30)
+        next(item for item in app.button if item.key == "add_feed_Nepro").click().run(
+            timeout=30
+        )
+        next(
+            item for item in app.button if item.key == "add_modular_MCT Oil"
+        ).click().run(timeout=30)
 
         self.assertFalse(app.exception)
         self.assertIn("Nepro", app.session_state.my_formulas["name"].tolist())
         self.assertIn("MCT Oil", app.session_state.my_modulars["name"].tolist())
-        self.assertEqual(app.session_state["en_total_energy_target"], expected_state["energy"])
-        self.assertEqual(app.session_state["en_protein_target"], expected_state["protein"])
+        self.assertEqual(
+            app.session_state["en_total_energy_target"], expected_state["energy"]
+        )
+        self.assertEqual(
+            app.session_state["en_protein_target"], expected_state["protein"]
+        )
         self.assertEqual(app.session_state["en_water_target"], expected_state["water"])
-        self.assertEqual(list(app.session_state["feed_candidates"]), expected_state["candidates"])
-        self.assertEqual(app.session_state["scenario_standard_selected_formula"], expected_state["formula"])
-        self.assertEqual(app.session_state["scenario_standard_schedule_type"], expected_state["schedule"])
-        self.assertEqual(app.session_state["scenario_standard_feeding_hours"], expected_state["hours"])
-        self.assertEqual(app.session_state["scenario_standard_ordered_rate_ml_hr"], expected_state["rate"])
+        self.assertEqual(
+            list(app.session_state["feed_candidates"]), expected_state["candidates"]
+        )
+        self.assertEqual(
+            app.session_state["scenario_standard_selected_formula"],
+            expected_state["formula"],
+        )
+        self.assertEqual(
+            app.session_state["scenario_standard_schedule_type"],
+            expected_state["schedule"],
+        )
+        self.assertEqual(
+            app.session_state["scenario_standard_feeding_hours"],
+            expected_state["hours"],
+        )
+        self.assertEqual(
+            app.session_state["scenario_standard_ordered_rate_ml_hr"],
+            expected_state["rate"],
+        )
         self.assertEqual(
             list(app.session_state["scenario_standard_chosen_modulars"]),
             expected_state["modulars"],
@@ -1581,11 +1746,14 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_entered_standard_rate_drives_the_planned_intake(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         ordered_rate = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         )
         ordered_rate.set_value(55).run(timeout=30)
@@ -1598,12 +1766,11 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertIn(">1898<", rendered_html)
         self.assertIn("Difference (planned − goal)", rendered_html)
         self.assertIn("<strong>1265 mL</strong> formula/day", rendered_html)
-        self.assertIn(
-            "Selected EN feed: <strong>86 g/day</strong>", rendered_html
-        )
+        self.assertIn("Selected EN feed: <strong>86 g/day</strong>", rendered_html)
 
         reset = next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "scenario_standard_use_suggested_order"
         )
         reset.click().run(timeout=30)
@@ -1619,13 +1786,15 @@ class AssessmentRenderTests(unittest.TestCase):
         ).click().run(timeout=30)
 
         ordered_rate = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_ordered_rate_ml_hr"
         )
         ordered_rate.set_value(20).run(timeout=30)
 
         trickle = next(
-            item for item in app.checkbox
+            item
+            for item in app.checkbox
             if item.key == "scenario_standard_describe_as_trickle"
         )
         trickle.check().run(timeout=30)
@@ -1639,11 +1808,14 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_unedited_order_follows_a_recalculated_suggestion(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        example = next(item for item in app.button if item.label == "📋 Load example record")
+        example = next(
+            item for item in app.button if item.label == "📋 Load example record"
+        )
         example.click().run(timeout=30)
 
         target = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "en_assessment_energy_goal_editor"
         )
         target.set_value(1600).run(timeout=30)
@@ -1665,10 +1837,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_modular_energy_does_not_silently_reduce_the_standard_rate(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         doses = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_modular_doses_nestle-beneprotein"
         )
         doses.set_value(4).run(timeout=30)
@@ -1682,27 +1857,24 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
 
-        suggested_rate = app.session_state[
-            "scenario_standard_ordered_rate_ml_hr"
-        ]
+        suggested_rate = app.session_state["scenario_standard_ordered_rate_ml_hr"]
         ons = next(
-            item for item in app.multiselect
+            item
+            for item in app.multiselect
             if item.key == "scenario_standard_chosen_ons"
         )
         ons.set_value(["BOOST Plus Calories — Vanilla"]).run(timeout=30)
         next(
-            item for item in app.number_input
-            if item.key == (
-                "scenario_standard_ons_containers_"
-                "nestle-boost-plus-calories-vanilla"
-            )
+            item
+            for item in app.number_input
+            if item.key
+            == ("scenario_standard_ons_containers_nestle-boost-plus-calories-vanilla")
         ).set_value(1).run(timeout=30)
         next(
-            item for item in app.number_input
-            if item.key == (
-                "scenario_standard_ons_times_"
-                "nestle-boost-plus-calories-vanilla"
-            )
+            item
+            for item in app.number_input
+            if item.key
+            == ("scenario_standard_ons_times_nestle-boost-plus-calories-vanilla")
         ).set_value(2).run(timeout=30)
 
         self.assertFalse(app.exception)
@@ -1719,16 +1891,12 @@ class AssessmentRenderTests(unittest.TestCase):
             {item.value for item in app.caption},
         )
         chart_note = app.session_state["_chart_note_generated_en_plan"]
-        self.assertIn(
-            "ONS: BOOST Plus Calories — Vanilla, 1 carton BID.", chart_note
-        )
+        self.assertIn("ONS: BOOST Plus Calories — Vanilla, 1 carton BID.", chart_note)
         self.assertIn("At goal, EN and ONS orders provide", chart_note)
         self.assertIn("(EN 1,775 kcal + ONS 720 kcal)", chart_note)
         self.assertIn("Total water provided is 2,266 mL/day", chart_note)
         self.assertIn("ONS water 366 mL", chart_note)
-        self.assertIn(
-            "Hydration: Provide 130 mL water flushes q4h.", chart_note
-        )
+        self.assertIn("Hydration: Provide 130 mL water flushes q4h.", chart_note)
         self.assertFalse(app.session_state["scenario_standard_order_user_edited"])
 
     def test_ons_selected_as_formula_is_treated_as_en(self):
@@ -1743,7 +1911,8 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertNotIn("BOOST Plus Calories — Vanilla", candidates.options)
         self.assertNotIn("BOOST Pudding — Vanilla", candidates.options)
         next(
-            item for item in app.button
+            item
+            for item in app.button
             if item.key == "add_feed_BOOST Plus Calories — Vanilla"
         ).click().run(timeout=30)
         candidates = next(
@@ -1766,10 +1935,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_modular_energy_does_not_silently_reduce_a_propofol_rate(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         doses = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_propofol_modular_doses_nestle-beneprotein"
         )
         doses.set_value(6).run(timeout=30)
@@ -1780,10 +1952,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_reduced_delivery_review_keeps_the_order_and_explains_the_view(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         achieved = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_achieved_delivery_pct"
         )
         achieved.set_value(50).run(timeout=30)
@@ -1821,10 +1996,13 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_modular_preparation_water_is_included_in_the_water_summary(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         preparation_water = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_modular_water_nestle-beneprotein"
         )
         preparation_water.set_value(60).run(timeout=30)
@@ -1846,14 +2024,16 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_liquid_modular_water_is_not_reported_as_feed_water(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
         next(
-            item for item in app.button
-            if item.key == "add_modular_LiquiProtein"
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
+        next(
+            item for item in app.button if item.key == "add_modular_LiquiProtein"
         ).click().run(timeout=30)
 
         modulars = next(
-            item for item in app.multiselect
+            item
+            for item in app.multiselect
             if item.key == "scenario_standard_chosen_modulars"
         )
         modulars.set_value(["Beneprotein", "LiquiProtein"]).run(timeout=30)
@@ -1869,7 +2049,8 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertNotIn("LiquiProtein", chart_notes)
 
         liquid_modular_amount = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_modular_units_abbott-liquiprotein"
         )
         liquid_modular_amount.set_value(6).run(timeout=30)
@@ -1879,7 +2060,8 @@ class AssessmentRenderTests(unittest.TestCase):
         self.assertNotIn("LiquiProtein", chart_notes)
 
         liquid_modular_frequency = next(
-            item for item in app.number_input
+            item
+            for item in app.number_input
             if item.key == "scenario_standard_modular_doses_abbott-liquiprotein"
         )
         liquid_modular_frequency.set_value(1).run(timeout=30)
@@ -1899,15 +2081,24 @@ class AssessmentRenderTests(unittest.TestCase):
             item for item in app.button if item.label == "📋 Load example record"
         ).click().run(timeout=30)
 
-        standard_formula = load_master_formulas().loc[
-            lambda frame: frame["name"] == "Isosource 1.5"
-        ].iloc[0].to_dict()
-        propofol_formula = load_master_formulas().loc[
-            lambda frame: frame["name"] == "Peptamen 1.5"
-        ].iloc[0].to_dict()
-        modular = load_master_modulars().loc[
-            lambda frame: frame["id"] == "nestle-beneprotein"
-        ].iloc[0].to_dict()
+        standard_formula = (
+            load_master_formulas()
+            .loc[lambda frame: frame["name"] == "Isosource 1.5"]
+            .iloc[0]
+            .to_dict()
+        )
+        propofol_formula = (
+            load_master_formulas()
+            .loc[lambda frame: frame["name"] == "Peptamen 1.5"]
+            .iloc[0]
+            .to_dict()
+        )
+        modular = (
+            load_master_modulars()
+            .loc[lambda frame: frame["id"] == "nestle-beneprotein"]
+            .iloc[0]
+            .to_dict()
+        )
         standard = practical_feed_delivery(
             standard_formula,
             app.session_state["en_total_energy_target"],
@@ -1986,7 +2177,9 @@ class AssessmentRenderTests(unittest.TestCase):
 
     def test_chart_note_uses_per_administration_modular_frequency(self):
         app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
-        next(item for item in app.button if item.label == "📋 Load example record").click().run(timeout=30)
+        next(
+            item for item in app.button if item.label == "📋 Load example record"
+        ).click().run(timeout=30)
 
         self.assertFalse(app.exception)
         chart_notes = app.session_state["_chart_note_generated_en_plan"]

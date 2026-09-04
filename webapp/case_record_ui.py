@@ -27,7 +27,12 @@ def render_case_record_actions() -> str:
             )
     with upload_column:
         with st.popover("📂 Open a saved record", width="stretch"):
-            uploaded = st.file_uploader("Open a saved record", type="xlsx", key="case_record_upload", label_visibility="collapsed")
+            uploaded = st.file_uploader(
+                "Open a saved record",
+                type="xlsx",
+                key="case_record_upload",
+                label_visibility="collapsed",
+            )
             st.caption("Opening a file replaces the current record and product lists.")
             st.button(
                 "Open it",

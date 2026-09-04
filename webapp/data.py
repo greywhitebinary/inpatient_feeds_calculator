@@ -13,53 +13,112 @@ MODULAR_PATH = PROJECT_ROOT / "formulary_working" / "modular_products_working.cs
 ONS_PATH = PROJECT_ROOT / "formulary_working" / "ons_products_working.csv"
 
 FORMULA_REQUIRED_COLUMNS = {
-    "name", "brand", "kcal_per_mL", "protein_per_mL", "fat_per_mL",
-    "carbohydrate_per_mL", "fibre_per_mL", "sodium_per_mL", "potassium_per_mL",
-    "calcium_per_mL", "magnesium_per_mL", "phosphorus_per_mL", "free_water_per_mL",
-    "source", "verified",
+    "name",
+    "brand",
+    "kcal_per_mL",
+    "protein_per_mL",
+    "fat_per_mL",
+    "carbohydrate_per_mL",
+    "fibre_per_mL",
+    "sodium_per_mL",
+    "potassium_per_mL",
+    "calcium_per_mL",
+    "magnesium_per_mL",
+    "phosphorus_per_mL",
+    "free_water_per_mL",
+    "source",
+    "verified",
 }
 MODULAR_REQUIRED_COLUMNS = {
-    "id", "product_type", "name", "brand", "dose_unit", "basis_amount",
-    "basis_description", "kcal_per_basis", "protein_g_per_basis",
-    "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
-    "free_water_ml_per_basis", "preparation_water_rule", "source", "verified",
-    "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
-    "magnesium_mg_per_basis", "phosphorus_mg_per_basis",
+    "id",
+    "product_type",
+    "name",
+    "brand",
+    "dose_unit",
+    "basis_amount",
+    "basis_description",
+    "kcal_per_basis",
+    "protein_g_per_basis",
+    "carbohydrate_g_per_basis",
+    "fat_g_per_basis",
+    "fibre_g_per_basis",
+    "free_water_ml_per_basis",
+    "preparation_water_rule",
+    "source",
+    "verified",
+    "sodium_mg_per_basis",
+    "potassium_mg_per_basis",
+    "calcium_mg_per_basis",
+    "magnesium_mg_per_basis",
+    "phosphorus_mg_per_basis",
 }
 ONS_REQUIRED_COLUMNS = FORMULA_REQUIRED_COLUMNS | {
-    "id", "product_name", "flavour", "container_size_ml", "package_unit",
+    "id",
+    "product_name",
+    "flavour",
+    "container_size_ml",
+    "package_unit",
 }
 ONS_SERVING_COLUMNS = {
-    "calculation_basis", "serving_size_g", "serving_unit",
-    "kcal_per_serving", "protein_g_per_serving", "fat_g_per_serving",
-    "carbohydrate_g_per_serving", "fibre_g_per_serving",
-    "sodium_mg_per_serving", "potassium_mg_per_serving",
-    "calcium_mg_per_serving", "magnesium_mg_per_serving",
-    "phosphorus_mg_per_serving", "free_water_ml_per_serving",
+    "calculation_basis",
+    "serving_size_g",
+    "serving_unit",
+    "kcal_per_serving",
+    "protein_g_per_serving",
+    "fat_g_per_serving",
+    "carbohydrate_g_per_serving",
+    "fibre_g_per_serving",
+    "sodium_mg_per_serving",
+    "potassium_mg_per_serving",
+    "calcium_mg_per_serving",
+    "magnesium_mg_per_serving",
+    "phosphorus_mg_per_serving",
+    "free_water_ml_per_serving",
 }
 
 FORMULA_NUMERIC_COLUMNS = {
-    "kcal_per_mL", "protein_per_mL", "fat_per_mL", "carbohydrate_per_mL",
-    "sodium_per_mL", "potassium_per_mL", "calcium_per_mL",
-    "magnesium_per_mL", "phosphorus_per_mL", "free_water_per_mL",
+    "kcal_per_mL",
+    "protein_per_mL",
+    "fat_per_mL",
+    "carbohydrate_per_mL",
+    "sodium_per_mL",
+    "potassium_per_mL",
+    "calcium_per_mL",
+    "magnesium_per_mL",
+    "phosphorus_per_mL",
+    "free_water_per_mL",
 }
 FORMULA_OPTIONAL_NUMERIC_COLUMNS = {"fibre_per_mL"}
 MODULAR_NUMERIC_COLUMNS = {
-    "basis_amount", "kcal_per_basis", "protein_g_per_basis",
-    "carbohydrate_g_per_basis", "fat_g_per_basis", "fibre_g_per_basis",
+    "basis_amount",
+    "kcal_per_basis",
+    "protein_g_per_basis",
+    "carbohydrate_g_per_basis",
+    "fat_g_per_basis",
+    "fibre_g_per_basis",
 }
 MODULAR_OPTIONAL_NUMERIC_COLUMNS = {
-    "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
-    "magnesium_mg_per_basis", "phosphorus_mg_per_basis",
+    "sodium_mg_per_basis",
+    "potassium_mg_per_basis",
+    "calcium_mg_per_basis",
+    "magnesium_mg_per_basis",
+    "phosphorus_mg_per_basis",
     "free_water_ml_per_basis",
 }
 ONS_NUMERIC_COLUMNS = FORMULA_NUMERIC_COLUMNS | {
-    "container_size_ml", "serving_size_g", "kcal_per_serving",
-    "protein_g_per_serving", "fat_g_per_serving",
-    "carbohydrate_g_per_serving", "fibre_g_per_serving",
-    "sodium_mg_per_serving", "potassium_mg_per_serving",
-    "calcium_mg_per_serving", "magnesium_mg_per_serving",
-    "phosphorus_mg_per_serving", "free_water_ml_per_serving",
+    "container_size_ml",
+    "serving_size_g",
+    "kcal_per_serving",
+    "protein_g_per_serving",
+    "fat_g_per_serving",
+    "carbohydrate_g_per_serving",
+    "fibre_g_per_serving",
+    "sodium_mg_per_serving",
+    "potassium_mg_per_serving",
+    "calcium_mg_per_serving",
+    "magnesium_mg_per_serving",
+    "phosphorus_mg_per_serving",
+    "free_water_ml_per_serving",
 }
 ONS_OPTIONAL_NUMERIC_COLUMNS = FORMULA_OPTIONAL_NUMERIC_COLUMNS
 
@@ -73,8 +132,12 @@ ONS_OPTIONAL_NUMERIC_COLUMNS = FORMULA_OPTIONAL_NUMERIC_COLUMNS
 # absence, not a missing figure. Marking those undisclosed would raise a flag on
 # ten products where nothing is unknown.
 UNDISCLOSED_WHEN_BLANK_MODULAR = {
-    "sodium_mg_per_basis", "potassium_mg_per_basis", "calcium_mg_per_basis",
-    "magnesium_mg_per_basis", "phosphorus_mg_per_basis", "free_water_ml_per_basis",
+    "sodium_mg_per_basis",
+    "potassium_mg_per_basis",
+    "calcium_mg_per_basis",
+    "magnesium_mg_per_basis",
+    "phosphorus_mg_per_basis",
+    "free_water_ml_per_basis",
 }
 
 
@@ -127,16 +190,24 @@ def _normalise_ons_schema(frame: pd.DataFrame) -> pd.DataFrame:
         cleaned["serving_unit"] = ""
     if "serving_size_g" not in cleaned:
         cleaned["serving_size_g"] = 0
-    for column in ONS_SERVING_COLUMNS - {"calculation_basis", "serving_unit", "serving_size_g"}:
+    for column in ONS_SERVING_COLUMNS - {
+        "calculation_basis",
+        "serving_unit",
+        "serving_size_g",
+    }:
         if column not in cleaned:
             cleaned[column] = 0
-    serving_rows = cleaned["calculation_basis"].astype(str).str.strip().str.casefold() == "serving"
+    serving_rows = (
+        cleaned["calculation_basis"].astype(str).str.strip().str.casefold() == "serving"
+    )
     # Serving-based products do not have a liquid container or per-millilitre
     # values. Missing cells in those legacy fields are therefore treated as
     # zero, while any non-numeric value is still rejected by validation.
     for column in FORMULA_NUMERIC_COLUMNS | {"container_size_ml"}:
         if serving_rows.any():
-            cleaned.loc[serving_rows, column] = cleaned.loc[serving_rows, column].fillna(0)
+            cleaned.loc[serving_rows, column] = cleaned.loc[
+                serving_rows, column
+            ].fillna(0)
     if serving_rows.any():
         cleaned.loc[serving_rows, "fibre_per_mL"] = cleaned.loc[
             serving_rows, "fibre_per_mL"
@@ -160,16 +231,30 @@ def _validate_ons_rows(frame: pd.DataFrame, label: str) -> pd.DataFrame:
     if (~basis.isin({"container_ml", "serving"})).any():
         raise ValueError(f"{label} has an invalid calculation basis.")
     container_rows = basis == "container_ml"
-    if ((cleaned.loc[container_rows, "kcal_per_mL"] <= 0)
-            | (cleaned.loc[container_rows, "container_size_ml"] <= 0)).any():
-        raise ValueError(f"{label} requires positive container size and kcal_per_mL for liquid ONS.")
+    if (
+        (cleaned.loc[container_rows, "kcal_per_mL"] <= 0)
+        | (cleaned.loc[container_rows, "container_size_ml"] <= 0)
+    ).any():
+        raise ValueError(
+            f"{label} requires positive container size and kcal_per_mL for liquid ONS."
+        )
     serving_rows = basis == "serving"
     if serving_rows.any():
         if cleaned.loc[serving_rows, "serving_size_g"].le(0).any():
-            raise ValueError(f"{label} requires a positive serving size for serving-based ONS.")
+            raise ValueError(
+                f"{label} requires a positive serving size for serving-based ONS."
+            )
         if cleaned.loc[serving_rows, "kcal_per_serving"].le(0).any():
-            raise ValueError(f"{label} requires positive kcal_per_serving for serving-based ONS.")
-        if cleaned.loc[serving_rows, "serving_unit"].astype(str).str.strip().eq("").any():
+            raise ValueError(
+                f"{label} requires positive kcal_per_serving for serving-based ONS."
+            )
+        if (
+            cleaned.loc[serving_rows, "serving_unit"]
+            .astype(str)
+            .str.strip()
+            .eq("")
+            .any()
+        ):
             raise ValueError(f"{label} requires a serving unit for serving-based ONS.")
     return cleaned
 
@@ -199,7 +284,9 @@ def validate_product_rows(
     for column in numeric_columns:
         converted = pd.to_numeric(cleaned[column], errors="coerce")
         if converted.isna().any() or (converted < 0).any():
-            raise ValueError(f"{label} has a blank, non-numeric, or negative value in {column}.")
+            raise ValueError(
+                f"{label} has a blank, non-numeric, or negative value in {column}."
+            )
         if column in (positive_numeric_columns or set()) and (converted <= 0).any():
             raise ValueError(f"{label} requires a value greater than zero in {column}.")
         cleaned[column] = converted
@@ -208,7 +295,9 @@ def validate_product_rows(
         converted = pd.to_numeric(raw, errors="coerce")
         has_invalid = raw.notna() & converted.isna()
         if has_invalid.any() or (converted.dropna() < 0).any():
-            raise ValueError(f"{label} has a blank, non-numeric, or negative value in {column}.")
+            raise ValueError(
+                f"{label} has a blank, non-numeric, or negative value in {column}."
+            )
         cleaned[column] = converted
     return cleaned
 
@@ -273,7 +362,9 @@ def import_formulary_workbook(
     required_sheets = {"My Formulary", "My Modulars"}
     missing = required_sheets - set(workbook.sheet_names)
     if missing:
-        raise ValueError("Workbook must contain sheets named: " + ", ".join(sorted(required_sheets)))
+        raise ValueError(
+            "Workbook must contain sheets named: " + ", ".join(sorted(required_sheets))
+        )
     formulas = pd.read_excel(workbook, sheet_name="My Formulary")
     modulars = pd.read_excel(workbook, sheet_name="My Modulars")
     ons = (
