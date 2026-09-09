@@ -112,6 +112,24 @@ screenshots, and other private local material outside this repository. The
 repository should remain the single source of truth for the application code,
 tests, public assets, and maintained product data.
 
+## Licence
+
+The application code, its tests, and its documentation are [MIT](LICENSE).
+Use it, fork it, adapt it for another region's product data.
+
+The licence includes the standard warranty disclaimer, which matters here: the
+software is provided as is, and clinical responsibility stays with the dietitian
+using it.
+
+The product data is a separate question. `formulary_working/*.csv` holds values
+transcribed from Nestlé Health Science Canada and Abbott Nutrition Canada product
+documents, which carry their own terms, so the MIT grant is scoped to the software
+and does not extend to that compilation. `formula_sources/SOURCES.md` records which
+document each row was reviewed against, and the documents themselves are never
+committed here. The dataset is a starting library rather than an approved
+institutional formulary — see [Product data and clinical
+checks](#product-data-and-clinical-checks) for what to verify before clinical use.
+
 See `configurable_rd_calculation_workspace_v2.md` for the V1 scope and clinical-workflow decisions.
 
 For feedback, open an [issue on GitHub](https://github.com/greywhitebinary/inpatient_feeds_calculator/issues)

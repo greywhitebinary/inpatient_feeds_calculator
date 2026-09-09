@@ -1,0 +1,10 @@
+# Everything needed to work on this repo: the runtime dependencies plus the
+# tooling that CI runs. Install THIS file locally, not webapp/requirements.txt,
+# which carries only what the deployed app imports.
+#
+#   .venv/bin/pip install -r requirements-dev.txt
+-r webapp/requirements.txt
+
+pytest>=8.0
+black>=24.0
+ruff>=0.4
