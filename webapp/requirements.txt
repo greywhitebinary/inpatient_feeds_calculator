@@ -1,4 +1,24 @@
-streamlit>=1.62
+# streamlit is PINNED EXACTLY - do not loosen to >=1.62.
+#
+# webapp/styles.css targets Streamlit's internal data-testid attributes, which
+# carry no stability guarantee across releases. The sibling project BTF-Calc
+# learned what that costs: it ran a loose spec, Streamlit Community Cloud
+# resolved it against whatever was newest AT DEPLOY TIME rather than what had
+# been tested, landed on 1.60.0, and silently broke the tab-label CSS.
+#
+# Recovery is awkward, which is why the pin has to be exact rather than a
+# range. "Reboot app" does not trigger a dependency rebuild on Cloud; only a
+# change to this file does. So a loose spec drifts and still has to be edited
+# to pin it back, which means it buys nothing and costs a broken deploy.
+#
+# Upgrading is a decision, not a drift. Run .github/workflows/canary.yml
+# first: it installs the latest releases and runs scripts/check_css_hooks.py
+# against them, which answers whether the selectors this app depends on still
+# exist. Then upgrade, verify, and update the date below.
+#
+# Verified against this app's data-testid hooks and its 206 tests on
+# 2026-09-09. Hooks also confirmed present in 1.63.0 on the same date.
+streamlit==1.62.0
 pandas>=2.2
 openpyxl>=3.1
 watchdog>=6.0
