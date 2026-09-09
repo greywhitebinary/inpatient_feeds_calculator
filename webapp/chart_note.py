@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from hashlib import sha256
 from html import escape
 
 import streamlit as st
@@ -16,85 +15,7 @@ from calculations import (
     penn_state_2010_kcal,
 )
 from constants import IV_FLUIDS, MAX_IV_FLUID_ORDERS, PROTEIN_WEIGHT_SAME_AS_ENERGY
-
-CHART_NOTE_EDITOR_HTML = """
-<div class="chart-note-toolbar">
-  <button data-action="copy" type="button">Copy chart note</button>
-  <button data-action="refresh" type="button">Update chart note from calculator</button>
-  <span data-role="status">Calculations changed. Updating the note will replace your edits.</span>
-  <span data-role="copy-status"></span>
-</div>
-<div class="chart-note-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editable chart note"></div>
-"""
-
-CHART_NOTE_EDITOR_CSS = """
-:host { color: var(--st-text-color); font-family: var(--st-font); }
-.chart-note-toolbar { background: transparent; display: flex; gap: .55rem; align-items: center; flex-wrap: wrap; margin-bottom: .65rem; }
-button { border: 1px solid color-mix(in srgb, var(--st-text-color) 20%, transparent); border-radius: .5rem; background: var(--st-background-color); color: var(--st-text-color); cursor: pointer; font: inherit; padding: .25rem .75rem; }
-button:hover { background: color-mix(in srgb, var(--st-primary-color) 15%, transparent); filter: none; }
-button[data-action="refresh"] { display: none; }
-[data-role="status"] { background: transparent !important; border: 0; box-shadow: none; color: var(--st-text-color); display: none; font-size: .875rem; opacity: 1; padding: 0; }
-[data-role="copy-status"] { color: #176a3a; font-size: .9rem; }
-.chart-note-editor { border: 1px solid var(--st-border-color); border-radius: .45rem; min-height: 610px; padding: .9rem 1rem; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
-.chart-note-editor:focus { border-color: var(--st-primary-color); box-shadow: 0 0 0 2px color-mix(in srgb, var(--st-primary-color) 18%, transparent); outline: none; }
-"""
-
-CHART_NOTE_EDITOR_JS = """
-export default function(component) {
-  const { data, parentElement } = component;
-  const editor = parentElement.querySelector('.chart-note-editor');
-  const refresh = parentElement.querySelector('[data-action="refresh"]');
-  const status = parentElement.querySelector('[data-role="status"]');
-  const copyStatus = parentElement.querySelector('[data-role="copy-status"]');
-  let saved;
-  try { saved = JSON.parse(sessionStorage.getItem(data.storageKey)); } catch (_) { saved = null; }
-  if (!saved) {
-    saved = {html: data.generatedHtml, generatedHtml: data.generatedHtml, signature: data.signature};
-  } else if (saved.signature !== data.signature) {
-    if (saved.html === saved.generatedHtml) {
-      saved = {html: data.generatedHtml, generatedHtml: data.generatedHtml, signature: data.signature};
-    } else {
-      refresh.style.display = 'inline-block';
-      status.style.display = 'inline';
-    }
-  }
-  editor.innerHTML = saved.html;
-  sessionStorage.setItem(data.storageKey, JSON.stringify(saved));
-  editor.oninput = () => {
-    saved.html = editor.innerHTML;
-    sessionStorage.setItem(data.storageKey, JSON.stringify(saved));
-    copyStatus.textContent = '';
-  };
-  refresh.onclick = () => {
-    saved = {html: data.generatedHtml, generatedHtml: data.generatedHtml, signature: data.signature};
-    editor.innerHTML = saved.html;
-    sessionStorage.setItem(data.storageKey, JSON.stringify(saved));
-    refresh.style.display = 'none';
-    status.style.display = 'none';
-  };
-  parentElement.querySelector('[data-action="copy"]').onclick = async () => {
-    const plain = editor.innerText;
-    try {
-      if (window.ClipboardItem && navigator.clipboard.write) {
-        await navigator.clipboard.write([new ClipboardItem({
-          'text/html': new Blob([editor.innerHTML], {type: 'text/html'}),
-          'text/plain': new Blob([plain], {type: 'text/plain'})
-        })]);
-      } else {
-        await navigator.clipboard.writeText(plain);
-      }
-      copyStatus.textContent = 'Copied.';
-    } catch (_) {
-      const range = document.createRange();
-      range.selectNodeContents(editor);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-      copyStatus.textContent = 'Select Copy in your browser to finish copying.';
-    }
-  };
-}
-"""
+from copy_block import render_copy_block
 
 
 def _iv_assessment_lines(state: Mapping[str, object]) -> list[str]:
@@ -737,24 +658,29 @@ def render_chart_note_editor(
     *,
     editor_id: str,
     case_token: str,
-    height: int = 760,
 ) -> None:
-    """Render a rich, browser-local draft that is excluded from saved records."""
-    signature = sha256(generated_html.encode("utf-8")).hexdigest()
+    """Render a rich, browser-local draft that is excluded from saved records.
+
+    The markup, styling and clipboard behaviour all live in copy_block, which
+    BTF-Calc shares, so the two apps present the same control. What stays here
+    is what is specific to this app: the storage key, and publishing the
+    generated text to session state.
+
+    `height` is gone. Components v2 already defaults to height="content", so
+    the old explicit 760/860 were overriding self-sizing for no benefit.
+    """
     storage_key = f"encalc-chart-note:{case_token}:{editor_id}"
+    # Read by tests and by nothing else at runtime: the editable draft lives in
+    # the browser's sessionStorage and never comes back to Python, which is how
+    # it stays out of saved records.
     st.session_state[f"_chart_note_generated_{editor_id}"] = generated_html
-    editor_component = st.components.v2.component(
-        f"encalc_chart_note_editor_{editor_id}",
-        html=CHART_NOTE_EDITOR_HTML,
-        css=CHART_NOTE_EDITOR_CSS,
-        js=CHART_NOTE_EDITOR_JS,
-    )
-    editor_component(
-        data={
-            "generatedHtml": generated_html,
-            "signature": signature,
-            "storageKey": storage_key,
-        },
-        key=f"_chart_note_editor_{case_token}_{editor_id}",
-        height=height,
+    render_copy_block(
+        generated_html,
+        block_id=f"chart_note_{editor_id}",
+        label="Copy note",
+        editable=True,
+        storage_key=storage_key,
+        # The case token remounts the editor for a new record without
+        # registering a second component; see render_copy_block's docstring.
+        instance=case_token,
     )

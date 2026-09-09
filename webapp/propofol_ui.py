@@ -277,6 +277,5 @@ def show_icu_propofol() -> None:
             build_chart_note_html(st.session_state, [result]),
             editor_id="propofol",
             case_token=str(st.session_state["_chart_note_case_token"]),
-            height=860,
         )
     render_save_record("icu_propofol")
