@@ -47,7 +47,6 @@ from constants import (
     WATER_MODE_CHART_ONLY,
 )
 from session_state import (
-    iv_fluid_orders,
     iv_fluid_totals,
     mark_order_as_edited,
     propofol_widget_key,
@@ -509,7 +508,9 @@ def render_en_scenario(
     # Intravenous dextrose supplies energy the feed no longer has to, so it
     # reduces the EN target the same way propofol does. Volume is not
     # subtracted anywhere: the goals are entered net of intravenous fluid.
-    iv_orders = iv_fluid_orders()
+    # Modular energy is deliberately not deducted here. It appears in the final
+    # totals, but deducting it would silently displace formula volume, so
+    # propofol and intravenous energy stay the only intentional deductions.
     iv_fluids = iv_fluid_totals()
     comparison_energy_target = max(
         total_energy_target - propofol["kcal"] - iv_fluids["energy_kcal"], 0
@@ -1273,10 +1274,6 @@ def render_en_scenario(
                 ),
                 decimals=DAILY_INTAKE_DECIMALS,
             )
-    # Protein modulars supplement the established EN order. Their energy is
-    # shown in the final totals, but does not silently displace formula volume.
-    # Propofol remains the intentional non-enteral energy deduction.
-    final_formula_energy_target = comparison_energy_target
     if conditional_mode:
         schedule_description = (
             "; ".join(
@@ -1779,22 +1776,18 @@ def render_en_scenario(
     # adder, so the two cannot drift apart.
     chart_total = combined_intake(planned_rows)
     return {
-        "label": label,
         "propofol_rate": propofol_rate,
         "propofol_hours": propofol_hours,
         "propofol": propofol,
         "iv_fluids": iv_fluids,
-        "iv_orders": iv_orders,
         "propofol_method": propofol_method,
         "propofol_conditions": conditions,
         "conditional_orders": conditional_orders,
         "feeding_hours": hours,
         "estimated_energy_requirement": energy_requirement,
         "prescription_target_pct": prescription_target_pct,
-        "prescription_energy_target": total_energy_target,
         "prescription_interruption_note": prescription_interruption_note,
         "formula": formula,
-        "formula_energy_target": final_formula_energy_target,
         "schedule_description": schedule_description,
         "modulars": modular_note,
         "source_frame": source_frame,
@@ -1852,7 +1845,6 @@ def render_en_scenario(
         "patency_flushes_ml": number(patency),
         "describe_as_trickle": bool(describe_as_trickle),
         "regimen_already_running": reviewing_regimen,
-        "view_percent": view_percent,
         "intake_heading": (
             "Planned daily intake"
             if view_percent == 100

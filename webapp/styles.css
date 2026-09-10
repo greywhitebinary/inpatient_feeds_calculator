@@ -76,9 +76,7 @@ html {
 /* Spread the workspace tabs across the width by distributing the space between
    them rather than giving each an equal share. Each tab stays as wide as its
    own label, so the selected-tab underline marks the word rather than a
-   quarter of the page, and no override of the built-in indicator is needed.
-   The Propofol page's own subtabs are a local choice rather than page
-   navigation, so they stay packed left. */
+   quarter of the page, and no override of the built-in indicator is needed. */
 [data-testid="stTabs"] > div > [role="tablist"] {
     display: flex;
     justify-content: space-between;
@@ -86,14 +84,6 @@ html {
 
 [data-testid="stTabs"] > div > [role="tablist"] > [role="tab"] {
     margin-right: 0;
-}
-
-[class*="st-key-propofol_scenario_tabs"] [role="tablist"] {
-    justify-content: flex-start;
-}
-
-[class*="st-key-propofol_scenario_tabs"] [role="tab"] {
-    margin-right: 1.25rem;
 }
 
 [role="tab"] {
@@ -111,13 +101,6 @@ html {
 [role="tab"] span {
     font-size: inherit !important;
     font-weight: inherit !important;
-}
-
-/* Low/high propofol choices are local subtabs, not page navigation. */
-[class*="st-key-propofol_scenario_tabs"] [role="tab"] p,
-[class*="st-key-propofol_scenario_tabs"] button[data-testid="stTab"] p,
-[class*="st-key-propofol_scenario_tabs"] button[data-baseweb="tab"] p {
-    font-size: 1.05rem !important;
 }
 
 [role="tab"][aria-selected="true"],

@@ -548,10 +548,6 @@ def seed_scenario_state(
                 if st.session_state.get(migrated_include_key, number(migrated_rate) > 0)
                 else 0.0
             )
-        elif scenario_id == "lower":
-            st.session_state[propofol_key] = number(
-                st.session_state.get("assessment_propofol_rate")
-            )
         else:
             st.session_state[propofol_key] = None
     propofol_hours_key = scenario_key(scenario_id, "propofol_hours")
