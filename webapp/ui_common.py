@@ -58,23 +58,37 @@ def render_worked_bounds(
         )
 
 
-def render_alert(kind: str, message: str) -> None:
-    """Render a warning, error or success box in the workspace palette.
+def render_alert(kind: str, message: str, *, allow_html: bool = False) -> None:
+    """Render a call-out box in the workspace palette.
+
+    Shared with EN-Calc, which carries the same function and the same
+    .app-alert CSS, so a warning looks the same in both calculators.
 
     Streamlit's own alerts carry a cool, saturated palette that belongs to no
-    other part of this page, and their four kinds are told apart only by
-    generated class names, so they cannot be restyled from a stylesheet with
-    any confidence that the selector will survive an upgrade. This renders the
+    other part of this page, and their kinds are told apart only by generated
+    class names, so they cannot be restyled from a stylesheet with any
+    confidence that the selector will survive an upgrade. This renders the
     same thing in the project's own markup instead, which is how every other
     styled block here is built.
 
+    `kind` is one of warning, error, success, info or guidance. Guidance is
+    the empty-state "nothing here yet" box this app used to draw with
+    _note(), and it keeps that function's maroon rather than the info blue --
+    a recorded decision from 2026-07-20.
+
     `role` follows the same rule Streamlit uses: a problem or a caution
     interrupts a screen reader, while a confirmation does not.
+
+    The message is ESCAPED unless `allow_html` says otherwise. _note() never
+    escaped, and several of its callers passed str(exc) or CNF-derived text
+    straight into a div, so a food name containing "<" could break the box.
+    Pass allow_html=True only for markup this module's own callers build --
+    never for anything that came from a file, a widget or an exception.
     """
     role = "alert" if kind in {"error", "warning"} else "status"
+    body = message if allow_html else escape(message)
     st.markdown(
-        f'<div class="app-alert app-alert--{escape(kind)}" role="{role}">'
-        f"{escape(message)}</div>",
+        f'<div class="app-alert app-alert--{escape(kind)}" role="{role}">{body}</div>',
         unsafe_allow_html=True,
     )
 
