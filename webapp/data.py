@@ -88,7 +88,40 @@ FORMULA_NUMERIC_COLUMNS = {
     "phosphorus_per_mL",
     "free_water_per_mL",
 }
-FORMULA_OPTIONAL_NUMERIC_COLUMNS = {"fibre_per_mL"}
+# The micronutrient columns, and the two figures recording the volume at which a
+# manufacturer says its feed meets the Dietary Reference Intakes. They are
+# optional rather than required, because a blank is legitimate wherever a panel
+# discloses nothing. Text and negative numbers are not legitimate anywhere, and
+# until these joined this set nothing rejected them: a mistyped sodium in an
+# imported workbook failed loudly while a mistyped selenium reached the
+# micronutrient panel and rendered as a figure.
+FORMULA_ADEQUACY_COLUMNS = {
+    "dri_volume_ml",
+    "dri_micronutrients_met",
+}
+FORMULA_MICRONUTRIENT_COLUMNS = {
+    "vitamin_a_rae_ug_per_mL",
+    "retinol_ug_per_mL",
+    "beta_carotene_ug_per_mL",
+    "vitamin_d_ug_per_mL",
+    "vitamin_e_mg_per_mL",
+    "vitamin_c_mg_per_mL",
+    "thiamine_mg_per_mL",
+    "riboflavin_mg_per_mL",
+    "vitamin_b6_mg_per_mL",
+    "pantothenic_acid_mg_per_mL",
+    "niacin_preformed_mg_per_mL",
+    "folate_dfe_ug_per_mL",
+    "vitamin_b12_ug_per_mL",
+    "iron_per_mL",
+    "zinc_mg_per_mL",
+    "copper_mg_per_mL",
+    "manganese_mg_per_mL",
+    "selenium_ug_per_mL",
+}
+FORMULA_OPTIONAL_NUMERIC_COLUMNS = (
+    {"fibre_per_mL"} | FORMULA_MICRONUTRIENT_COLUMNS | FORMULA_ADEQUACY_COLUMNS
+)
 MODULAR_NUMERIC_COLUMNS = {
     "basis_amount",
     "kcal_per_basis",
@@ -120,7 +153,10 @@ ONS_NUMERIC_COLUMNS = FORMULA_NUMERIC_COLUMNS | {
     "phosphorus_mg_per_serving",
     "free_water_ml_per_serving",
 }
-ONS_OPTIONAL_NUMERIC_COLUMNS = FORMULA_OPTIONAL_NUMERIC_COLUMNS
+# An ONS panel carries no micronutrients, so this stays the one optional column
+# it has always been. Sharing the formula set would make validation look for
+# columns the ONS file does not contain.
+ONS_OPTIONAL_NUMERIC_COLUMNS = {"fibre_per_mL"}
 
 # Columns where a blank cell means "the manufacturer did not disclose it" rather
 # than "the value is zero". These are kept null so the calculation layer can
@@ -145,10 +181,7 @@ UNDISCLOSED_WHEN_BLANK_MODULAR = {
 # blank is not a zero: it means the documents we hold make no such claim for
 # that product, which is true of every Abbott row. Zero-filling would read as
 # "meets the DRI in 0 mL", the opposite of what the blank means.
-UNDISCLOSED_WHEN_BLANK_FORMULA = {
-    "dri_volume_ml",
-    "dri_micronutrients_met",
-}
+UNDISCLOSED_WHEN_BLANK_FORMULA = FORMULA_ADEQUACY_COLUMNS
 
 # Free-text provenance columns. `data_note` records why a row holds the value it
 # does, where the reason is not obvious from the citation alone: which basis
