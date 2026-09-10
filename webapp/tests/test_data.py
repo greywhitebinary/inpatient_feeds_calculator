@@ -59,6 +59,35 @@ class FormularyImportTests(unittest.TestCase):
             check_dtype=False,
         )
 
+    def test_rejects_text_in_a_micronutrient_column(self):
+        # These reach the plan's micronutrient panel, so a typo in an edited
+        # workbook has to fail here rather than render as an amount.
+        formulas = self.formulas.astype({"selenium_ug_per_mL": "object"}).copy()
+        formulas.loc[formulas.index[0], "selenium_ug_per_mL"] = "not-a-number"
+        with self.assertRaisesRegex(ValueError, "selenium_ug_per_mL"):
+            validate_import(formulas, self.modulars, self.ons)
+
+    def test_rejects_a_negative_micronutrient(self):
+        formulas = self.formulas.copy()
+        formulas.loc[formulas.index[0], "zinc_mg_per_mL"] = -1
+        with self.assertRaisesRegex(ValueError, "zinc_mg_per_mL"):
+            validate_import(formulas, self.modulars, self.ons)
+
+    def test_rejects_text_in_the_adequacy_volume(self):
+        formulas = self.formulas.astype({"dri_volume_ml": "object"}).copy()
+        formulas.loc[formulas.index[0], "dri_volume_ml"] = "about a litre"
+        with self.assertRaisesRegex(ValueError, "dri_volume_ml"):
+            validate_import(formulas, self.modulars, self.ons)
+
+    def test_a_blank_micronutrient_is_still_allowed(self):
+        # Four rows leave retinol blank because their panel prints the vitamin A
+        # total in International Units and the beta-carotene share in
+        # milligrams, which cannot be separated. A blank must stay legal.
+        formulas = self.formulas.copy()
+        formulas.loc[formulas.index[0], "retinol_ug_per_mL"] = None
+        restored, _, _ = validate_import(formulas, self.modulars, self.ons)
+        self.assertEqual(restored.iloc[0]["retinol_ug_per_mL"], 0)
+
     def test_legacy_ons_sheet_without_serving_columns_remains_importable(self):
         legacy_ons = self.ons.drop(
             columns=[
