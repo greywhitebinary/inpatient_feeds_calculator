@@ -71,6 +71,14 @@ stylesheet does not override it.
 
 The local app opens at `http://localhost:8501` unless you set another port.
 
+To work on the code rather than just run it, install `requirements-dev.txt`
+from the repository root instead — it pulls in the runtime dependencies plus
+`pytest`, `black` and `ruff`, which is what CI runs.
+
+```sh
+webapp/.venv/bin/pip install -r requirements-dev.txt
+```
+
 ## Deployment configuration
 
 Set `CALCULATOR_WEBSITE_URL` to the public calculator URL when deploying. New
@@ -80,14 +88,34 @@ deployment` instead.
 
 ## Tests
 
-From `webapp/`, run:
+From the repository root:
 
 ```sh
-.venv/bin/python -m unittest discover -s tests -q
+webapp/.venv/bin/python -m pytest webapp/tests/ -q
+webapp/.venv/bin/python scripts/check_css_hooks.py
+webapp/.venv/bin/ruff check . && webapp/.venv/bin/black --check .
 ```
 
 The test suite covers the calculation layer, formulary validation, saved-record
-round trips, and key Streamlit workflows.
+round trips, and key Streamlit workflows. Each test file puts `webapp/` on
+`sys.path` itself, so they run from the root with no configuration.
+
+GitHub Actions runs all of the above on every push and pull request, and again
+every Monday — nothing in the repository changes on a Monday, so that run
+catches the world changing underneath it.
+
+`scripts/check_css_hooks.py` is the one check a test suite cannot replace.
+`webapp/styles.css` reaches into Streamlit's internal `data-testid`
+attributes, which carry no stability guarantee, and the tests drive
+Streamlit's Python API and never see a stylesheet — so a renamed attribute
+breaks the page while every test stays green. The check reads the selectors
+the stylesheet actually depends on and asserts each still exists in the
+Streamlit build. That is also why `webapp/requirements.txt` pins `streamlit`
+exactly rather than to a range.
+
+`.github/workflows/canary.yml` runs the same checks weekly against the
+*latest* releases instead of the pinned ones. It never gates a push: a red
+canary means "do not upgrade yet", not "main is broken".
 
 ## Structure
 
@@ -98,7 +126,10 @@ round trips, and key Streamlit workflows.
 - `webapp/formulary_ui.py` contains the Formulary and modular-library interface.
 - `webapp/session_state.py` contains session initialization, legacy-state migration, and widget synchronization.
 - `webapp/case_record_ui.py` contains saved-record controls and the footer.
+- `webapp/chart_note.py` builds the ADIME chart-note text and renders the editable draft.
+- `webapp/copy_block.py` is the chart-note copy control, shared with BTF-Calc — see below.
 - `webapp/ui_common.py` and `webapp/constants.py` contain shared presentation helpers and display constants.
+- `scripts/check_css_hooks.py` verifies the stylesheet's Streamlit selectors still exist.
 - `webapp/calculations.py` contains the inspectable calculation layer.
 - `webapp/case_io.py` contains the saved-record workbook contract.
 - `webapp/data.py` contains formulary loading, validation, import, and export.
@@ -111,6 +142,21 @@ Keep patient records, downloaded workbooks, historical working spreadsheets,
 screenshots, and other private local material outside this repository. The
 repository should remain the single source of truth for the application code,
 tests, public assets, and maintained product data.
+
+### Shared with BTF-Calc
+
+This tool has a sibling, the [Blenderized Tube Feeding
+Calculator](https://github.com/greywhitebinary/blenderized-tubefeed-calculator).
+The two are meant to read as one family, so three things are deliberately kept
+identical between the repositories and must be changed in both:
+
+- `webapp/copy_block.py` — the chart-note copy control. Byte-identical to
+  BTF-Calc's `app/copy_block.py`, so `diff` between them is the whole sync
+  check. Its own docstring explains the formatting constraint that keeps it
+  that way, and why it reads no Streamlit theme variables.
+- `render_alert()` in `webapp/ui_common.py`, and the `.app-alert` block in
+  `webapp/styles.css`.
+- The colour tokens in `.streamlit/config.toml`.
 
 ## Licence
 
