@@ -175,7 +175,7 @@ class AssessmentRenderTests(unittest.TestCase):
             "Uses Canadian formula, modular, and ONS product information.", captions
         )
         self.assertIn(
-            "Set up My Formulary, complete the Assessment, then build the order "
+            "Set up My Formulary, complete the Assessment, then build the plan "
             "under Enteral nutrition, or under EN + Propofol if propofol is running.",
             captions,
             "the last two tabs are a choice, so the line must not read as four steps",
