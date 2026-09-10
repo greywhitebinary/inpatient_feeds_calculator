@@ -18,11 +18,12 @@ nutrition. It supports, but does not replace, clinical judgement.
 2. **Assessment.** Enter available measurements and clinical inputs. Review the
    equations and worked ranges, then enter the energy, protein, and water goals
    that will drive the plan.
-3. **EN plan.** Choose a delivery schedule, compare formulas, set or adjust a
-   rate, add modulars, plan hydration flushes, and review the daily intake and
-   EN plan check.
-4. **Propofol.** When needed, compare lower- and higher-propofol scenarios
-   without overwriting the standard EN plan.
+3. **Enteral nutrition.** Choose a delivery schedule, compare formulas, set or
+   adjust a rate, add modulars, set hydration flushes, and review the daily
+   intake and the EN regimen check.
+4. **EN + Propofol.** The same steps for a patient on propofol, given as a
+   single rate or as rates that change through the day. Propofol's energy comes
+   off the target first, so the feed is sized to make up the remainder.
 
 The calculator does not make patient-specific recommendations. The clinician
 selects the goals, formula, rate, modular order, and hydration plan.
@@ -100,18 +101,25 @@ The test suite covers the calculation layer, formulary validation, saved-record
 round trips, and key Streamlit workflows. Each test file puts `webapp/` on
 `sys.path` itself, so they run from the root with no configuration.
 
-GitHub Actions runs all of the above on every push and pull request, and again
-every Monday — nothing in the repository changes on a Monday, so that run
-catches the world changing underneath it.
+GitHub Actions runs all of the above on any push to `main` and on any pull
+request targeting it, and again every Monday — nothing in the repository
+changes on a Monday, so that run catches the world changing underneath it. A
+push to a topic branch with no pull request open runs nothing, so open one
+before relying on the checks.
 
 `scripts/check_css_hooks.py` is the one check a test suite cannot replace.
 `webapp/styles.css` reaches into Streamlit's internal `data-testid`
 attributes, which carry no stability guarantee, and the tests drive
 Streamlit's Python API and never see a stylesheet — so a renamed attribute
-breaks the page while every test stays green. The check reads the selectors
-the stylesheet actually depends on and asserts each still exists in the
-Streamlit build. That is also why `webapp/requirements.txt` pins `streamlit`
-exactly rather than to a range.
+breaks the page while every test stays green. The check reads every
+`data-testid` the stylesheet depends on and asserts each still exists in the
+Streamlit build. It checks no `data-baseweb` attribute, which the stylesheet
+also relies on, because those values are short enough to appear somewhere in a
+20 MB bundle by coincidence and the check would report a confidence it had not
+established. So a renamed `data-baseweb` value would still break the styling
+quietly; the script's docstring records that limit deliberately. This is also
+why `webapp/requirements.txt` pins `streamlit` to an exact version rather than
+to a range.
 
 `.github/workflows/canary.yml` runs the same checks weekly against the
 *latest* releases instead of the pinned ones. It never gates a push: a red
@@ -121,7 +129,7 @@ canary means "do not upgrade yet", not "main is broken".
 
 - `webapp/app.py` is the small Streamlit entry point and page orchestrator.
 - `webapp/assessment_ui.py` contains the assessment workflow and its authoritative EN goals.
-- `webapp/plan_ui.py` contains the shared EN formula, modular, hydration, and plan-check workflow.
+- `webapp/plan_ui.py` contains the shared EN formula, modular, hydration, and regimen-check workflow.
 - `webapp/propofol_ui.py` contains the two-scenario Propofol workflow.
 - `webapp/formulary_ui.py` contains the Formulary and modular-library interface.
 - `webapp/session_state.py` contains session initialization, legacy-state migration, and widget synchronization.
@@ -147,7 +155,7 @@ tests, public assets, and maintained product data.
 
 This tool has a sibling, the [Blenderized Tube Feeding
 Calculator](https://github.com/greywhitebinary/blenderized-tubefeed-calculator).
-The two are meant to read as one family, so three things are deliberately kept
+The two are meant to read as one family, so five things are deliberately kept
 identical between the repositories and must be changed in both:
 
 - `webapp/copy_block.py` — the chart-note copy control. Byte-identical to
@@ -157,6 +165,8 @@ identical between the repositories and must be changed in both:
 - `render_alert()` in `webapp/ui_common.py`, and the `.app-alert` block in
   `webapp/styles.css`.
 - The colour tokens in `.streamlit/config.toml`.
+- `scripts/check_css_hooks.py`, where only the `STYLESHEET` path differs.
+- `.github/workflows/canary.yml`.
 
 ## Licence
 

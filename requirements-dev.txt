@@ -2,7 +2,7 @@
 # tooling that CI runs. Install THIS file locally, not webapp/requirements.txt,
 # which carries only what the deployed app imports.
 #
-#   .venv/bin/pip install -r requirements-dev.txt
+#   webapp/.venv/bin/pip install -r requirements-dev.txt
 -r webapp/requirements.txt
 
 pytest>=8.0
