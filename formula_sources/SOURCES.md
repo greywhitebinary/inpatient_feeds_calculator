@@ -27,6 +27,32 @@ The row-level `source` column is the authoritative map to document and page.
 An official source-site link alone does not show that a value is current;
 verify the local product information and update `verified` after each review.
 
+## Why five products cite a sheet rather than the guide
+
+Jevity 1.2 Cal, Jevity 1.5 Cal, Osmolite 1.2 Cal, TwoCal HN and Pivot 1.5 Cal
+cite their own product information sheets because the collated Abbott guide was
+wrong or insufficient for those rows, not because more reading is better.
+
+Pivot 1.5 Cal is the clearest case. The guide's "Per 237 mL" column prints the
+fat, carbohydrate and fibre blocks as per-100-mL values, so transcribing that
+column understated all three by about 2.4-fold. The row was re-sourced to
+`Pivot-1.5-Cal-en.pdf` on 2026-09-02. The four ready-to-hang products are here
+for a narrower reason: the guide's figures describe a different container
+format, and sodium, potassium and free water differ in the ready-to-hang
+product a ward actually hangs.
+
+Both defects surfaced from arithmetic rather than closer reading, which is the
+part worth carrying forward. Converting a document's two basis columns to a
+common basis and comparing them exposes a column that does not mean what its
+heading says, and Pivot separately failed an energy reconciliation at 57% of
+its declared calories where every sound row lands between 98% and 106%. Neither
+check needs the right answer in advance. Both are set out in
+`DATA_CONVENTIONS.md` section 6, with a script for the second.
+
+The three Ensure sheets added on 2026-09-10 are a different matter. They record
+one flavour each rather than correcting the guide, and Ensure Protein Max 30 g
+is what first showed that two flavours of one product can differ.
+
 See `DATA_CONVENTIONS.md` for the blank-versus-zero rule, what each class of
 source document is capable of disclosing, the jurisdiction rule, and the two
 cross-checks that catch transcription errors. Outstanding work and the record
