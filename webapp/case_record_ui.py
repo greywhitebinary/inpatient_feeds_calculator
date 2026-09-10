@@ -65,9 +65,20 @@ def render_save_record(key_suffix: str) -> None:
         use_container_width=True,
         key=f"download_case_record_{key_suffix}",
     )
+    # The last sentence names the control AND says where it is. This caption
+    # sits at the very bottom of a long tab, while “📂 Open a saved record” is
+    # a popover up in the top bar, so a reader who has just scrolled down to
+    # the download button has no reason to know it exists. The emoji is part
+    # of the quoted phrase so it matches the on-screen label exactly and can
+    # be scanned for.
+    #
+    # "at the top of the page", NOT "top right": the top bar is a column pair
+    # and Streamlit stacks columns on a narrow viewport, so on a phone the
+    # popover is not on the right at all.
     st.caption(
         "Download the calculator inputs and product snapshot as a spreadsheet. The editable "
-        "chart-note draft is not included. Reopen the file later with “Open a saved record”."
+        "chart-note draft is not included. Reopen the file later with "
+        "“📂 Open a saved record” at the top of the page."
     )
 
 
