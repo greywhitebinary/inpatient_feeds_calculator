@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from calculations import (
     FORMULA_MICRONUTRIENT_COLUMNS,
+    PROPOFOL_KCAL_PER_ML,
     adjusted_body_weight_kg,
     conditional_feed_delivery,
     devine_ibw_kg,
@@ -691,6 +692,40 @@ class WaterModeTests(unittest.TestCase):
         plan = water_plan(1900, 880, 0, 120, 120, 0, 6)
         self.assertGreater(plan["hydration_flush_each_ml"], 0)
         self.assertGreater(plan["total_water_ml"], 1800)
+
+
+class BlankProductCellTests(unittest.TestCase):
+    """A blank cell must contribute nothing, not spread through every total."""
+
+    def test_a_blank_formula_cell_contributes_zero_rather_than_nan(self):
+        # `float(value or 0)` returned NaN here, because NaN is truthy. One
+        # blank cell then turned the nutrient, the daily total and the chart
+        # note into "nan" with nothing raising.
+        formula = {
+            "kcal_per_mL": 1.0,
+            "protein_per_mL": float("nan"),
+            "free_water_per_mL": 0.8,
+        }
+        delivery = feed_delivery(formula, 1000, 24)
+        self.assertEqual(delivery["protein_g"], 0)
+        self.assertAlmostEqual(delivery["free_water_ml"], 800)
+
+    def test_a_blank_ons_cell_contributes_zero_rather_than_nan(self):
+        product = {
+            "calculation_basis": "container_ml",
+            "container_size_ml": 235,
+            "kcal_per_mL": 1.5,
+            "protein_per_mL": float("nan"),
+        }
+        order = ons_delivery(product, 1, 2)
+        self.assertEqual(order["protein_g"], 0)
+        self.assertAlmostEqual(order["energy_kcal"], 705)
+
+    def test_propofol_energy_and_the_suggested_rate_share_one_constant(self):
+        # A second copy of 1.1 could drift from this one, leaving a suggested
+        # rate that disagreed with the energy it was calculated from.
+        self.assertEqual(PROPOFOL_KCAL_PER_ML, 1.1)
+        self.assertEqual(propofol_intake(10, 24)["kcal"], 240 * PROPOFOL_KCAL_PER_ML)
 
 
 class MicronutrientDeliveryTests(unittest.TestCase):

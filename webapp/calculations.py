@@ -87,10 +87,25 @@ def penn_state_2010_kcal(
     )
 
 
+# Propofol is supplied in a 10% lipid emulsion, so each millilitre carries 0.1 g
+# of oil, and a 10% emulsion is counted at 1.1 kcal/mL once its glycerol and
+# phospholipid are included. The energy therefore follows the emulsion rather
+# than the drug: a 2% product carries twice the propofol in the same oil, so its
+# calories per millilitre are unchanged. Named here because the conditional-rate
+# suggestion needs the same figure, and a second copy could drift away from this
+# one, leaving a suggested rate that disagreed with the energy it was based on.
+PROPOFOL_KCAL_PER_ML = 1.1
+PROPOFOL_FAT_G_PER_ML = 0.1
+
+
 def propofol_intake(rate_ml_hr: float, hours_per_day: float = 24) -> dict[str, float]:
-    """Calculate intake using 1.1 kcal and 0.1 g fat per mL of propofol emulsion."""
+    """Calculate intake from the energy and fat in a 10% propofol emulsion."""
     volume_ml = rate_ml_hr * hours_per_day
-    return {"volume_ml": volume_ml, "kcal": volume_ml * 1.1, "fat_g": volume_ml * 0.1}
+    return {
+        "volume_ml": volume_ml,
+        "kcal": volume_ml * PROPOFOL_KCAL_PER_ML,
+        "fat_g": volume_ml * PROPOFOL_FAT_G_PER_ML,
+    }
 
 
 def total_propofol_intake(
@@ -126,7 +141,10 @@ def suggested_conditional_formula_rate(
         return 0.0
     hourly_formula_kcal = (
         max(float(energy_target_kcal), 0) / safe_feeding_hours
-        - max(float(propofol_rate_ml_hr), 0) * 1.1 * 24 / safe_feeding_hours
+        - max(float(propofol_rate_ml_hr), 0)
+        * PROPOFOL_KCAL_PER_ML
+        * 24
+        / safe_feeding_hours
     )
     unrounded_rate = max(hourly_formula_kcal, 0) / kcal_per_ml
     return floor(unrounded_rate / 5 + 0.5) * 5
@@ -293,8 +311,7 @@ def feed_delivery(
         "magnesium_mg": "magnesium_per_mL",
         "phosphorus_mg": "phosphorus_per_mL",
     }.items():
-        value = formula.get(column, 0)
-        result[nutrient] = delivered_volume * float(value or 0)
+        result[nutrient] = delivered_volume * disclosed_value(formula.get(column))[0]
     return result
 
 
@@ -459,7 +476,9 @@ def ons_delivery(
             "magnesium_mg": "magnesium_mg_per_serving",
             "phosphorus_mg": "phosphorus_mg_per_serving",
         }.items():
-            output[result_key] = daily_servings * float(product.get(column, 0) or 0)
+            output[result_key] = (
+                daily_servings * disclosed_value(product.get(column))[0]
+            )
         return output
     container_size_ml = float(product.get("container_size_ml", 0) or 0)
     if container_size_ml <= 0:
@@ -484,7 +503,7 @@ def ons_delivery(
         "magnesium_mg": "magnesium_per_mL",
         "phosphorus_mg": "phosphorus_per_mL",
     }.items():
-        output[result_key] = daily_volume_ml * float(product.get(column, 0) or 0)
+        output[result_key] = daily_volume_ml * disclosed_value(product.get(column))[0]
     return output
 
 
