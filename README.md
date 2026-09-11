@@ -20,7 +20,10 @@ nutrition. It supports, but does not replace, clinical judgement.
    that will drive the plan.
 3. **Enteral nutrition.** Choose a delivery schedule, compare formulas, set or
    adjust a rate, add modulars, set hydration flushes, and review the daily
-   intake and the EN regimen check.
+   intake and the EN regimen check. A feed that is already running can be
+   entered here without an assessment: nothing is calculated backwards from a
+   goal, so the page reports what the order delivers and leaves the goal
+   columns out until goals are entered.
 4. **EN + Propofol.** The same steps for a patient on propofol, given as a
    single rate or as rates that change through the day. Propofol's energy comes
    off the target first, so the feed is sized to make up the remainder.
