@@ -249,6 +249,8 @@ def show_icu_propofol() -> None:
         propofol_method=method,
         estimated_energy_requirement=estimated_energy_requirement,
     )
+    if result is None:
+        return
 
     with st.container(key="fullbleed_icu_daily_intake", border=True):
         render_box_heading(str(result["intake_heading"]))

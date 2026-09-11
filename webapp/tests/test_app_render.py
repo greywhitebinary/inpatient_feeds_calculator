@@ -180,6 +180,12 @@ class AssessmentRenderTests(unittest.TestCase):
             captions,
             "the last two tabs are a choice, so the line must not read as four steps",
         )
+        self.assertIn(
+            "A feed that is already running can be entered under Enteral "
+            "nutrition without an Assessment.",
+            captions,
+            "the one route through the page that needs no goals has to be findable",
+        )
         self.assertNotIn("First time here?", captions)
         self.assertNotIn("substack logo", captions.lower())
 
@@ -1482,6 +1488,83 @@ class AssessmentRenderTests(unittest.TestCase):
             "scenario_standard_selected_formula",
             {item.key for item in app.selectbox},
         )
+
+    def test_a_running_feed_can_be_read_out_without_any_goal(self):
+        # A feed that is already running is a fact to transcribe, so every
+        # figure describes what it delivers. None of that needs a goal, and
+        # requiring an assessment first kept the numbers out of reach of
+        # anyone who only wanted to know what the current order provides.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.key == "add_feed_Nepro").click().run(
+            timeout=30
+        )
+
+        for goal in (
+            "assessment_energy_target",
+            "assessment_protein_target",
+            "assessment_water_target",
+        ):
+            self.assertIsNone(app.session_state[goal])
+
+        next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        ).set_value(["Nepro"]).run(timeout=30)
+        next(
+            item for item in app.radio if item.key == "scenario_standard_regimen_source"
+        ).set_value("Reviewing a feed already running").run(timeout=30)
+
+        # No goal means no suggested rate, so the box waits for the order.
+        rate = next(
+            item
+            for item in app.number_input
+            if item.key == "scenario_standard_ordered_rate_ml_hr"
+        )
+        self.assertIsNone(rate.value)
+        rate.set_value(55).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertIn("1,265 mL/day", rendered_html)
+        self.assertIn("Selected EN feed: <strong>102 g/day</strong>", rendered_html)
+        # Nothing is measured against a target that was never entered, so the
+        # protein line reports the amount alone and the check table drops the
+        # two columns that would compare it.
+        self.assertNotIn("Shortfall", rendered_html)
+        self.assertNotIn("Difference (planned − goal)", rendered_html)
+        self.assertIn(
+            "No energy or protein goal is entered, so the table reports what "
+            "the regimen delivers without comparing it to one.",
+            {item.value for item in app.caption},
+        )
+        chart_note = app.session_state["_chart_note_generated_en_plan"]
+        self.assertIn("Continue enteral nutrition: Nepro at 55 mL/hour", chart_note)
+
+    def test_starting_a_new_feed_still_asks_for_the_goals_it_calculates_from(self):
+        # The contrasting half. A suggested rate is worked backwards from the
+        # energy goal, so that direction of work cannot start without one, and
+        # the message now says where the other direction is.
+        app = AppTest.from_file(str(APP_PATH)).run(timeout=30)
+        next(item for item in app.button if item.key == "add_feed_Nepro").click().run(
+            timeout=30
+        )
+        next(
+            item for item in app.multiselect if item.key == "feed_candidates"
+        ).set_value(["Nepro"]).run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertEqual(
+            app.session_state["scenario_standard_regimen_source"],
+            "Starting a new feed",
+        )
+        self.assertIn(
+            "Enter energy and protein goals in Assessment or Adjust goals to "
+            "calculate a suggested rate, or select \u201cReviewing a feed already "
+            "running\u201d to enter an order that is running now.",
+            {item.value for item in app.caption},
+        )
+        rendered_html = "\n".join(item.value for item in app.markdown)
+        self.assertNotIn("Formula comparison", rendered_html)
+        self.assertNotIn("_chart_note_generated_en_plan", app.session_state)
 
     def test_existing_regimen_rate_is_not_overwritten_by_the_suggestion(self):
         # The running order is the fact. Entering it must survive a rerun that

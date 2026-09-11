@@ -67,7 +67,9 @@ def main() -> None:
             "(https://feedformflow.substack.com/p/feed-form-flow) project. "
             "Uses Canadian formula, modular, and ONS product information.  \n"
             "Set up My Formulary, complete the Assessment, then build the plan "
-            "under Enteral nutrition, or under EN + Propofol if propofol is running."
+            "under Enteral nutrition, or under EN + Propofol if propofol is running. "
+            "A feed that is already running can be entered under Enteral nutrition "
+            "without an Assessment."
         )
     formulary_tab, assessment_tab, plan_tab, propofol_tab = st.tabs(
         list(WORKSPACE_TABS),

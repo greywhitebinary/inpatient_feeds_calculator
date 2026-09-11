@@ -114,29 +114,37 @@ def _warn_if_over_a_day(
     )
 
 
+def _render_regimen_source(scenario_id: str) -> str:
+    """Ask which direction of work the page is being used for.
+
+    This decides what the whole page looks like, so it sits above every box
+    rather than inside one named for prescribing. It is also asked before the
+    assessment goals are required, because reviewing a running feed does not
+    need them.
+    """
+    return str(
+        st.radio(
+            "Are you...",
+            REGIMEN_SOURCES,
+            horizontal=True,
+            label_visibility="collapsed",
+            key=scenario_key(scenario_id, "regimen_source"),
+        )
+    )
+
+
 def _render_en_prescription(
     scenario_id: str,
+    reviewing: bool,
     conditional_mode: bool,
-    estimated_energy_requirement: float,
-) -> tuple[str, float, bool, float, tuple[str, float, int, str, float] | None]:
-    """Render the direction of work and the energy prescription.
+    estimated_energy_requirement: float | None,
+) -> tuple[float, bool, float | None, tuple[str, float, int, str, float] | None]:
+    """Render the energy prescription for the chosen direction of work.
 
     The schedule is returned only when a feed is being started. When a running
     feed is being reviewed the schedule belongs beside the order instead, so the
     caller renders it there and this returns None for it.
     """
-    # This decides what the whole page looks like, so it sits above every box
-    # rather than inside one named for prescribing.
-    regimen_source = st.radio(
-        "Are you...",
-        REGIMEN_SOURCES,
-        horizontal=True,
-        label_visibility="collapsed",
-        key=scenario_key(scenario_id, "regimen_source"),
-    )
-    # Conditional sedation rates keep the prescription layout, so the
-    # schedule is still rendered here for them.
-    reviewing = regimen_source == REGIMEN_SOURCE_EXISTING and not conditional_mode
     if reviewing:
         # Reviewing sets no target: the goal is the assessed requirement and
         # the running order is measured against it. A prescription percentage
@@ -144,7 +152,6 @@ def _render_en_prescription(
         # question when the order already exists.
         st.session_state[scenario_key(scenario_id, "prescription_target_pct")] = 100.0
         return (
-            str(regimen_source),
             100.0,
             False,
             estimated_energy_requirement,
@@ -191,11 +198,10 @@ def _render_en_prescription(
                 include_interruption_note = False
 
     return (
-        str(regimen_source),
         target_pct,
         bool(include_interruption_note),
         prescription_energy_target,
-        None if reviewing else schedule,
+        schedule,
     )
 
 
@@ -436,8 +442,8 @@ def render_en_scenario(
     candidate_frame: pd.DataFrame,
     saved_modulars: pd.DataFrame,
     saved_ons: pd.DataFrame | None,
-    total_energy_target: float,
-    protein_target: float,
+    total_energy_target: float | None,
+    protein_target: float | None,
     water_target: float | None,
     propofol_rate: float,
     propofol_hours: float = 24,
@@ -445,8 +451,12 @@ def render_en_scenario(
     propofol_conditions: list[dict[str, object]] | None = None,
     propofol_method: str | None = None,
     estimated_energy_requirement: float | None = None,
-) -> dict[str, object]:
-    """Render one schedule-first regimen and return its final calculation outputs."""
+) -> dict[str, object] | None:
+    """Render one schedule-first regimen and return its final calculation outputs.
+
+    Returns None when the direction of work needs assessment goals that have
+    not been entered, having said so on the page.
+    """
     conditions = propofol_conditions or [
         {
             "label": "Projected Propofol",
@@ -468,13 +478,7 @@ def render_en_scenario(
         if estimated_energy_requirement is not None
         else total_energy_target
     )
-    (
-        regimen_source,
-        prescription_target_pct,
-        prescription_interruption_note,
-        total_energy_target,
-        schedule,
-    ) = _render_en_prescription(scenario_id, conditional_mode, energy_requirement)
+    regimen_source = _render_regimen_source(scenario_id)
     # Starting a feed is a browsing job, so the schedule sits with the
     # prescription above a comparison of candidate feeds. Reviewing a running
     # feed is a transcription job: the schedule, the amount and the result
@@ -490,6 +494,37 @@ def render_en_scenario(
     # screen. Carrying both on one flag silently disabled the first for them.
     reviewing_regimen = regimen_source == REGIMEN_SOURCE_EXISTING
     regimen_already_running = reviewing_regimen and not conditional_mode
+    # A running order is a fact to be transcribed, so it can be read out
+    # against no goals at all: every figure below describes what the feed
+    # delivers rather than how far it falls from a target. Every other
+    # direction of work calculates an amount backwards from the energy goal
+    # and cannot begin without one.
+    if not regimen_already_running and (
+        energy_requirement is None or protein_target is None
+    ):
+        # Reviewing has already been chosen on the one path that reaches here
+        # with it set, which is changing Propofol rates, so pointing at it
+        # again would read as an instruction the clinician has followed. What
+        # is missing there is the goal the two conditional rates are worked
+        # back from.
+        st.caption(
+            "Enter energy and protein goals in Assessment or Adjust goals. "
+            "Rates for changing Propofol conditions are calculated from the "
+            "energy goal, so they are suggested rather than transcribed."
+            if reviewing_regimen
+            else "Enter energy and protein goals in Assessment or Adjust goals to "
+            "calculate a suggested rate, or select “Reviewing a feed already "
+            "running” to enter an order that is running now."
+        )
+        return None
+    (
+        prescription_target_pct,
+        prescription_interruption_note,
+        total_energy_target,
+        schedule,
+    ) = _render_en_prescription(
+        scenario_id, regimen_already_running, conditional_mode, energy_requirement
+    )
     review_container = st.container(border=True) if regimen_already_running else None
     if regimen_already_running:
         with review_container:
@@ -512,8 +547,12 @@ def render_en_scenario(
     # totals, but deducting it would silently displace formula volume, so
     # propofol and intravenous energy stay the only intentional deductions.
     iv_fluids = iv_fluid_totals()
-    comparison_energy_target = max(
-        total_energy_target - propofol["kcal"] - iv_fluids["energy_kcal"], 0
+    # None where a running order is being reviewed without an energy goal.
+    # Nothing is suggested from it then, and nothing else consumes it.
+    comparison_energy_target = (
+        None
+        if total_energy_target is None
+        else max(total_energy_target - propofol["kcal"] - iv_fluids["energy_kcal"], 0)
     )
     # Suggested rates for every candidate feed are the point of the screen when
     # choosing one, and noise when the order already exists.
@@ -827,8 +866,20 @@ def render_en_scenario(
             f'<strong>{final_planned_delivery["planned_volume_ml"]:,.0f} mL/day</strong>.'
         )
     else:
-        suggested_final_delivery = practical_feed_delivery(
-            formula, comparison_energy_target, hours, 100, schedule_type, feeds_per_day
+        # Without an energy goal there is no figure to suggest an amount from,
+        # so the box below is left for the running order to be typed into and
+        # no suggestion is offered.
+        suggested_final_delivery = (
+            None
+            if comparison_energy_target is None
+            else practical_feed_delivery(
+                formula,
+                comparison_energy_target,
+                hours,
+                100,
+                schedule_type,
+                feeds_per_day,
+            )
         )
         # Each form names its own quantity, and the suggestion is rounded in
         # the same unit the clinician sets. A rate-based form rounds the rate,
@@ -837,26 +888,38 @@ def render_en_scenario(
         # rate rather than by volume.
         if order_form == ORDER_FORM_RATE_PER_FEED:
             order_key = ordered_rate_key
-            suggestion = practical_feed_delivery(
-                formula,
-                comparison_energy_target,
-                max(hours, 1),
-                100,
-                "Continuous / cyclic",
-                1,
-            )["ordered_rate_ml_hr"]
+            suggestion = (
+                None
+                if comparison_energy_target is None
+                else practical_feed_delivery(
+                    formula,
+                    comparison_energy_target,
+                    max(hours, 1),
+                    100,
+                    "Continuous / cyclic",
+                    1,
+                )["ordered_rate_ml_hr"]
+            )
             order_label = "Formula rate (mL/hour)"
             use_suggestion_label = "Use suggested rate"
             order_unit = "mL/hour"
         elif schedule_type == "Continuous / cyclic":
             order_key = ordered_rate_key
-            suggestion = suggested_final_delivery["ordered_rate_ml_hr"]
+            suggestion = (
+                None
+                if suggested_final_delivery is None
+                else suggested_final_delivery["ordered_rate_ml_hr"]
+            )
             order_label = "Formula rate (mL/hour)"
             use_suggestion_label = "Use suggested rate"
             order_unit = "mL/hour"
         else:
             order_key = ordered_volume_key
-            suggestion = suggested_final_delivery["ordered_volume_per_feed_ml"]
+            suggestion = (
+                None
+                if suggested_final_delivery is None
+                else suggested_final_delivery["ordered_volume_per_feed_ml"]
+            )
             order_label = "Formula volume per feed (mL)"
             use_suggestion_label = "Use suggested volume"
             order_unit = "mL/feed"
@@ -889,11 +952,12 @@ def render_en_scenario(
                 order_key,
                 order_edited_key,
             )
-        calculated_order_slot.markdown(
-            f'<p class="worked-bounds">Suggested: '
-            f"<strong>{suggestion:.0f} {order_unit}</strong></p>",
-            unsafe_allow_html=True,
-        )
+        if suggestion is not None:
+            calculated_order_slot.markdown(
+                f'<p class="worked-bounds">Suggested: '
+                f"<strong>{suggestion:.0f} {order_unit}</strong></p>",
+                unsafe_allow_html=True,
+            )
         with entered_order_slot:
             ordered_amount = st.number_input(
                 order_label,
@@ -904,7 +968,9 @@ def render_en_scenario(
                 on_change=order_change_callback,
                 args=order_change_args,
             )
-        if st.session_state.get(order_edited_key):
+        # Nothing to return to when no suggestion was offered, so the button
+        # that restores it is not shown either.
+        if suggestion is not None and st.session_state.get(order_edited_key):
             reset_order_slot.button(
                 use_suggestion_label,
                 key=scenario_key(scenario_id, "use_suggested_order"),
@@ -969,28 +1035,45 @@ def render_en_scenario(
         st.session_state[trickle_key] = False
         describe_as_trickle = False
 
-    formula_only_gap = protein_target - final_planned_delivery["protein_g"]
+    formula_only_gap = (
+        None
+        if protein_target is None
+        else protein_target - final_planned_delivery["protein_g"]
+    )
     with st.container(border=True):
         render_box_heading(
             "Protein from formula"
             if propofol_method
             else "Protein from selected formula"
         )
-        gap_label = (
-            "Projected protein gap"
-            if propofol_method and formula_only_gap >= 0
-            else "Shortfall" if formula_only_gap >= 0 else "Exceeds goal by"
+        feed_label = "Formula" if propofol_method else "Selected EN feed"
+        feed_protein = (
+            f"{feed_label}: "
+            f'<strong>{final_planned_delivery["protein_g"]:.0f} g/day</strong>'
         )
-        gap_class = " protein-shortfall" if formula_only_gap > 0 else ""
-        st.markdown(
-            '<p class="summary-line">'
-            f"Goal: <strong>{protein_target:.0f} g/day</strong> &nbsp;|&nbsp; "
-            f'{"Formula" if propofol_method else "Selected EN feed"}: '
-            f'<strong>{final_planned_delivery["protein_g"]:.0f} g/day</strong> '
-            f'&nbsp;|&nbsp; <span class="protein-gap{gap_class}">{gap_label}: '
-            f"<strong>{abs(formula_only_gap):.0f} g/day</strong></span></p>",
-            unsafe_allow_html=True,
-        )
+        # With no protein goal entered there is nothing to subtract from, so
+        # the line states what the feed delivers and stops there rather than
+        # naming a shortfall against a target nobody set.
+        if formula_only_gap is None:
+            st.markdown(
+                f'<p class="summary-line">{feed_protein}</p>',
+                unsafe_allow_html=True,
+            )
+        else:
+            gap_label = (
+                "Projected protein gap"
+                if propofol_method and formula_only_gap >= 0
+                else "Shortfall" if formula_only_gap >= 0 else "Exceeds goal by"
+            )
+            gap_class = " protein-shortfall" if formula_only_gap > 0 else ""
+            st.markdown(
+                '<p class="summary-line">'
+                f"Goal: <strong>{protein_target:.0f} g/day</strong> &nbsp;|&nbsp; "
+                f"{feed_protein} "
+                f'&nbsp;|&nbsp; <span class="protein-gap{gap_class}">{gap_label}: '
+                f"<strong>{abs(formula_only_gap):.0f} g/day</strong></span></p>",
+                unsafe_allow_html=True,
+            )
 
     modular_orders: list[dict[str, float]] = []
     modular_note_parts: list[str] = []
@@ -1558,8 +1641,12 @@ def render_en_scenario(
         water_difference = (
             None if water_target is None else displayed_total_water - water_target
         )
-        protein_difference = final_protein - protein_target
-        energy_difference = final_energy - total_energy_target
+        protein_difference = (
+            None if protein_target is None else final_protein - protein_target
+        )
+        energy_difference = (
+            None if total_energy_target is None else final_energy - total_energy_target
+        )
         water_source_parts = []
         if modular_totals["free_water_ml"]:
             water_source_parts.append(
@@ -1577,7 +1664,9 @@ def render_en_scenario(
             )
         water_sources_text = _listed_or_none(water_source_parts)
 
-        def signed_difference(value: float) -> str:
+        def signed_difference(value: float | None) -> str | None:
+            if value is None:
+                return None
             if value > 0:
                 return f"+{value:.0f}"
             if value < 0:
@@ -1637,6 +1726,20 @@ def render_en_scenario(
                 }
             )
         final_checks = pd.DataFrame(check_rows)
+        # Reviewing a running feed without any goal entered leaves both of
+        # these columns empty in every row, so they are dropped and the table
+        # reports what the regimen delivers. Unlike water, the energy and
+        # protein rows stay: their remaining columns are the intake itself.
+        if (
+            total_energy_target is None
+            and protein_target is None
+            and water_target is None
+        ):
+            final_checks = final_checks.drop(columns=["Goal", difference_column])
+            st.caption(
+                "No energy or protein goal is entered, so the table reports "
+                "what the regimen delivers without comparing it to one."
+            )
         render_report_table(final_checks, decimals=PLAN_CHECK_DECIMALS)
         # Below 100% the energy goal in the table is the share the feed is
         # meant to meet, not what the patient was assessed as needing. Those
@@ -1893,10 +1996,23 @@ def render_en_workflow_setup(
     key_prefix: str,
     candidates_key: str,
 ) -> (
-    tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, list[str], float, float, float]
+    tuple[
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
+        list[str],
+        float | None,
+        float | None,
+        float | None,
+    ]
     | None
 ):
-    """Render shared Assessment goals and feed candidates for a planning workflow."""
+    """Render shared Assessment goals and feed candidates for a planning workflow.
+
+    Any of the three goals may come back None. Whether a missing one stops the
+    work depends on the direction of work, which is asked further down the
+    page, so the scenario decides that rather than this.
+    """
     saved_ons = st.session_state.my_ons
     saved_feeds = st.session_state.my_formulas
     saved_modulars = st.session_state.my_modulars
@@ -1914,9 +2030,6 @@ def render_en_workflow_setup(
         st.caption(
             "Add at least one feed to My Formulary before building an EN regimen."
         )
-        return None
-    if total_energy_target is None or protein_target is None:
-        st.caption("Enter energy and protein goals in Assessment or Adjust goals.")
         return None
 
     with st.container(border=True):
@@ -1937,8 +2050,8 @@ def render_en_workflow_setup(
         saved_modulars,
         saved_ons,
         candidates,
-        float(total_energy_target),
-        float(protein_target),
+        None if total_energy_target is None else float(total_energy_target),
+        None if protein_target is None else float(protein_target),
         None if water_target is None else float(water_target),
     )
 
@@ -1979,6 +2092,8 @@ def show_en_plan() -> None:
         water_target,
         0.0,
     )
+    if result is None:
+        return
     with st.container(key="fullbleed_standard_daily_intake", border=True):
         render_box_heading(str(result["intake_heading"]))
         render_report_table(
