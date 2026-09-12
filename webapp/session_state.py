@@ -86,7 +86,9 @@ def initialise_state() -> None:
     st.session_state.setdefault("_chart_note_case_token", uuid4().hex)
     for goal in PLAN_GOALS:
         assessment_key = str(goal["assessment_key"])
-        if st.session_state.get(assessment_key) is None:
+        # Only older records lack the authoritative field. An explicit None
+        # is a deliberately blank goal and must not revive a legacy mirror.
+        if assessment_key not in st.session_state:
             for legacy_key in (str(goal["en_key"]), str(goal["icu_key"])):
                 if st.session_state.get(legacy_key) is not None:
                     st.session_state[assessment_key] = st.session_state[legacy_key]

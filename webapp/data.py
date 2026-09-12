@@ -176,12 +176,14 @@ UNDISCLOSED_WHEN_BLANK_MODULAR = {
     "free_water_ml_per_basis",
 }
 
-# The manufacturer's own statement of the daily volume at which a feed meets the
-# Dietary Reference Intakes, and how many micronutrients that claim covers. A
-# blank is not a zero: it means the documents we hold make no such claim for
-# that product, which is true of every Abbott row. Zero-filling would read as
-# "meets the DRI in 0 mL", the opposite of what the blank means.
-UNDISCLOSED_WHEN_BLANK_FORMULA = FORMULA_ADEQUACY_COLUMNS
+# Micronutrient panels and adequacy statements both use a blank for information
+# the manufacturer did not disclose. A blank is not a zero: zero-filling an
+# absent nutrient figure would claim a measured absence, while zero-filling an
+# absent adequacy volume would read as "meets the DRI in 0 mL". Formula fibre is
+# deliberately excluded under the established fibre-free product convention.
+UNDISCLOSED_WHEN_BLANK_FORMULA = (
+    FORMULA_MICRONUTRIENT_COLUMNS | FORMULA_ADEQUACY_COLUMNS
+)
 
 # Free-text provenance columns. `data_note` records why a row holds the value it
 # does, where the reason is not obvious from the citation alone: which basis
@@ -190,6 +192,19 @@ UNDISCLOSED_WHEN_BLANK_FORMULA = FORMULA_ADEQUACY_COLUMNS
 # nowhere, and an empty cell simply means the row needs no explanation, so these
 # are filled with an empty string rather than the zero every other column gets.
 TEXT_COLUMNS = {"data_note"}
+
+
+def _preserve_literal_excel_text(writer: pd.ExcelWriter) -> None:
+    """Keep formula-looking input strings as text in generated workbooks."""
+    for worksheet in writer.sheets.values():
+        for row in worksheet.iter_rows():
+            for cell in row:
+                if (
+                    cell.data_type == "f"
+                    and isinstance(cell.value, str)
+                    and cell.value.startswith("=")
+                ):
+                    cell.data_type = "s"
 
 
 def _fill_zeros_except(frame: pd.DataFrame, keep_null: set[str]) -> pd.DataFrame:
@@ -248,17 +263,25 @@ def _normalise_ons_schema(frame: pd.DataFrame) -> pd.DataFrame:
     if "serving_unit" not in cleaned:
         cleaned["serving_unit"] = ""
     if "serving_size_g" not in cleaned:
-        cleaned["serving_size_g"] = 0
+        cleaned["serving_size_g"] = pd.NA
     for column in ONS_SERVING_COLUMNS - {
         "calculation_basis",
         "serving_unit",
         "serving_size_g",
     }:
         if column not in cleaned:
-            cleaned[column] = 0
-    serving_rows = (
-        cleaned["calculation_basis"].astype(str).str.strip().str.casefold() == "serving"
-    )
+            cleaned[column] = pd.NA
+    basis = cleaned["calculation_basis"].astype(str).str.strip().str.casefold()
+    serving_rows = basis == "serving"
+    container_rows = basis == "container_ml"
+    # Serving fields are inapplicable to a liquid product. Workbooks may leave
+    # these cells blank even when their columns exist, so normalize only liquid
+    # rows to zero. A serving-based product retains blanks for validation to
+    # reject because its labelled per-serving values are required.
+    for column in ONS_SERVING_COLUMNS - {"calculation_basis", "serving_unit"}:
+        cleaned.loc[container_rows, column] = cleaned.loc[
+            container_rows, column
+        ].fillna(0)
     # Serving-based products do not have a liquid container or per-millilitre
     # values. Missing cells in those legacy fields are therefore treated as
     # zero, while any non-numeric value is still rejected by validation.
@@ -350,6 +373,11 @@ def validate_product_rows(
             raise ValueError(f"{label} requires a value greater than zero in {column}.")
         cleaned[column] = converted
     for column in optional_numeric_columns or set():
+        if column not in cleaned:
+            # Older workbooks predate these fields. Add them as unknown rather
+            # than zero so a missing product-panel value cannot become a false
+            # claim that the product contains none of the nutrient.
+            cleaned[column] = pd.NA
         raw = cleaned[column]
         converted = pd.to_numeric(raw, errors="coerce")
         has_invalid = raw.notna() & converted.isna()
@@ -411,6 +439,7 @@ def export_formulary_workbook(
         formulas.to_excel(writer, sheet_name="My Formulary", index=False)
         modulars.to_excel(writer, sheet_name="My Modulars", index=False)
         ons.to_excel(writer, sheet_name="My ONS", index=False)
+        _preserve_literal_excel_text(writer)
     return buffer.getvalue()
 
 

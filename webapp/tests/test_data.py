@@ -82,11 +82,12 @@ class FormularyImportTests(unittest.TestCase):
     def test_a_blank_micronutrient_is_still_allowed(self):
         # Four rows leave retinol blank because their panel prints the vitamin A
         # total in International Units and the beta-carotene share in
-        # milligrams, which cannot be separated. A blank must stay legal.
+        # milligrams, which cannot be separated. A blank must stay unknown so
+        # it cannot be presented as a declared zero.
         formulas = self.formulas.copy()
         formulas.loc[formulas.index[0], "retinol_ug_per_mL"] = None
         restored, _, _ = validate_import(formulas, self.modulars, self.ons)
-        self.assertEqual(restored.iloc[0]["retinol_ug_per_mL"], 0)
+        self.assertTrue(pd.isna(restored.iloc[0]["retinol_ug_per_mL"]))
 
     def test_legacy_ons_sheet_without_serving_columns_remains_importable(self):
         legacy_ons = self.ons.drop(

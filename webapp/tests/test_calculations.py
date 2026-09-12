@@ -743,10 +743,10 @@ class MicronutrientDeliveryTests(unittest.TestCase):
         self.assertAlmostEqual(amounts["selenium_ug_per_mL"], 87, places=3)
         self.assertAlmostEqual(amounts["copper_mg_per_mL"], 2.6, places=3)
 
-    def test_missing_and_blank_cells_contribute_nothing(self):
+    def test_missing_and_blank_micronutrients_remain_unknown(self):
         amounts = micronutrient_delivery({"zinc_mg_per_mL": ""}, 1000)
-        self.assertEqual(amounts["zinc_mg_per_mL"], 0)
-        self.assertEqual(amounts["thiamine_mg_per_mL"], 0)
+        self.assertIsNone(amounts["zinc_mg_per_mL"])
+        self.assertIsNone(amounts["thiamine_mg_per_mL"])
 
     def test_a_negative_volume_cannot_produce_a_negative_amount(self):
         amounts = micronutrient_delivery({"iron_per_mL": 0.014}, -500)

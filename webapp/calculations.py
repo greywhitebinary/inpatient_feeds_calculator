@@ -267,7 +267,7 @@ FORMULA_MICRONUTRIENT_COLUMNS = (
 
 def micronutrient_delivery(
     formula: Mapping[str, object], volume_ml: float
-) -> dict[str, float]:
+) -> dict[str, float | None]:
     """Daily micronutrient amounts from a volume of one formula.
 
     Amounts only. Nothing here compares a figure with a reference intake, and
@@ -275,10 +275,13 @@ def micronutrient_delivery(
     front of the clinician, not on the feed.
     """
     volume = max(float(volume_ml), 0)
-    return {
-        column: disclosed_value(formula.get(column))[0] * volume
-        for column in FORMULA_MICRONUTRIENT_COLUMNS
-    }
+    amounts: dict[str, float | None] = {}
+    for column in FORMULA_MICRONUTRIENT_COLUMNS:
+        value, disclosed = disclosed_value(formula.get(column))
+        # A missing panel value is unknown, even though a declared zero is a
+        # valid amount. Keep that distinction through to the display table.
+        amounts[column] = value * volume if disclosed else None
+    return amounts
 
 
 def feed_delivery(

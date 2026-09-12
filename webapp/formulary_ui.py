@@ -241,7 +241,9 @@ def show_formulary() -> None:
             ]
         if search.strip():
             options = options.loc[
-                options["name"].str.contains(search.strip(), case=False, na=False)
+                options["name"].str.contains(
+                    search.strip(), case=False, na=False, regex=False
+                )
             ]
         render_reference_list(
             options, set(st.session_state.my_formulas["name"]), "feed"
@@ -288,7 +290,9 @@ def show_formulary() -> None:
         options = master_modulars
         if search.strip():
             options = options.loc[
-                options["name"].str.contains(search.strip(), case=False, na=False)
+                options["name"].str.contains(
+                    search.strip(), case=False, na=False, regex=False
+                )
             ]
         render_reference_list(
             options, set(st.session_state.my_modulars["name"]), "modular"
@@ -357,7 +361,7 @@ def show_formulary() -> None:
         if search.strip():
             term = search.strip()
             options = options.loc[
-                options["name"].str.contains(term, case=False, na=False)
-                | options["brand"].str.contains(term, case=False, na=False)
+                options["name"].str.contains(term, case=False, na=False, regex=False)
+                | options["brand"].str.contains(term, case=False, na=False, regex=False)
             ]
         render_reference_list(options, set(st.session_state.my_ons["name"]), "ons")

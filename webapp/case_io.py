@@ -27,7 +27,7 @@ from constants import (
     RUNNING_SHAPES,
     WATER_MODES,
 )
-from data import load_master_ons, validate_import
+from data import _preserve_literal_excel_text, load_master_ons, validate_import
 
 CASE_RECORD_TITLE = "Adult Inpatient Enteral Nutrition case record"
 CASE_RECORD_VERSION = 1
@@ -406,6 +406,7 @@ def _validate_case_state_value(key: str, value: Any) -> None:
             "modular_doses_",
             "modular_water_",
             "ons_containers_",
+            "ons_servings_",
             "ons_times_",
         )
     ):
@@ -567,6 +568,7 @@ def export_case_record_workbook(
                 worksheet.row_dimensions[5].height = 42
             else:
                 worksheet.auto_filter.ref = worksheet.dimensions
+        _preserve_literal_excel_text(writer)
     return buffer.getvalue()
 
 

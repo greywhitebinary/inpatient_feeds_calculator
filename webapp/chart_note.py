@@ -42,8 +42,8 @@ def _iv_assessment_lines(state: Mapping[str, object]) -> list[str]:
         stored_hours = state.get(f"assessment_iv_hours_{index}")
         hours = 24.0 if stored_hours is None else _number(stored_hours)
         described = f"IV {name} at {_fmt(rate)} mL/hour"
-        if hours not in (0, 24):
-            described += f" for {_fmt(hours)} hours"
+        if hours != 24:
+            described += f" for {hours:g} hours"
         lines.append(described)
     return lines
 
@@ -371,8 +371,10 @@ def _ons_order_text(item: Mapping[str, object]) -> str:
         2: "BID",
         3: "TID",
         4: "QID",
-    }.get(int(times) if times.is_integer() else -1, f"{_fmt(times)} times/day")
-    return f"{item['name']}, {_fmt(quantity)} {unit} {frequency}"
+    }.get(int(times) if times.is_integer() else -1, f"{times:g} times/day")
+    # Quantities are orders, so nutrient-display rounding must not turn a
+    # half-container order into zero containers or change its frequency.
+    return f"{item['name']}, {quantity:g} {unit} {frequency}"
 
 
 def _intervention_html(result: Mapping[str, object], include_label: bool) -> str:
@@ -424,6 +426,9 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             scenario = "When Propofol is not running, use this EN regimen:"
         lines.append(f"<strong>{escape(scenario)}</strong>")
 
+    trickle_action = (
+        "Continue" if bool(result.get("regimen_already_running")) else "Initiate"
+    )
     if propofol_method in {"Changing Propofol rates", "Conditional EN rates"}:
         exposure_parts = []
         for condition in result.get("propofol_conditions", []):
@@ -437,7 +442,7 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
                 "Projected Propofol exposure: " + " and ".join(exposure_parts) + "."
             )
         plan_label = (
-            f"Initiate trickle EN with {formula['name']}."
+            f"{trickle_action} trickle EN with {formula['name']}."
             if bool(result.get("describe_as_trickle"))
             else f"Enteral nutrition plan: {formula['name']}."
         )
@@ -459,7 +464,7 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
         )
     elif bool(result.get("describe_as_trickle")):
         lines.append(
-            f"Initiate trickle EN with {escape(str(formula['name']))} at "
+            f"{trickle_action} trickle EN with {escape(str(formula['name']))} at "
             f"{escape(str(result['schedule_description']))}."
         )
     elif bool(result.get("regimen_already_running")):
@@ -548,6 +553,11 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
     fat_sources = [(delivery["fat_g"], "Formula")]
     fat_sources.extend((_number(item["fat_g"]), str(item["name"])) for item in modulars)
     fat_sources.append((_number(propofol.get("fat_g")), "Propofol"))
+    if ons:
+        energy_sources.append((_number(ons_totals.get("energy_kcal")), "ONS"))
+        protein_sources.append((_number(ons_totals.get("protein_g")), "ONS"))
+        carbohydrate_sources.append((_number(ons_totals.get("carbohydrate_g")), "ONS"))
+        fat_sources.append((_number(ons_totals.get("fat_g")), "ONS"))
 
     formula_water = _number(delivery.get("free_water_ml"))
     modular_free_water = _number(modular_totals.get("free_water_ml"))
@@ -589,7 +599,17 @@ def _intervention_html(result: Mapping[str, object], include_label: bool) -> str
             )
 
     total_water = _number(total["Water (mL)"])
-    if ons:
+    # The two-source EN/ONS wording is accurate only when the total contains
+    # no IV or Propofol nutrients. Otherwise use the named sources above.
+    has_non_enteral_nutrients = any(
+        (
+            _number(iv_fluids.get("energy_kcal")),
+            _number(iv_fluids.get("carbohydrate_g")),
+            _number(propofol.get("kcal")),
+            _number(propofol.get("fat_g")),
+        )
+    )
+    if ons and not has_non_enteral_nutrients:
         ons_energy = _number(ons_totals.get("energy_kcal"))
         ons_protein = _number(ons_totals.get("protein_g"))
         ons_carbohydrate = _number(ons_totals.get("carbohydrate_g"))

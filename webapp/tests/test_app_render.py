@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from calculations import modular_delivery, practical_feed_delivery, propofol_intake
 from case_io import export_case_record_workbook
+from constants import RUNNING_RATE_PER_FEED, RUNNING_VOLUME_PER_FEED
 from data import load_master_formulas, load_master_modulars
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
@@ -986,18 +987,18 @@ class AssessmentRenderTests(unittest.TestCase):
         return int(match.group(1).replace(",", ""))
 
     def test_every_entry_form_for_the_same_order_agrees_on_the_daily_volume(self):
-        # The central guarantee of the entry forms. 180 mL/hour for 2 hours
-        # three times daily, 360 mL per feed three times daily, and 1080 mL a
-        # day across three feeds are the same order written three ways.
+        # The two intermittent forms describe the same order: 180 mL/hour
+        # for 1.5 hours or 270 mL per feed, three times daily. Use a duration
+        # different from the example's default so a missed setup cannot pass.
         volumes = {}
 
         for form, setup in (
             (
-                "Intermittent, each feed a set volume",
-                {"scenario_standard_ordered_volume_per_feed_ml": 360},
+                RUNNING_VOLUME_PER_FEED,
+                {"scenario_standard_ordered_volume_per_feed_ml": 270},
             ),
             (
-                "Intermittent, each feed run at a rate for a set time",
+                RUNNING_RATE_PER_FEED,
                 {"scenario_standard_ordered_rate_ml_hr": 180},
             ),
         ):
@@ -1015,12 +1016,12 @@ class AssessmentRenderTests(unittest.TestCase):
                 for item in app.number_input
                 if item.key == "scenario_standard_feeds_per_day"
             ).set_value(3).run(timeout=30)
-            if form == "A rate in mL/hour, run for a set time each feed":
+            if form == RUNNING_RATE_PER_FEED:
                 next(
                     item
                     for item in app.number_input
                     if item.key == "scenario_standard_hours_per_feed"
-                ).set_value(2.0).run(timeout=30)
+                ).set_value(1.5).run(timeout=30)
             for key, value in setup.items():
                 next(item for item in app.number_input if item.key == key).set_value(
                     value
@@ -1028,8 +1029,9 @@ class AssessmentRenderTests(unittest.TestCase):
 
             self.assertFalse(app.exception, f"{form} raised")
             volumes[form] = self._volume_per_feed_from_summary(app)
+            self.assertEqual(self._daily_volume_from_summary(app), 810)
 
-        self.assertEqual(set(volumes.values()), {360}, volumes)
+        self.assertEqual(set(volumes.values()), {270}, volumes)
 
     def test_the_presenting_case_charts_correctly_end_to_end(self):
         # Isosource Fibre 1.5 at 180 mL/hour for 2 hours three times daily,

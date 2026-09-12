@@ -547,6 +547,14 @@ def render_en_scenario(
     # totals, but deducting it would silently displace formula volume, so
     # propofol and intravenous energy stay the only intentional deductions.
     iv_fluids = iv_fluid_totals()
+    # Conditional suggestions subtract each condition's own 24-hour propofol
+    # exposure below. Deduct IV energy here once, without subtracting the
+    # duration-weighted propofol total a second time.
+    energy_target_after_iv = (
+        None
+        if total_energy_target is None
+        else max(total_energy_target - iv_fluids["energy_kcal"], 0)
+    )
     # None where a running order is being reviewed without an energy goal.
     # Nothing is suggested from it then, and nothing else consumes it.
     comparison_energy_target = (
@@ -566,7 +574,7 @@ def render_en_scenario(
             condition_rates = [
                 suggested_conditional_formula_rate(
                     candidate_dict,
-                    total_energy_target,
+                    energy_target_after_iv,
                     hours,
                     number(condition.get("rate_ml_hr")),
                 )
@@ -633,13 +641,27 @@ def render_en_scenario(
                 else "Suggested volumes per feed are rounded to the nearest 5 mL."
             )
             st.caption(comparison_note)
-            if propofol["kcal"] > 0:
+            if conditional_mode:
                 st.markdown(
                     '<p class="formula-energy-calculation">'
                     f"<strong>{total_energy_target:,.0f} kcal EN energy target − "
-                    f'{propofol["kcal"]:,.0f} kcal from propofol = '
+                    f"{iv_fluids['energy_kcal']:,.0f} kcal from IV fluids = "
+                    f"{energy_target_after_iv:,.0f} kcal</strong>. Each condition's "
+                    "suggested formula rate then subtracts the energy from that "
+                    "Propofol rate projected over 24 hours, with a minimum "
+                    "formula-energy allocation of zero, and divides by the "
+                    "feeding hours and formula energy per mL. Projected daily "
+                    "intake uses the expected hours at each condition.</p>",
+                    unsafe_allow_html=True,
+                )
+            elif propofol["kcal"] > 0 or iv_fluids["energy_kcal"] > 0:
+                st.markdown(
+                    '<p class="formula-energy-calculation">'
+                    f"<strong>{total_energy_target:,.0f} kcal EN energy target − "
+                    f"{propofol['kcal']:,.0f} kcal from propofol − "
+                    f"{iv_fluids['energy_kcal']:,.0f} kcal from IV fluids = "
                     f"{comparison_energy_target:,.0f} kcal</strong> used to calculate "
-                    "suggested formula volumes and rates.</p>",
+                    "suggested formula volumes and rates (minimum zero).</p>",
                     unsafe_allow_html=True,
                 )
             if propofol["kcal"] >= total_energy_target and propofol["kcal"] > 0:
@@ -770,7 +792,7 @@ def render_en_scenario(
                 condition_label = str(condition.get("label", "Propofol condition"))
                 condition_propofol_rate = number(condition.get("rate_ml_hr"))
                 suggestion = suggested_conditional_formula_rate(
-                    formula, total_energy_target, hours, condition_propofol_rate
+                    formula, energy_target_after_iv, hours, condition_propofol_rate
                 )
                 order_key = scenario_key(
                     scenario_id, f"conditional_{condition_id}_rate_ml_hr"
@@ -782,6 +804,8 @@ def render_en_scenario(
                     scenario_id, f"conditional_{condition_id}_reset_requested"
                 )
                 if st.session_state.get(pending_key):
+                    # An explicit request replaces even a running order.
+                    st.session_state[order_key] = suggestion
                     st.session_state[pending_key] = False
                     st.session_state[edited_key] = False
                 # The conditional twin of the single-rate seeding below. On a
@@ -894,7 +918,7 @@ def render_en_scenario(
                 else practical_feed_delivery(
                     formula,
                     comparison_energy_target,
-                    max(hours, 1),
+                    hours,
                     100,
                     "Continuous / cyclic",
                     1,
@@ -925,6 +949,8 @@ def render_en_scenario(
             order_unit = "mL/feed"
         pending_reset_key = scenario_key(scenario_id, "order_reset_requested")
         if st.session_state.get(pending_reset_key):
+            # Apply the requested value before the widget is instantiated.
+            st.session_state[order_key] = suggestion
             st.session_state[pending_reset_key] = False
             st.session_state[order_edited_key] = False
         order_was_edited = bool(st.session_state.get(order_edited_key))
@@ -1602,7 +1628,7 @@ def render_en_scenario(
             )
             if conditional_mode
             else ordered_feed_delivery(
-                formula, ordered_amount, hours, achieved, schedule_type, feeds_per_day
+                formula, engine_amount, hours, achieved, schedule_type, feeds_per_day
             )
         )
         displayed_delivery = (
@@ -1840,11 +1866,11 @@ def render_en_scenario(
                     # Volume above, but deliberately no water: the goals are entered
                     # net of intravenous fluid, and the footnote says so.
                     "Water (mL)": 0,
-                    "Na (mmol)": 0,
-                    "K (mmol)": 0,
-                    "Ca (mmol)": 0,
+                    "Na (mmol)": mg_to_mmol("sodium", iv_fluids["sodium_mg"]),
+                    "K (mmol)": mg_to_mmol("potassium", iv_fluids["potassium_mg"]),
+                    "Ca (mmol)": mg_to_mmol("calcium", iv_fluids["calcium_mg"]),
                     "P (mmol)": 0,
-                    "Mg (mmol)": 0,
+                    "Mg (mmol)": mg_to_mmol("magnesium", iv_fluids["magnesium_mg"]),
                 },
             )
         if propofol["kcal"] > 0:
@@ -1973,6 +1999,11 @@ def render_micronutrient_panel(result: dict) -> None:
         return
     amounts = micronutrient_delivery(formula, volume)
     with st.expander("Micronutrients from the formula", expanded=False):
+        if any(value is None for value in amounts.values()):
+            st.caption(
+                "An em dash (—) means the micronutrient amount was not disclosed "
+                "in the formula data. A declared zero remains zero."
+            )
         st.caption(
             f"Delivered by {volume:,.0f} mL of {formula['name']} a day. "
             "ONS and modular products are not counted, because their labels do "
