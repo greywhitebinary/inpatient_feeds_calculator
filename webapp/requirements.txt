@@ -19,6 +19,6 @@
 # Verified against this app's data-testid hooks and its 206 tests on
 # 2026-09-09. Hooks also confirmed present in 1.63.0 on the same date.
 streamlit==1.62.0
-pandas>=2.2
+pandas>=3.0.5
 openpyxl>=3.1
 watchdog>=6.0
