@@ -1,12 +1,7 @@
-[tool.black]
-line-length = 88
-extend-exclude = "webapp/.venv"
-
-[tool.ruff]
 line-length = 88
 extend-exclude = ["webapp/.venv"]
 
-[tool.ruff.lint]
+[lint]
 extend-select = ["I", "UP", "SIM", "TRY", "PIE", "FURB", "ISC"]
 
 # Each of these was looked at and kept deliberately.
