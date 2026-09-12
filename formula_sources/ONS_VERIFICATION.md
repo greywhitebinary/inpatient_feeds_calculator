@@ -1,5 +1,10 @@
 # Canadian ONS data verification
 
+> Historical snapshot of the September 1 verification. Later flavour-specific
+> findings are recorded in the [Abbott survey](ONS_FLAVOUR_SURVEY.md) and
+> [Nestlé survey](ONS_FLAVOUR_SURVEY_NESTLE.md). The original tables below remain
+> evidence of that review, rather than a live copy of the runtime CSV.
+
 `formulary_working/ons_products_working.csv` was reviewed on 2026-09-01
 against the local Canadian manufacturer guides listed below. The public CSV
 contains 54 selectable rows, with one row per flavour. The guides present one nutrient panel

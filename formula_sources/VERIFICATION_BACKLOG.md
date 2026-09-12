@@ -1,5 +1,12 @@
 # Verification backlog
 
+> Dated verification and decision record. Completed sections describe the code
+> and data at their stated dates; later entries may supersede earlier ones.
+> Current application maintenance is recorded in
+> [Calculation and record flow](../docs/CALCULATION_FLOW.md).
+> Product-data rules live in [Data conventions](DATA_CONVENTIONS.md).
+> Open data questions remain below with their original evidence and context.
+
 Deferred work, recorded so it can be resumed without repeating the analysis.
 Conventions referred to here are in `DATA_CONVENTIONS.md`.
 
@@ -197,32 +204,17 @@ TwoCal HN, whose sheets name no beta-carotene in either the panel or the
 ingredient list, so their vitamin A is entirely retinyl palmitate. Nothing else
 was changed.
 
-What that leaves for the display work: the columns are still absent from the
-validated numeric set in `data.py`, still read by no module, and three
-questions from the review were left for the owner. One of the three is now
-settled; see "Pivot 1.5 Cal citation" below. The two that remain are how to
-mark that Compleat Organic Blends 1.25 uses the dietary 12:1 RAE factor while
-every other row uses the supplemental 2:1 factor, and whether to fill Pivot 1.5
-Cal's retinol by subtraction when three comparable rows leave it blank.
+The display and validation work described as pending in earlier versions of
+this section has been completed. See [the display decision](#5-micronutrients-on-screen--built-2026-09-04)
+and [the current calculation and missing-data behavior](../docs/CALCULATION_FLOW.md).
+The 18 formula micronutrient columns are consumed by the application, and the
+September 12 repairs preserve unknown values rather than silently filling zeros.
 
-`canada_formulas_working.csv` carries 18 micronutrient columns: iron, vitamin A
-(with retinol and beta-carotene), D, E and C, thiamine, riboflavin, B6, B12,
-folate, pantothenic acid, niacin, zinc, copper, manganese and selenium.
-
-None of them is read by any module or any test. They are also outside
-`FORMULA_REQUIRED_COLUMNS` and `FORMULA_NUMERIC_COLUMNS`, so `data.py` never
-checks them for blanks, text or negative values the way it checks sodium or
-protein. They are loaded, silently coerced to zero, and ignored.
-
-That is 594 values (33 rows x 18 columns) that would need checking against the
-source documents, which would be the largest single piece of the verification.
-
-When the display is built, do these first: add the columns to the validated
-numeric set in `data.py` so blanks and text stop passing silently, and apply
-items 1 and 2 to them, since a Nutrition Facts panel discloses no vitamins at
-all and every micronutrient column for the three Medtrition modulars will be a
-structural blank. The values themselves no longer need checking; that was done
-on 2026-09-04.
+Two owner questions from this review remain: how to mark Compleat Organic
+Blends 1.25's dietary beta-carotene conversion, and whether to derive Pivot
+1.5 Cal retinol by subtraction. Their evidence is retained in
+[the micronutrient review](MICRONUTRIENT_VERIFICATION.md#judgment-calls-left-to-the-owner).
+The separate Pivot citation question was resolved below.
 
 ## 4. Smaller items
 
@@ -271,11 +263,13 @@ on 2026-09-04.
   real but sub-threshold amount; storing a blank would render them as a dash and
   lose the information that the amount is known to be small. Neither is clearly
   right.
-- **Flavour rows inherit one panel.** Multi-flavour ONS products carry a single
-  manufacturer panel measured on one flavour, and Abbott states only that other
-  Glucerna flavours have "a similar nutritional profile". There is no better
-  data to substitute, so this is a question of whether to annotate the rows
-  rather than to correct them. `ONS_VERIFICATION.md` already records it.
+- **Flavour annotation — resolved in later work.** The original annotation
+  question is addressed by the `own_panel`, `representative`, and
+  `stated_representative` provenance values. See the
+  [flavour surveys](ONS_FLAVOUR_SURVEY.md) and
+  [September 11 investigation](#6-re-base-the-nestlé-ons-rows-on-the-professional-site--closed-2026-09-11-not-possible-from-this-source).
+  Missing flavour-specific manufacturer figures remain an evidence limitation,
+  rather than an instruction to replace them with invented values.
 
 ## 5. Micronutrients on screen — built 2026-09-04
 

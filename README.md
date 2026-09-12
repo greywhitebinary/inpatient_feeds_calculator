@@ -128,11 +128,39 @@ to a range.
 *latest* releases instead of the pinned ones. It never gates a push: a red
 canary means "do not upgrade yet", not "main is broken".
 
+## Documentation map
+
+For everyday code maintenance, start with
+[Calculation and record flow](docs/CALCULATION_FLOW.md). It is the single guide
+to current workflow decisions, architecture, repair history, and known issues.
+[AGENTS.md](AGENTS.md) supplies working instructions for coding agents; this
+README supplies setup, testing, and deployment information.
+
+| When you need more detail | Read |
+| --- | --- |
+| Change product values or interpret missing data, units, or conflicting sources | [Data conventions](formula_sources/DATA_CONVENTIONS.md) |
+| Find the cited manufacturer documents | [Source register](formula_sources/SOURCES.md) |
+| Review manufacturer websites or hand source-review work to another project | [Reviewer methods](formula_sources/REVIEWING_MANUFACTURER_SOURCES.md); source-choice rules link back to Data conventions |
+| Inspect earlier checks, decisions, and data questions | [Dated verification backlog](formula_sources/VERIFICATION_BACKLOG.md), [ONS verification](formula_sources/ONS_VERIFICATION.md), and [micronutrient verification](formula_sources/MICRONUTRIENT_VERIFICATION.md) |
+| Inspect the recorded flavour comparisons | [Abbott survey](formula_sources/ONS_FLAVOUR_SURVEY.md) and [Nestlé survey](formula_sources/ONS_FLAVOUR_SURVEY_NESTLE.md) |
+| Understand original design reasoning | [Historical working notes](configurable_rd_calculation_workspace_v2.md) |
+| Identify the public datasets and their intended use | [Working data README](formulary_working/README.md) |
+
+The dated records preserve evidence and may describe states superseded by later
+work. Their paths and headings stay available for old links. Update the current
+guide or applicable data convention rather than copying the same decisions into
+a new handoff. `docs/MAINTENANCE_HANDOFF.md` is now a forwarding page.
+
 ## Structure
+
+Before modifying the calculator, read [the calculation and maintenance guide](docs/CALCULATION_FLOW.md).
 
 - `webapp/app.py` is the small Streamlit entry point and page orchestrator.
 - `webapp/assessment_ui.py` contains the assessment workflow and its authoritative EN goals.
-- `webapp/plan_ui.py` contains the shared EN formula, modular, hydration, and regimen-check workflow.
+- `webapp/plan_ui.py` coordinates the shared EN workflow and passes results to reporting.
+- `webapp/plan_order.py` defines explicit feed orders and formula-energy allocations.
+- `webapp/plan_sources.py` calculates source rows and totals without screen or session state.
+- `webapp/plan_feed_controls.py`, `webapp/plan_supplements.py`, `webapp/plan_hydration.py`, and `webapp/plan_review.py` render the existing workflow sections.
 - `webapp/propofol_ui.py` contains the two-scenario Propofol workflow.
 - `webapp/formulary_ui.py` contains the Formulary and modular-library interface.
 - `webapp/session_state.py` contains session initialization, legacy-state migration, and widget synchronization.

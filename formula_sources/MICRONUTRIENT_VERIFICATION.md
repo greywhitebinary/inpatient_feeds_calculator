@@ -181,6 +181,11 @@ in (477/237 x 0.3 = 0.604 mcg/mL on the 237 mL column, or
 enough that the basis inconsistency noted below would not matter much here).
 I am leaving the decision to the owner rather than making the call myself.
 
+**Pivot citation status:** The citation question in the following historical
+paragraph was subsequently resolved; see
+[the September 4 decision](VERIFICATION_BACKLOG.md#decided-2026-09-04).
+The values were retained, and the citation was updated to describe both columns.
+
 **Pivot 1.5 Cal's vitamin and mineral block reads from a different column
 than its macronutrient block.** The prior verification round (2026-09-02)
 fixed this row's fat, carbohydrate and fibre using the sheet's 237 mL column,

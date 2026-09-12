@@ -1,5 +1,18 @@
 # Collaboration Guidance
 
+## Read before changing the calculator
+
+Read [the calculation and maintenance guide](docs/CALCULATION_FLOW.md) before
+changing planning, state, totals, or charting. It records the confirmed workflow,
+architecture, validation, and remaining issues. The user's current request
+determines the scope of work. Preserve the existing starting/checking workflow;
+internal cleanup does not itself justify a UI change.
+
+Update that guide when these decisions change rather than creating another
+handoff or status document. Product-data changes also require
+[the data conventions](formula_sources/DATA_CONVENTIONS.md); use the README's
+[documentation map](README.md#documentation-map) to find supporting evidence.
+
 ## Cost-aware delegation
 
 When a task can be divided into independent, bounded subtasks, delegate routine

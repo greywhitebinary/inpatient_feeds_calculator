@@ -17,14 +17,16 @@ The application honours this for the modular mineral and free-water columns.
 `data.py` keeps those columns null through loading and through the workbook
 round trip, `calculations.py` splits each cell with `disclosed_value()`, and the
 daily intake table shows an em dash with an explanatory caption where no ordered
-product declared a figure.
+product declared a figure. The September 12 repairs also preserve undisclosed
+formula micronutrients through validation, calculation, display, and workbook
+round trips; see [the current calculation guide](../docs/CALCULATION_FLOW.md).
 
 **One deliberate exception.** Formula and ONS `fibre_per_mL` blanks are still
 zero-filled. A blank there means the panel has no fibre row because the product
-is fibre-free, which is a declared absence rather than a missing figure. Ten
-products are in that position, and flagging them would raise an alarm where
-nothing is unknown, which trains the reader to ignore the flag. Give those rows
-an explicit 0 before changing this.
+is fibre-free, which is a declared absence rather than a missing figure.
+Explicit fibre zeros were added and verified on September 2; see the
+[completed fibre work](VERIFICATION_BACKLOG.md#done-2026-09-02).
+This exception does not authorize zero-filling other undisclosed nutrients.
 
 ## 2. What a source document is capable of disclosing
 
@@ -122,8 +124,8 @@ alone does not explain it, such as which basis column of a panel that prints
 two was divided, or which conversion factor the ingredient list dictates. It is
 maintainer-facing and is displayed nowhere in the application.
 
-An empty cell means the row needs no explanation, so `data.py` fills a blank
-note with an empty string rather than the zero every other column receives.
+An empty cell means the row needs no explanation, so `data.py` loads a blank
+note as an empty string.
 Write a note whenever a future maintainer re-deriving the row from the cited
 page would get a different answer than the one stored.
 

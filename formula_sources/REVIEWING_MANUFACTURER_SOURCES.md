@@ -5,8 +5,10 @@ against the manufacturer websites independently of this repository. Everything
 here was learned the expensive way on this side between 1 and 11 September 2026.
 None of it needs learning twice.
 
-This is a companion to `DATA_CONVENTIONS.md`, which holds the binding rules.
-Where the two disagree, that file wins and this one should be corrected.
+This briefing keeps the source-access methods and cross-project scope notes.
+[DATA_CONVENTIONS.md](DATA_CONVENTIONS.md) holds the maintained data rules; the
+rule sections below link there rather than maintaining a second copy.
+The website observations and verification counts are dated evidence.
 
 ---
 
@@ -111,107 +113,65 @@ pages and says they "are updated on a regular basis".
 
 ## Which source wins
 
-There are two rankings and they run in opposite directions. Using the wrong one
-is how a source gets over-trusted.
-
-**By currency**, which settles a disagreement about a figure two sources both
-publish:
-
-1. Product label or packaging — both manufacturers place this above everything
-   they publish themselves, including their own websites.
-2. The official manufacturer website for healthcare professionals.
-3. Product information sheets — dated, per-product, usually higher precision.
-4. The collated product guide — a snapshot that ages from the day it is issued
-   and cannot receive a live update.
-
-**By completeness**, which decides which source a value should be built from:
-
-1. The collated guide and the product information sheets. These carry free
-   water, osmolality, chloride, the full vitamin and trace-mineral panel, and for
-   Nestlé the DRI adequacy volumes.
-2. The manufacturer website, which carries most nutrients but omits some of the
-   above unevenly.
-3. Packaging, for the reason in point 5 above.
+Use [the two rankings](DATA_CONVENTIONS.md#the-ranking): **completeness** decides
+which source can supply a field, while **currency** resolves disagreement about
+a field both sources publish. Keep that distinction when choosing a source.
 
 ### What each manufacturer actually says
 
-Nestlé's guide, at the foot of every spread: "ALWAYS REFER TO THE PRODUCT LABEL
-FOR THE MOST CURRENT NUTRITION INFORMATION." Its professional site footer: "In
-the event of a discrepancy between website information and product packaging,
-please refer to product packaging." Nestlé never ranks its website against its
-own guide.
-
-Abbott's guide and product pages both say "Please refer to the product label or
-packaging for the most current ingredient, allergen and nutrient profile". The
-guide additionally defers to the website twice, for currency and for flavours.
-
-**So Abbott publishes a rule and Nestlé does not.** For Abbott, website beats
-guide. For Nestlé, if the two ever genuinely conflict, there is no published rule
-to apply and the conflict should be escalated to the manufacturer rather than
-settled by preferring the newer-looking file.
+The quotations and their implications are maintained under
+[Nestlé's statements](DATA_CONVENTIONS.md#nestlés-own-statements) and
+[Abbott's statements](DATA_CONVENTIONS.md#abbotts-own-statements).
+Abbott publishes website-versus-guide precedence; Nestlé does not. A genuine
+Nestlé website/guide conflict needs clarification from the manufacturer.
 
 ### When two sources disagree
 
-1. Establish they describe the same thing — container, basis column, and format.
-   A ready-to-hang pack is not a bottle.
-2. Ask whether it is a flavour difference or a rounding difference. A difference
-   that appears in *every* flavour is not a flavour difference. BOOST Pudding
-   reads 7 g protein in the guide and 6.8 g on the consumer shop in both vanilla
-   and chocolate; that is rounding, and the guide's figure was kept.
-3. Check the numbers actually differ. A date gap is not a difference.
-4. Apply the ranking, using the manufacturer's own precedence.
-5. Where only packaging could settle it, record the disagreement and ask the
-   manufacturer. Do not pick a winner by feel.
+Follow [the reconciliation procedure](DATA_CONVENTIONS.md#when-two-sources-disagree).
+It checks product format, basis, flavour, rounding, and actual numerical
+agreement before applying the manufacturer's precedence or escalating a conflict.
 
 ---
 
 ## Reading a panel without introducing an error
 
-- **Recompute, never transcribe a converted figure.** Where a panel prints two
-  bases, convert both to a common basis and compare. This is how three real
-  errors were found here.
-- **Watch for a mislabelled column.** Abbott's guide prints Pivot 1.5 Cal's fat,
-  carbohydrate and fibre blocks as per-100-mL values inside a column headed
-  "Per 237 mL". Transcribing that column understated all three about 2.4-fold.
-  Where a product information sheet exists, it beat the collated guide every time
-  this was tested.
-- **Reconcile the energy.** `protein x 4 + fat x 9 + carbohydrate x 4` against the
-  declared energy should land between 98% and 106%. Pivot read 57% before it was
-  fixed. Run this after any bulk change.
-- **Cite the page unambiguously.** Both guides are printed as spreads, so each
-  PDF page carries two printed folio numbers and the two schemes collide. Say
-  which you mean. For the Nestlé guide, `printed = 2 x pdf_page - 2`.
-- **A blank is not a zero.** A blank means the manufacturer did not disclose the
-  value; a zero means they disclosed a zero. Never fill a blank with zero to tidy
-  a table.
-- **Prefer an approximate figure to an absent one.** A panel used for a flavour it
-  does not name is a labelled approximation with bounded error. A field the source
-  never carried does not read as uncertainty — it reads as nothing, and nothing
-  contributes zero to a daily total. Choose the source that discloses the field.
-- **Do not mix jurisdictions.** Canadian rows come from Canadian documents. A US
-  sheet may corroborate that two documents describe the same formulation, or
-  raise a question for the manufacturer. It is never a source of values.
+Use these sections of the maintained conventions during a review:
+
+- [Cross-checks](DATA_CONVENTIONS.md#6-cross-checks-that-catch-transcription-errors)
+  cover basis conversion and energy reconciliation; the
+  [Pivot column trap](SOURCES.md#why-five-products-cite-a-sheet-rather-than-the-guide)
+  is documented in the source register.
+- [Precision](DATA_CONVENTIONS.md#4-precision) and
+  [page citations](DATA_CONVENTIONS.md#5-page-citations) cover rounding and
+  printed-versus-PDF page numbering.
+- [Blank versus zero](DATA_CONVENTIONS.md#1-blank-versus-zero) governs disclosure.
+- [Approximate versus absent figures](DATA_CONVENTIONS.md#an-approximate-figure-beats-a-field-the-source-never-carried)
+  governs source selection without changing the missing-data rule.
+- [Jurisdictions](DATA_CONVENTIONS.md#3-do-not-mix-jurisdictions) keeps Canadian
+  rows based on Canadian documents.
 
 ---
 
 ## What has already been verified, so you need not repeat it
 
-As of 2026-09-11, on this side:
+Completed checks as of 2026-09-11 are recorded in:
 
-- **Every row of all three CSVs** was checked field by field against its cited
-  source on 2026-09-02, recomputing each conversion rather than reading it off.
-  Two numeric errors were found and corrected then.
-- **Twelve values across seven flavour rows** were corrected on 2026-09-10, being
-  every flavour whose own published panel differs from the panel the guide
-  prints: Ensure Advance chocolate, Ensure Protein Max chocolate, Glucerna
-  chocolate, BOOST 2.24 chocolate, BOOST Pudding chocolate, and Ensure Regular
-  and Ensure Plus Calories chocolate. Potassium is the nutrient that moves most
-  often, which is what cocoa would predict.
-- **Four Nestlé products** were compared between the professional site and the
-  2026 guide on 2026-09-11 — BOOST Original, BOOST 1.5, BOOST Fruit Flavoured
-  orange and BOOST Plus Calories — spanning site asset dates from 2022 to 2026.
-  All four agree exactly, and the stored rows agree with both. **No disagreement
-  between Nestlé's website and Nestlé's guide has yet been observed.**
+- [The September 2 field-by-field review](VERIFICATION_BACKLOG.md#completed-2026-09-02).
+- The September 10 [Abbott](ONS_FLAVOUR_SURVEY.md) and [Nestlé](ONS_FLAVOUR_SURVEY_NESTLE.md)
+  flavour surveys, which record the source investigations and their limits;
+  those survey tasks did not themselves change the runtime CSV.
+- [The September 11 professional-site investigation](VERIFICATION_BACKLOG.md#6-re-base-the-nestlé-ons-rows-on-the-professional-site--closed-2026-09-11-not-possible-from-this-source),
+  including the four guide-versus-website comparisons that matched exactly.
+
+The subsequent correction work on September 10 changed **twelve values across
+seven flavour rows**: Ensure Advance chocolate, Ensure Protein Max chocolate,
+Glucerna chocolate, BOOST 2.24 chocolate, BOOST Pudding chocolate, Ensure Regular
+chocolate, and Ensure Plus Calories chocolate. These were the flavours whose
+published panels differed from the guide's panel. Potassium was the nutrient
+that changed most often. This records the applied corrections separately from
+the surveys above.
+
+These are dated results, not a guarantee about later product revisions.
 
 Every row also carries a `value_source` column saying which state it is in:
 `own_panel` for a flavour's own published panel, `representative` where the

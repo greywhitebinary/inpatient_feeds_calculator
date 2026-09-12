@@ -1,5 +1,10 @@
 # Configurable RD Calculation Workspace — Working Notes
 
+> Historical design record. The proposals and completion notes below describe
+> earlier stages and are retained for context. For the implemented workflow and
+> current maintenance decisions, use [Calculation and record flow](docs/CALCULATION_FLOW.md).
+> This record is not a request to rebuild or redesign the current interface.
+
 **Status:** Early concept / thinking document  
 **Date:** August 23, 2026
 
