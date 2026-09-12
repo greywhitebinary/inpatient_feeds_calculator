@@ -1,119 +1,115 @@
 # Calculation and record flow
 
-This map describes the calculator as it works now. It is a maintenance aid, not
-a definition of clinical requirements or a recommendation for patient care.
+This guide describes the implemented code structure and preserved behavior. It
+is a maintenance aid, not a definition of clinical requirements or a
+recommendation for patient care.
 
-## Current value flow
+## Where the numbers travel
 
 1. **Product data enters through `webapp/data.py`.** Master formula, modular,
-   and ONS CSVs are loaded into data frames. Uploaded formulary workbooks pass
-   through the same column and row validation before becoming the session's
-   product lists. Serving-based ONS products retain per-serving values, while
-   liquid ONS products use container size and per-mL values.
+   and ONS CSVs are loaded into data frames. Uploaded formularies pass through
+   column and row validation. Serving-based ONS retains per-serving values;
+   liquid ONS uses container size and per-mL values.
 
-   A missing or blank disclosed-nutrient value is different from a declared
-   zero. Formula micronutrients, adequacy fields, and specified modular fields
-   remain null when the source does not disclose them. A declared zero remains
-   numeric. Formula and ONS fibre are the documented exception: a blank fibre
-   cell is normalized to zero under the existing fibre-free product convention.
+   Undisclosed formula micronutrients, adequacy fields, and specified modular
+   fields remain null, while declared zeros remain numeric. Formula and ONS
+   fibre retain the existing exception: blank fibre becomes zero under the
+   documented fibre-free product convention.
 
-2. **Assessment owns the goals and IV entries.** `webapp/assessment_ui.py`
-   writes the authoritative `assessment_energy_target`,
-   `assessment_protein_target`, and `assessment_water_target` values. The plan's
-   “Adjust goals” controls update those same Assessment keys. Weight choices and
-   the entered requirement ranges also remain Assessment state.
+2. **Assessment owns goals and IV entries.** `assessment_ui.py` writes the
+   authoritative energy, protein, and water goals. The plan's “Adjust goals”
+   controls update those same Assessment keys. `session_state.py` passes IV
+   entries to `calculations.py` to calculate daily delivery.
 
-   IV names, rates, durations, and TKVO flags are stored as Assessment fields.
-   `webapp/session_state.py` converts active IV entries into daily deliveries by
-   calling `webapp/calculations.py`. The user explicitly authorized the current
-   behavior in which IV sodium, potassium, calcium, and magnesium contribute to
-   the intake table and totals. IV dextrose contributes energy and carbohydrate.
-   IV volume is deliberately excluded from the reported water total because
-   water goals are entered net of IV fluid.
+   IV sodium, potassium, calcium, and magnesium contribute to intake totals as
+   explicitly authorized by the user. IV dextrose contributes energy and
+   carbohydrate. IV volume remains excluded from the reported water total
+   because the water goal is entered net of IV fluid. `propofol_ui.py` and the
+   feed controls manage propofol entries, whose energy and fat enter intake.
 
-   Propofol is plan state, handled by `webapp/propofol_ui.py` and
-   `webapp/plan_ui.py`. Its energy reduces the energy left for a formula
-   suggestion, while its fat and energy later appear in source totals.
+3. **Feed controls produce an explicit order.** `plan_feed_controls.py` handles
+   the starting-versus-reviewing workflow, schedules, formula comparisons,
+   suggestions, and entered orders. It returns a `FeedSelection` to the
+   coordinating `plan_ui.py`.
 
-3. **The plan turns a suggestion or entered order into one calculation
-   shape.** `render_en_scenario` in `webapp/plan_ui.py` coordinates the current
-   workflow. It subtracts IV energy and applicable propofol
-   energy before suggesting a formula amount. ONS is counted in final intake,
-   but it does not reduce the formula-energy suggestion. The same is true of
-   modular energy under the preserved policy.
+   `plan_order.py` holds immutable `FormulaEnergy` and `FeedOrder` objects.
+   `FormulaEnergy` distinguishes energy remaining after IV from energy remaining
+   after both IV and propofol. Conditional suggestions apply their own propofol
+   exposure to the first amount. Modular and ONS energy still do not reduce the
+   formula suggestion.
 
-   `practical_feed_delivery` rounds a suggested pump rate or intermittent
-   volume to the existing 5 mL increment. `ordered_feed_delivery` then converts
-   the selected or manually entered order into daily volume and nutrients.
-   Rate-and-duration intermittent orders are first converted to volume per
-   feed. Manual order overrides remain authoritative across reruns. An explicit
-   “Use suggested” action replaces the override with the current suggestion.
-   A running regimen is otherwise protected from automatic replacement.
+   `FeedOrder` converts intermittent rate-and-duration entries to volume per
+   feed once and retains conditional rates with their exposure hours. Its
+   delivery method delegates arithmetic to `calculations.py`. Suggested orders
+   retain the existing 5 mL rounding. Manual overrides survive reruns until an
+   explicit “Use suggested” action replaces them; running orders remain
+   protected from automatic replacement.
 
-4. **Full and estimated delivery branch from that order.** The full result uses
-   100% of the normalized formula order. The estimated result applies the
-   entered delivery percentage to formula delivery. The selected display drives
-   the on-screen intake and goal comparison. Modulars, ONS, propofol, IV fluids,
-   and entered flushes remain separate source contributions rather than being
-   scaled as formula delivery.
+4. **Supplement and hydration controls collect separate contributions.**
+   `plan_supplements.py` returns modular and ONS selections, calculated totals,
+   and chart-note details. Incomplete supplement orders contribute nothing.
+   `plan_hydration.py` handles flush entries and hydration results, using the
+   existing calculation functions. ONS water counts in intake and charted
+   totals, but remains excluded from goal-derived hydration-flush calculations.
 
-5. **Source rows become totals.** `plan_ui.py` builds rows for formula,
-   modulars, ONS, propofol, IV fluids, and water administrations, then
-   `combined_intake` in `webapp/calculations.py` sums the fixed intake fields.
-   Unknown source values can display as an em dash while contributing nothing
-   to the numeric sum; this does not turn them into declared zeros. ONS water is
-   included in displayed and charted totals, but it is excluded from the
-   goal-derived hydration-flush calculation.
+5. **The same order produces full and estimated delivery.** The full result
+   uses 100% of the formula order. Estimated delivery applies the entered
+   percentage to formula alone. Modulars, ONS, propofol, IV fluids, and flushes
+   retain their entered contributions.
 
-6. **The chart note uses the planned result.** `webapp/chart_note.py` receives
-   completed scenario result dictionaries. It reports the full planned regimen
-   and its planned source total even when the screen is showing an estimated
-   partial-delivery result. It names contributing IV dextrose, ONS, modular, and
-   propofol sources when they affect the total. The editable chart-note draft is
-   generated output and is not saved in the case workbook.
+   `plan_sources.py` receives those contributions through `IntakeSources`.
+   Its pure `calculate_intake` function returns an `IntakeResult` containing
+   source rows and totals for both planned and displayed delivery, without
+   accessing widgets or session state. Both views use the same row builder and
+   existing `combined_intake` arithmetic. Unknown values can display as an em
+   dash while adding nothing to the numeric sum; they remain distinct from
+   declared zeros. Shared mmol conversion helpers now live in
+   `calculations.py`, with their arithmetic unchanged.
 
-7. **Save and reopen preserve inputs and product snapshots.**
-   `webapp/case_io.py` exports allowlisted calculator inputs plus the current
-   formula, modular, and ONS tables. Import validates each restored input and
-   revalidates product data before `session_state.py` replaces the active case.
-   Formula-looking user text is stored as literal workbook text.
+6. **Review and charting consume these results.** `plan_review.py` renders the
+   delivery choice and goal comparison. Its calculated comparison totals retain
+   the original addition order so half-unit rounding stays unchanged.
+   `plan_ui.py` coordinates the sections
+   and passes the planned results to `chart_note.py`. The chart note describes
+   the full planned regimen even when the screen displays estimated partial
+   delivery. The editable chart-note draft is not saved in the case workbook.
 
-   Goal migration distinguishes an absent key from a present key whose value is
-   `None`. An absent newer goal field may receive a legacy value or current default.
-   For those goals, a present `None` means the user deliberately left or made the field blank and
-   must remain blank.
+7. **Save and reopen preserve inputs and product snapshots.** `case_io.py`
+   exports allowlisted inputs and the current product tables. Import validates
+   restored inputs and product data before `session_state.py` replaces the
+   active case. Formula-looking user text remains literal workbook text.
+   Goal migration distinguishes absent keys from deliberately blank values:
+   missing newer keys may receive legacy values or defaults, while an existing
+   `None` stays blank.
 
-## Module and regression map
+## What this cleanup preserves
 
-- `data.py`: product schemas, missing-data semantics, and formulary workbooks.
-- `assessment_ui.py`: measurements, requirement inputs, authoritative goals,
-  and IV entry controls.
-- `session_state.py`: initialization, import application, migrations, and IV
-  aggregation.
-- `calculations.py`: unit conversion, normalized delivery arithmetic, source
-  delivery, hydration, and total summation.
-- `plan_ui.py` and `propofol_ui.py`: order state, suggestions, overrides,
-  displayed results, and source-row assembly.
-- `chart_note.py`: planned-regimen chart-note output.
-- `case_io.py`: case workbook snapshot, validation, export, and import.
-- `tests/test_calculations.py`, `tests/test_plan_regressions.py`, and
-  `tests/test_chart_note_regressions.py`: calculation and output paths.
-- `tests/test_goal_state_regressions.py`: goal ownership and blank-state
-  behavior.
-- `tests/test_workflow_roundtrip.py`: complete intake tables and generated notes
-  after saving, replacing, and reopening representative cases.
-- `tests/test_data.py`, `tests/test_formulary_regressions.py`, and
-  `tests/test_record_regressions.py`: product and workbook compatibility.
+The user-visible layout, wording, control order, and starting-versus-reviewing
+workflow remain the same. Moving code into modules does not itself justify
+moving controls on screen. Any future UI rearrangement needs a clear,
+user-relevant reason that explains the problem and the proposed improvement.
 
-## Future extraction
+This extraction makes the order and intake boundaries explicit. It does not
+claim that every module is now simple or every clinical case has been verified.
+Feed-control state decisions could be divided further in a later change if
+there is a concrete maintenance benefit.
 
-There is not currently a separate normalized-order domain object or service.
-`render_en_scenario` still combines UI rendering, state decisions, order
-normalization, source assembly, and result selection. A future change could
-extract a tested calculation input/result boundary so the full display,
-estimated display, totals, and chart note consume explicit shared results. That
-is a proposed maintenance direction; this extraction has not been implemented.
+## Regression map
 
-For a future AI-assisted change, use this copyable instruction:
+- `tests/test_plan_order.py` checks equivalent order forms, full and partial
+  delivery, conditional order snapshots, and formula-energy allocation.
+- `tests/test_plan_sources.py` checks independently expected source totals,
+  partial delivery, IV electrolyte and water handling, disclosure semantics,
+  and input preservation.
+- `tests/test_app_render.py` and `tests/test_plan_regressions.py` exercise the
+  visible workflows, state transitions, and repaired calculation paths.
+- `tests/test_workflow_roundtrip.py` compares complete intake tables and
+  generated notes after saving, replacing, and reopening representative cases.
+- `tests/test_calculations.py`, `tests/test_chart_note_regressions.py`, and
+  `tests/test_goal_state_regressions.py` cover arithmetic, charting, and goals.
+- Product and workbook compatibility are covered by `tests/test_data.py`,
+  `tests/test_formulary_regressions.py`, and `tests/test_record_regressions.py`.
 
-> Trace the changed input through every affected calculation, display, chart-note, and saved-record output. Add a regression that fails before the fix, make the narrowest behavior change, run the related suites, and report the exact behavior, files, checks, and remaining limits.
+For a future AI-assisted change:
+
+> Trace the changed input through every affected calculation, display, chart note, and saved-record output. Add a regression that fails before a bug fix. Preserve behavior during structural cleanup. Run the related suites and report the exact behavior, files, checks, and remaining limits. Preserve the established interface unless a concrete user need justifies a UI change.

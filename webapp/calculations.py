@@ -265,6 +265,23 @@ FORMULA_MICRONUTRIENT_COLUMNS = (
 )
 
 
+def mmol_from_delivery(delivery: dict[str, float], nutrient: str) -> float:
+    return mg_to_mmol(nutrient, delivery.get(f"{nutrient}_mg", 0))
+
+
+def mmol_if_disclosed(totals: Mapping[str, object], nutrient: str) -> float | None:
+    """Return mmol/day, or None when no contributing product declared a figure.
+
+    Returning None makes the table render an em dash rather than a confident
+    zero. A zero would read as a measured absence and would be indistinguishable
+    from a product that genuinely contains none of the nutrient.
+    """
+    disclosed = totals.get("disclosed") or {}
+    if not disclosed.get(f"{nutrient}_mg", 0):
+        return None
+    return mg_to_mmol(nutrient, totals.get(f"{nutrient}_mg", 0))
+
+
 def micronutrient_delivery(
     formula: Mapping[str, object], volume_ml: float
 ) -> dict[str, float | None]:
