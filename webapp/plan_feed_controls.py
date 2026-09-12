@@ -93,12 +93,15 @@ def _render_en_prescription(
     feed is being reviewed the schedule belongs beside the order instead, so the
     caller renders it there and this returns None for it.
     """
+    target_key = scenario_key(scenario_id, "prescription_target_pct")
+    # Keep the planning value while its widget is absent in review mode.
+    # Reassigning detaches it from Streamlit's hidden-widget cleanup.
+    st.session_state[target_key] = st.session_state.get(target_key, 100.0)
     if reviewing:
         # Reviewing sets no target: the goal is the assessed requirement and
         # the running order is measured against it. A prescription percentage
         # would be asking what the feed is meant to achieve, which is not the
         # question when the order already exists.
-        st.session_state[scenario_key(scenario_id, "prescription_target_pct")] = 100.0
         return (
             100.0,
             False,
@@ -115,9 +118,10 @@ def _render_en_prescription(
             "EN regimen target (%)",
             min_value=1.0,
             max_value=200.0,
+            value=float(st.session_state[target_key]),
             step=5.0,
             format="%.0f",
-            key=scenario_key(scenario_id, "prescription_target_pct"),
+            key=target_key,
             help=(
                 "Values above 100% increase the EN regimen to account for "
                 "expected interruptions. Protein and water goals are unchanged."

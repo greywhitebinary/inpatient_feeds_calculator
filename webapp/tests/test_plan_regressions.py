@@ -100,6 +100,47 @@ def conditional_example():
     return app
 
 
+@pytest.mark.parametrize("scenario", ["standard", "propofol"])
+@pytest.mark.parametrize("target", [100.0, 50.0, 110.0])
+def test_regimen_target_survives_switch_to_review_and_back(scenario, target):
+    app = example()
+    target_key = f"scenario_{scenario}_prescription_target_pct"
+    mode_key = f"scenario_{scenario}_regimen_source"
+    if target != 100:
+        set_value(app, "number_input", target_key, target)
+    for _ in range(2):
+        set_value(app, "radio", mode_key, "Reviewing a feed already running")
+        assert app.session_state[target_key] == target
+        app.run(timeout=30)
+        assert not app.exception
+        set_value(app, "radio", mode_key, "Starting a new feed")
+        assert widget(app, "number_input", target_key).value == target
+        # AppTest alone misses the browser remounting this hidden input at
+        # its serialized default (formerly the minimum, 1), despite Python
+        # still reporting 100. Check the value sent for a fresh browser input.
+        assert widget(app, "number_input", target_key).proto.default == target
+        assert app.session_state[target_key] == target
+
+
+def test_shorter_feeding_day_keeps_manual_rate_and_updates_suggestion():
+    app = example()
+    set_value(app, "number_input", "scenario_standard_feeding_hours", 24.0)
+    set_value(app, "number_input", "scenario_standard_ordered_rate_ml_hr", 40.0)
+    set_value(app, "number_input", "scenario_standard_feeding_hours", 16.0)
+    assert (
+        widget(app, "number_input", "scenario_standard_ordered_rate_ml_hr").value == 40
+    )
+    row = next(row for row in table_rows(app, "Source") if row[0] == "Isosource 1.5")
+    assert float(row[1]) == 640
+    assert float(row[2]) == 960
+    assert any("Suggested: <strong>75 mL/hour" in item.value for item in app.markdown)
+    widget(app, "button", "scenario_standard_use_suggested_order").click().run(
+        timeout=30
+    )
+    assert not app.exception
+    assert app.session_state["scenario_standard_ordered_rate_ml_hr"] == 75
+
+
 def test_conditional_suggestions_include_iv_energy_and_keep_manual_orders():
     app = conditional_example()
     lower = "scenario_propofol_conditional_lower_rate_ml_hr"
@@ -129,6 +170,77 @@ def test_conditional_suggestions_include_iv_energy_and_keep_manual_orders():
     ).click().run(timeout=30)
     assert not app.exception
     assert app.session_state[lower] == 25
+
+
+@pytest.mark.parametrize(
+    "change,expected", [("goal", 65), ("iv", 25), ("propofol", 20)]
+)
+def test_changed_inputs_update_suggestion_without_replacing_manual_feed(
+    change, expected
+):
+    app = example()
+    scenario = "propofol" if change == "propofol" else "standard"
+    order_key = f"scenario_{scenario}_ordered_rate_ml_hr"
+    display_key = "_propofol_widget_" + order_key if change == "propofol" else order_key
+    set_value(app, "number_input", f"scenario_{scenario}_feeding_hours", 24.0)
+    set_value(app, "number_input", display_key, 40.0)
+    if change == "goal":
+        set_value(app, "number_input", "assessment_energy_target", 2400.0)
+        # 2400 kcal / 1.5 kcal/mL / 24 hours, rounded to 5 mL/hour.
+    elif change == "iv":
+        set_value(app, "selectbox", "assessment_iv_fluid_0", "D5W")
+        set_value(app, "number_input", "assessment_iv_rate_0", 200.0)
+        # (1800 - 816 kcal IV) / 1.5 / 24, rounded to 5 mL/hour.
+    else:
+        set_value(
+            app,
+            "number_input",
+            "_propofol_widget_scenario_propofol_propofol_hours",
+            24.0,
+        )
+        set_value(
+            app,
+            "number_input",
+            "_propofol_widget_scenario_propofol_propofol_rate",
+            40.0,
+        )
+        # (1800 - 40 * 24 * 1.1 kcal propofol) / 1.5 / 24, rounded to 5.
+    assert widget(app, "number_input", display_key).value == 40
+    assert any(
+        f"Suggested: <strong>{expected} mL/hour" in item.value for item in app.markdown
+    )
+    formula_name = "Peptamen 1.5" if change == "propofol" else "Isosource 1.5"
+    row = next(row for row in table_rows(app, "Source") if row[0] == formula_name)
+    assert float(row[1]) == 960
+    assert float(row[2]) == 1440
+    widget(app, "button", f"scenario_{scenario}_use_suggested_order").click().run(
+        timeout=30
+    )
+    assert not app.exception
+    assert widget(app, "number_input", display_key).value == expected
+    assert app.session_state[order_key] == expected
+
+
+def test_switching_to_intermittent_volume_uses_target_not_previous_manual_volume():
+    app = example()
+    set_value(app, "number_input", "scenario_standard_feeding_hours", 24.0)
+    set_value(app, "number_input", "scenario_standard_ordered_rate_ml_hr", 40.0)
+    set_value(
+        app,
+        "radio",
+        "scenario_standard_running_shape",
+        "Intermittent, each feed a set volume",
+    )
+    set_value(app, "number_input", "scenario_standard_feeds_per_day", 4)
+    assert (
+        widget(
+            app, "number_input", "scenario_standard_ordered_volume_per_feed_ml"
+        ).value
+        == 300
+    )
+    row = next(row for row in table_rows(app, "Source") if row[0] == "Isosource 1.5")
+    assert float(row[1]) == 1200
+    assert float(row[2]) == 1800
 
 
 @pytest.mark.parametrize(

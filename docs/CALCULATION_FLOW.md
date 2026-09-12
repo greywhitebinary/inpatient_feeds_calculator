@@ -23,6 +23,32 @@ must not overwrite that requirement. Under the existing implementation this
 percentage scales the energy target; protein and water comparisons retain their
 full goals. The calculator does not decide the appropriate percentage.
 
+The starting-feed target defaults to 100%. Switching to review mode and back
+preserves the selected planning percentage, including a custom value such as
+50%. Review mode compares the running order with the full assessed requirement;
+it does not overwrite the saved planning percentage. The percentage input must
+also reopen with that saved value in the browser, rather than its minimum (1%).
+
+For starting feeds, changing formula resets the entered order to the new
+formula's suggestion. With the same formula, changing the energy goal or
+feeding hours preserves a manually entered rate while updating the suggestion.
+For example, 40 mL/hour stays 40 when hours change from 24 to 16; daily delivery
+falls accordingly. “Use suggested rate” explicitly applies the new suggestion.
+
+Changing between continuous feeding and intermittent entry forms while starting
+feeds uses the target to suggest the new rate or volume, rather than converting
+the previous manual order to preserve its daily volume. For example, with a
+1,800 kcal target, a 1.5 kcal/mL formula and no IV or propofol calories, switching
+from a manual 40 mL/hour continuous order to four volume-based feeds suggests
+300 mL per feed, not 240 mL per feed.
+
+Changing IV dextrose or propofol inputs updates the suggested enteral-feed rate
+without replacing a manually entered feed rate. The user may deliberately
+explore higher or lower provision. Keep the suggestion visible and let “Use
+suggested rate” (or “Use suggested volume”) apply it explicitly. This is a rule
+about the feed order, not about automatically altering the entered IV or
+propofol dose.
+
 Achieved formula-delivery percentage answers a separate question: how much of
 the entered formula order was delivered. It changes the estimated intake view;
 it does not rewrite the prescription or the full planned chart note.
@@ -158,6 +184,22 @@ Chart-note repairs preserve fractional ONS orders, distinguish IV durations,
 identify ONS/IV/propofol nutrient sources accurately, and describe an existing
 trickle feed as continuing.
 
+The subsequent mode-switch repair preserves the planning target while its
+input is hidden and explicitly initializes the returning browser input from
+the saved value. A real browser reproduced the original 100% → 1% display
+failure, which AppTest's reported value alone did not expose. Regression tests
+cover repeated mode switches with default and custom targets on both feeding
+tabs, the serialized input default, and manual-rate preservation when hours
+change. The UI layout and clinical equations are unchanged.
+The focused validation passed 129 tests across planning regressions, application
+rendering, workflow save/reopen, case import/export, and goal-state handling;
+Ruff and Black passed for the changed Python files. Browser checks confirmed
+100% and 50% restoration on the standard tab and 100% on the propofol tab.
+After the final workflow decisions, all 28 planning-regression tests passed,
+including added checks for goal, IV, and propofol changes preserving manual
+feed rates until “Use suggested” is clicked, and continuous-to-intermittent
+conversion using the target. Ruff and Black passed again for the changed files.
+
 ## Verification evidence
 
 At `e807ae2`, the local suite passed **286 tests and 116 subtests**. Ruff and
@@ -185,17 +227,20 @@ present a passing suite or the code review as such a guarantee.
 - A custom formula named exactly `Modulars` can be filtered from the daily
   intake rows when no modular is selected, because the existing filter uses a
   display label. This pre-existing edge was preserved during the structural
-  change. A separately scoped fix should identify rows by role rather than
-  product name and test the table and chart-note totals.
+  change. The user considers this naming collision unrealistic for the actual
+  formulary, so it is not a repair priority.
 - The regimen check preserves its original water addition order. Regrouping
   floating-point additions can alter integer display rounding at a half-mL
   boundary. Its dedicated totals in `plan_sources.py` are intentional; tests
-  cover this. Do not remove them as redundant without examining the behavior.
+  cover this. This display-rounding difference does not feed back into the
+  rate or hydration-flush calculation and is not a repair priority.
 - Unsupported weight-choice strings in manually malformed case workbooks can
   pass import and then reset to UI defaults. Current UI exports cannot create
-  those values. Broader saved-field validation remains a separate task.
-- Clearing the adjusted-weight factor restores 0.25. Whether it should allow
-  a meaningful blank was not resolved, so no policy change was made.
+  those values. This is low-priority validation of externally altered files,
+  not a demonstrated failure of ordinary saved-case restoration.
+- The user confirmed that the adjusted-weight factor should default to 0.25
+  and remain editable. Restoring that default after clearing is accepted
+  behavior, not an unresolved defect.
 - Feed-control state handling is still substantial. Further splitting should
   serve a concrete maintenance need and preserve overrides, widget identity,
   and the different starting/reviewing behaviors.
