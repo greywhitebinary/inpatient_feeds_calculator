@@ -364,22 +364,10 @@ all. That was wrong, and was written after checking only the nutrition table
 and the technical-characteristics field. The owner pointed to the features
 section, and it is there.
 
-**A defect on Nestlé's side, found on 2026-09-11.** BOOST 1.5's features image
-is the only one of the ten whose stored `src` omits the `/styles/pwa_embed/
-public/` derivative prefix that every other product uses. The stored path,
-`/sites/default/files/2026-07/Features-Boost15.jpg`, returns **HTTP 404**, so
-the features panel is simply missing from the BOOST 1.5 page. The image itself
-is intact at the standard derivative path and was read from there. This is
-worth raising with Nestlé, since a clinician reading that page sees no water
-content, osmolality or lactose statement for BOOST 1.5 at all.
-
-**It costs this project's data nothing.** The printed guide carries the same
-FEATURES AT-A-GLANCE block in full at printed folio 30 (pdf page 16), field for
-field identical to the web image, and the guide is what all three BOOST 1.5 rows
-already cite. The whole page was re-verified on 2026-09-11: every stored value
-for vanilla, chocolate and strawberry matches the guide's 237 mL column exactly,
-free water included at 180 mL/237 mL. The website defect affects clinicians
-reading Nestlé's site, not this repository.
+**BOOST 1.5 re-verified, 2026-09-11.** The guide carries the same FEATURES
+AT-A-GLANCE block in full at printed folio 30 (pdf page 16), and every stored
+value for vanilla, chocolate and strawberry matches the guide's 237 mL column
+exactly, free water included at 180 mL/237 mL.
 
 **What the visit was worth.** Two rows were verified against a source
 independent of the guide, and every field matched exactly, per 237 mL:
@@ -394,11 +382,6 @@ reassurance about the guide transcription rather than a new source of record.
 The remaining eight vanilla panels could be checked the same way if the
 guide's transcription is ever doubted; the images are one HTTP request each,
 listed in `produtos-en`.
-
-**A finding for item 5's outstanding Vitamin K work.** These panels print
-Vitamin K. BOOST Fruit Flavoured orange gives 0.0038 mg per 100 mL and 0.009 mg
-per 237 mL. So the site is a usable Vitamin K source for the Nestlé ONS rows if
-that column is ever added, alongside the guide.
 
 **Guide against website, tested 2026-09-11.** Four Nestlé products were
 compared field by field between the professional site and the 2026 guide:

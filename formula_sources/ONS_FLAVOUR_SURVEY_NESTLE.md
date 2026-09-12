@@ -29,8 +29,7 @@ order codes in the ordering table, and the ingredient list is headed
 guide's structure rather than improving on it. It does carry water content and
 osmolality, in a separate "FEATURES AT-A-GLANCE" image rather than in the
 nutrition panel, but that image is also one per product rather than one per
-flavour. BOOST 1.5's copy of it is missing from Nestlé's own page through a
-broken image path; see `VERIFICATION_BACKLOG.md` item 6.
+flavour.
 
 What the site did settle is that the guide's transcription is sound. BOOST
 Original vanilla and BOOST Fruit Flavoured orange were compared field by field

@@ -98,16 +98,6 @@ Image URLs are usually the `/styles/pwa_embed/public/...` or
 original were byte-identical in size where checked, so the derivative is fine to
 read.
 
-### A known defect on Nestlé's side
-
-**BOOST 1.5's features image is broken on Nestlé's own site.** Its stored `src`
-omits the `/styles/pwa_embed/public/` prefix every other product uses, and the
-path it does use returns HTTP 404. A clinician reading that page sees no water
-content, osmolality or lactose statement at all. The image itself is intact at
-the standard derivative path. The printed guide carries the same block in full,
-so nothing is actually lost to anyone using the guide — but it is worth reporting
-to Nestlé, and worth not mistaking for your own tooling failing.
-
 ---
 
 ## Getting into the Abbott site
@@ -294,13 +284,6 @@ the dietary 12:1 RAE factor while every other row uses the supplemental 2:1
 factor, and how to mark that is unresolved. Expect to meet the same class of
 problem across the ONS range and decide a convention before transcribing rather
 than after.
-
-**Vitamin K is absent from both ENCalc CSVs but present in the sources.** The
-guide and the site both print it — BOOST 1.5 at 0.02 mg per 237 mL, BOOST Plus
-Calories at 0.032 mg, BOOST Fruit Flavoured orange at 0.009 mg. It is the one
-micronutrient in a feed that changes a drug decision, through warfarin and the
-INR, so it is worth capturing on your side even though ENCalc has not yet added
-the column.
 
 ---
 
