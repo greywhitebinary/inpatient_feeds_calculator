@@ -13,11 +13,35 @@ not alter any stored value the application reads, and it does not touch
 
 ## What could be checked, and what could not
 
-The professional guide site could not be used — it returns an empty document
-to a fetcher, as expected going in. The consumer shop at
-`shop.nestlehealthscience.ca` was the only reachable Nestlé source. I found its
-product slugs from the `/collections/boost` listing and from the site's own
-product sitemap (`sitemap_products_1.xml`), rather than guessing any URL.
+The professional site at `https://www.nhsc-pro.ca/pwa/en/products` was read on
+2026-09-11, after this survey was first written. An earlier version of this
+document said it could not be used, which was wrong: it returns an empty
+document to a *fetcher* because it is an offline-first Ionic application that
+caches its catalogue after boot, but it loads normally in a real browser.
+
+**It publishes no per-flavour nutrition data.** Each product carries one
+nutrition-information image, and every one of the ten in-scope BOOST products is
+headed with a single flavour — "Vanilla Flavoured" for nine of them, and "Orange
+Flavoured" for BOOST Fruit Flavoured, which confirms this survey's finding that
+Nestlé publishes orange's panel for that product. Other flavours appear only as
+order codes in the ordering table, and the ingredient list is headed
+"INGREDIENTS (VANILLA FLAVOUR)". The site therefore reproduces the printed
+guide's structure rather than improving on it. It does carry water content and
+osmolality, in a separate "FEATURES AT-A-GLANCE" image rather than in the
+nutrition panel, but that image is also one per product rather than one per
+flavour. BOOST 1.5's copy of it is missing from Nestlé's own page through a
+broken image path; see `VERIFICATION_BACKLOG.md` item 6.
+
+What the site did settle is that the guide's transcription is sound. BOOST
+Original vanilla and BOOST Fruit Flavoured orange were compared field by field
+against the stored rows, and every value matched exactly. The full account is in
+`VERIFICATION_BACKLOG.md` item 6.
+
+Everything below therefore rests on the printed guide and, for four products, on
+the consumer shop at `shop.nestlehealthscience.ca`, which remains the only
+Nestlé source publishing a second flavour's panel. I found its product slugs
+from the `/collections/boost` listing and from the site's own product sitemap
+(`sitemap_products_1.xml`), rather than guessing any URL.
 
 That sitemap turned out to carry only **four** of the ten products in scope:
 BOOST 2.24, BOOST Fruit Flavoured, BOOST Soothe, and BOOST Pudding. The other
@@ -171,9 +195,11 @@ product; it is evidence only that this consumer page does not print it.
 
 ## Pages I could not reach or that do not exist
 
-- The professional `nestlehealthscience.ca` product pages: confirmed
-  unusable going in, per the task brief (client-rendered, returns an empty
-  document to a fetcher).
+- The professional `nestlehealthscience.ca` product pages: reachable after all,
+  at `nhsc-pro.ca/pwa/en/products`, and read on 2026-09-11. They are
+  client-rendered, so they return an empty document to a fetcher and need a
+  real browser. They publish one single-flavour panel per product and no
+  per-flavour data, as described above.
 - `madewithnestle.ca` (the Nestlé consumer brand site): returned HTTP 403 to
   every fetch attempt, including the BOOST Fruit Flavoured page that might
   have carried the "applies only to orange" wording.

@@ -310,3 +310,109 @@ Still to do:
   panel. It is the one micronutrient in a feed that changes a drug decision,
   through warfarin and the INR. Adding it means one column and 33 values.
 
+---
+
+## 6. Re-base the Nestlé ONS rows on the professional site — CLOSED 2026-09-11, not possible from this source
+
+**The question.** Fourteen of the 26 Nestlé rows in `ons_products_working.csv`
+carry the guide's single panel rather than their own flavour's, marked
+`representative` (twelve) or `stated_representative` (two) in `value_source`.
+A patient on chocolate is shown vanilla's numbers. Two further rows, BOOST 2.24
+— Chocolate and BOOST Pudding — Chocolate, cite the consumer shop because the
+guide prints no chocolate panel. This item asked whether the professional site
+at `https://www.nhsc-pro.ca/pwa/en/products` could re-base them.
+
+**It cannot.** The site was read on 2026-09-11 through a real browser, which is
+what it needs; it is an offline-first Ionic application that caches its whole
+catalogue (51 products) in IndexedDB under `_ionicstorage`, key `produtos-en`.
+Each product carries its nutrition information as a **single image**, not as
+structured data, in `tabelaNutricional`. Every one of the ten in-scope BOOST
+products has exactly one such image, and every one is headed with a single
+flavour:
+
+- Nine are headed **"Vanilla Flavoured"**: BOOST 1.5, 2.24, CarbSmart, High
+  Protein, Original, Plus Calories, Protein+, Pudding, Soothe.
+- BOOST Fruit Flavoured is headed **"Orange Flavoured"**, which independently
+  confirms the `stated_representative` marking on its peach and wildberry rows.
+
+Other flavours appear on the site only as **order codes** in the ordering table
+(for example "24 x 237 ml Tetra Prisma chocolate latte"), never as nutrition
+figures, and the ingredient list is explicitly headed "INGREDIENTS (VANILLA
+FLAVOUR)". The site publishes exactly the structure the printed guide does: one
+panel per product, named for one flavour. No chocolate, strawberry or
+chocolate-latte panel exists on it.
+
+So the fourteen rows stay as they are, correctly labelled. **No stored value
+changed as a result of this work.** The remaining routes to per-flavour figures
+are the consumer shop, which covers only four products and is weaker evidence,
+or asking Nestlé directly, which is the escalation `DATA_CONVENTIONS.md`
+section 3 prescribes when a Canadian document omits a clinically important
+figure.
+
+**Where the site does carry water content.** Not in the nutrition panel, and
+not in `caracteristicasTecnicas`, which is empty for these products. It is in
+the **"FEATURES AT-A-GLANCE"** accordion section, which is a second image
+carrying caloric density, the protein/carbohydrate/fat energy split, the
+ingredient sources, **water content**, osmolality, kosher and gluten-free
+status, lactose and residue. BOOST 1.5 reads "Water content 180 ml/237 ml" and
+"Osmolality 920 mOsm/kg water", and its stored `free_water_per_mL` of 0.75949
+matches exactly. Like the nutrition panel, this is one image per product rather
+than one per flavour, so it does not bear on the flavour question either.
+
+An earlier version of this item claimed the panels carry no water content at
+all. That was wrong, and was written after checking only the nutrition table
+and the technical-characteristics field. The owner pointed to the features
+section, and it is there.
+
+**A defect on Nestlé's side, found on 2026-09-11.** BOOST 1.5's features image
+is the only one of the ten whose stored `src` omits the `/styles/pwa_embed/
+public/` derivative prefix that every other product uses. The stored path,
+`/sites/default/files/2026-07/Features-Boost15.jpg`, returns **HTTP 404**, so
+the features panel is simply missing from the BOOST 1.5 page. The image itself
+is intact at the standard derivative path and was read from there. This is
+worth raising with Nestlé, since a clinician reading that page sees no water
+content, osmolality or lactose statement for BOOST 1.5 at all.
+
+**It costs this project's data nothing.** The printed guide carries the same
+FEATURES AT-A-GLANCE block in full at printed folio 30 (pdf page 16), field for
+field identical to the web image, and the guide is what all three BOOST 1.5 rows
+already cite. The whole page was re-verified on 2026-09-11: every stored value
+for vanilla, chocolate and strawberry matches the guide's 237 mL column exactly,
+free water included at 180 mL/237 mL. The website defect affects clinicians
+reading Nestlé's site, not this repository.
+
+**What the visit was worth.** Two rows were verified against a source
+independent of the guide, and every field matched exactly, per 237 mL:
+
+    BOOST Original — Vanilla        230 Cal, 10 g protein, 34 g carbohydrate,
+                                    6 g fat, Na 265, K 410, Ca 308, P 265, Mg 90 mg
+    BOOST Fruit Flavoured — Orange  180 Cal, 9 g protein, 36 g carbohydrate,
+                                    0.5 g fat, Na 15, K 35, Ca 79, P 200, Mg 40 mg
+
+That is the cross-check `DATA_CONVENTIONS.md` section 6 asks for, and it is
+reassurance about the guide transcription rather than a new source of record.
+The remaining eight vanilla panels could be checked the same way if the
+guide's transcription is ever doubted; the images are one HTTP request each,
+listed in `produtos-en`.
+
+**A finding for item 5's outstanding Vitamin K work.** These panels print
+Vitamin K. BOOST Fruit Flavoured orange gives 0.0038 mg per 100 mL and 0.009 mg
+per 237 mL. So the site is a usable Vitamin K source for the Nestlé ONS rows if
+that column is ever added, alongside the guide.
+
+**Guide against website, tested 2026-09-11.** Four Nestlé products were
+compared field by field between the professional site and the 2026 guide:
+BOOST Original and BOOST 1.5 (site assets dated 2026-07), BOOST Fruit Flavoured
+orange (2024-12) and BOOST Plus Calories (2022-08). **All four agree exactly,
+and the stored rows agree with both.** BOOST Plus Calories is the useful case:
+its web panel is four years older than the guide edition and is nonetheless
+identical row for row, including the full fat breakdown, all thirteen vitamins,
+choline and chloride. An old asset date means the panel has not been reissued,
+not that its figures are stale, so a date gap is not evidence of divergence.
+No disagreement between Nestlé's website and its guide has yet been observed.
+
+**A provenance note worth keeping.** The site's own footer says: "In the event
+of a discrepancy between website information and product packaging, please
+refer to product packaging." Nestlé puts the package above its own website, so
+the site does not automatically outrank the printed guide where the two
+disagree; a disagreement is a question, not an automatic correction.
