@@ -20,5 +20,5 @@
 # 2026-09-09. Hooks also confirmed present in 1.63.0 on the same date.
 streamlit==1.62.0
 pandas>=2.2
-openpyxl>=3.1
+openpyxl>=3.1.5
 watchdog>=6.0
