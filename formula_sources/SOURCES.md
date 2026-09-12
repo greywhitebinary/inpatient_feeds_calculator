@@ -27,6 +27,13 @@ The row-level `source` column is the authoritative map to document and page.
 An official source-site link alone does not show that a value is current;
 verify the local product information and update `verified` after each review.
 
+**Which source wins when two disagree** is set out in `DATA_CONVENTIONS.md`
+section 9, together with each manufacturer's own precedence wording. In short,
+sources rank one way for currency and close to the reverse for completeness,
+and for an ONS row the product package is the weakest source rather than the
+best, because the mandatory Nutrition Facts table omits free water, phosphorus
+and magnesium.
+
 ## Why five products cite a sheet rather than the guide
 
 Jevity 1.2 Cal, Jevity 1.5 Cal, Osmolite 1.2 Cal, TwoCal HN and Pivot 1.5 Cal
