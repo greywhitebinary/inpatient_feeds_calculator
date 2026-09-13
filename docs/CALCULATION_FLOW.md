@@ -53,6 +53,14 @@ Achieved formula-delivery percentage answers a separate question: how much of
 the entered formula order was delivered. It changes the estimated intake view;
 it does not rewrite the prescription or the full planned chart note.
 
+The user reconfirmed the IV-water rule on 2026-09-12: IV fluid is not
+subtracted automatically from the entered water goal. For example, a goal of
+2,000 mL with 600 mL of formula water and no other counted water contributions
+produces 1,400 mL of additional hydration flushes, even with an IV running.
+The clinician may leave the goal blank or enter a lower goal after considering
+IV provision. Keep IV volume visible separately; do not reinterpret the goal
+as total fluid inclusive of IV, or add IV volume to the reported water total.
+
 ## Where the numbers travel
 
 1. **Product data enters through `webapp/data.py`.** Master formula, modular,
@@ -248,3 +256,76 @@ present a passing suite or the code review as such a guarantee.
 Do not assume publication status from this document. Inspect Git and deployment
 state when asked. In this session the user chose to push using GitHub Desktop;
 that is not standing authorization for an AI to push later changes.
+
+## Application file map
+
+- `webapp/app.py` is the small Streamlit entry point and page orchestrator.
+- `webapp/assessment_ui.py` contains the assessment workflow and its authoritative EN goals.
+- `webapp/plan_ui.py` coordinates the shared EN workflow and passes results to reporting.
+- `webapp/plan_order.py` defines explicit feed orders and formula-energy allocations.
+- `webapp/plan_sources.py` calculates source rows and totals without screen or session state.
+- `webapp/plan_feed_controls.py`, `webapp/plan_supplements.py`, `webapp/plan_hydration.py`, and `webapp/plan_review.py` render the existing workflow sections.
+- `webapp/propofol_ui.py` contains the two-scenario Propofol workflow.
+- `webapp/formulary_ui.py` contains the Formulary and modular-library interface.
+- `webapp/session_state.py` contains session initialization, legacy-state migration, and widget synchronization.
+- `webapp/case_record_ui.py` contains saved-record controls and the footer.
+- `webapp/chart_note.py` builds the ADIME chart-note text and renders the editable draft.
+- `webapp/copy_block.py` is the chart-note copy control, shared with BTF-Calc — see below.
+- `webapp/ui_common.py` and `webapp/constants.py` contain shared presentation helpers and display constants.
+- `scripts/check_css_hooks.py` verifies the stylesheet's Streamlit selectors still exist.
+- `webapp/calculations.py` contains the inspectable calculation layer.
+- `webapp/case_io.py` contains the saved-record workbook contract.
+- `webapp/data.py` contains formulary loading, validation, import, and export.
+- `formulary_working/` contains the working feed and modular data.
+- `formula_sources/SOURCES.md` records the manufacturer documents used to
+  review the public formulary data. The documents themselves are kept locally
+  under `reference_documents/canada/` and are not needed at application runtime.
+
+Keep patient records, downloaded workbooks, historical working spreadsheets,
+screenshots, and other private local material outside this repository. The
+repository should remain the single source of truth for the application code,
+tests, public assets, and maintained product data.
+
+### Shared with BTF-Calc
+
+This tool has a sibling, the [Blenderized Tube Feeding
+Calculator](https://github.com/greywhitebinary/blenderized-tubefeed-calculator).
+The two are meant to read as one family, so five things are deliberately kept
+identical between the repositories and must be changed in both:
+
+- `webapp/copy_block.py` — the chart-note copy control. Byte-identical to
+  BTF-Calc's `app/copy_block.py`, so `diff` between them is the whole sync
+  check. Its own docstring explains the formatting constraint that keeps it
+  that way, and why it reads no Streamlit theme variables.
+- `render_alert()` in `webapp/ui_common.py`, and the `.app-alert` block in
+  `webapp/styles.css`.
+- The colour tokens in `.streamlit/config.toml`.
+- `scripts/check_css_hooks.py`, where only the `STYLESHEET` path differs.
+- `.github/workflows/canary.yml`.
+
+
+## UI compatibility checks
+
+GitHub Actions runs all of the above on any push to `main` and on any pull
+request targeting it, and again every Monday — nothing in the repository
+changes on a Monday, so that run catches the world changing underneath it. A
+push to a topic branch with no pull request open runs nothing, so open one
+before relying on the checks.
+
+`scripts/check_css_hooks.py` is the one check a test suite cannot replace.
+`webapp/styles.css` reaches into Streamlit's internal `data-testid`
+attributes, which carry no stability guarantee, and the tests drive
+Streamlit's Python API and never see a stylesheet — so a renamed attribute
+breaks the page while every test stays green. The check reads every
+`data-testid` the stylesheet depends on and asserts each still exists in the
+Streamlit build. It checks no `data-baseweb` attribute, which the stylesheet
+also relies on, because those values are short enough to appear somewhere in a
+20 MB bundle by coincidence and the check would report a confidence it had not
+established. So a renamed `data-baseweb` value would still break the styling
+quietly; the script's docstring records that limit deliberately. This is also
+why `webapp/requirements.txt` pins `streamlit` to an exact version rather than
+to a range.
+
+`.github/workflows/canary.yml` runs the same checks weekly against the
+*latest* releases instead of the pinned ones. It never gates a push: a red
+canary means "do not upgrade yet", not "main is broken".

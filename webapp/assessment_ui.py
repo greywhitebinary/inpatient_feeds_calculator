@@ -719,9 +719,10 @@ def show_assessment() -> None:
             st.caption(
                 "Enter maintenance IVs here with their rate and hours per day. "
                 "Dextrose from these counts toward energy and CHO, changing the "
-                "suggested EN volume and rate. IV fluids here do not count "
-                "toward daily water requirements — Clinician to lower the water "
-                "goal below to avoid over-hydration."
+                "suggested EN volume and rate. IV volume is reported separately "
+                "and is not subtracted from the water goal. Leave the water "
+                "goal blank if no calculated hydration flushes are needed, or "
+                "enter a goal that already accounts for IV provision."
             )
             for index in range(MAX_IV_FLUID_ORDERS):
                 fluid_column, rate_column, hours_column, tkvo_column = st.columns(
