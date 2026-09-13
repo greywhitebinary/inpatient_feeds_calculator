@@ -24,18 +24,12 @@ SOFTWARE.
 
 NOTE ON SCOPE
 
-The licence above covers the software in this repository: the application
-code, its tests, and its documentation.
+The MIT licence above covers the application's original code, tests and
+documentation.
 
-It does not purport to license the product data in `formulary_working/`.
-Those CSV files hold nutrition values transcribed from Nestle Health Science
-Canada and Abbott Nutrition Canada product documents, which carry their own
-terms; see `formula_sources/SOURCES.md` for the source register. Individual
-nutrition facts are not themselves copyrightable, but the compilation is not
-the author's to sublicense, so it is excluded here rather than granted away
-by omission. The manufacturer documents themselves are never committed to
-this repository.
+Product names identify the products used in calculations. Nutrient values are
+factual information transcribed from the sources listed in the source register.
+No exclusive rights are claimed over those individual facts, and inclusion
+does not imply manufacturer endorsement.
 
-Anyone reusing the product data should verify it against the current
-manufacturer documentation and their own institutional formulary, which is
-what the application's own documentation asks of its clinical users.
+See formula_sources/SOURCES.md for provenance and supporting guidance.

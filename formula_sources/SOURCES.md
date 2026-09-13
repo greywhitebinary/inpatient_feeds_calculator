@@ -73,3 +73,21 @@ example:
 
 Keep source documents in private backup storage that follows the
 manufacturers' terms.
+
+## Licence and attribution
+
+Reviewed 2026-09-12. The same approach applies to formulas, modulars and ONS
+in both calculators. [ISED's copyright guidance](https://ised-isde.canada.ca/site/ised/en/about-copyright)
+distinguishes facts from their expression: individual nutrient facts are not
+protected by copyright. An original selection or arrangement of data can be
+protected as a compilation; see [CIPO's explanation](https://www.ised-isde.canada.ca/site/canadian-intellectual-property-office/en/copyright-learn-basics/copyright-learn-basics-protect-your-original-works-learn-why-copyright-matters).
+Transcribing factual values does not, by itself, establish ownership of the
+repository's compilation. The licence notice therefore makes no such ownership
+claim and does not claim that the project relies on a blanket fair-dealing
+exception.
+
+[Abbott's Canadian terms](https://www.nutrition.abbott/ca/en/online-terms-and-conditions)
+and [Nestlé's Canadian terms](https://www.nestlehealthscience.ca/en/info/terms-of-use)
+address their source materials and trademarks separately from the factual
+values used here. This repository uses product names for identification and
+keeps the manufacturer source documents outside the public repository.

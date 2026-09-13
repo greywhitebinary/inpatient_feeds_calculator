@@ -146,21 +146,16 @@ in the maintenance guide before changing those components.
 
 ## Licence
 
-The application code, its tests, and its documentation are [MIT](LICENSE).
-Use it, fork it, adapt it for another region's product data.
+The application’s original code, tests and documentation are licensed under
+[MIT](LICENSE).
 
-The licence includes the standard warranty disclaimer, which matters here: the
-software is provided as is, and clinical responsibility stays with the dietitian
-using it.
+Product names identify the products used in calculations. Nutrient values are
+factual information transcribed from the sources listed in the source register.
+No exclusive rights are claimed over those individual facts, and inclusion
+does not imply manufacturer endorsement.
 
-The product data is a separate question. `formulary_working/*.csv` holds values
-transcribed from Nestlé Health Science Canada and Abbott Nutrition Canada product
-documents, which carry their own terms, so the MIT grant is scoped to the software
-and does not extend to that compilation. `formula_sources/SOURCES.md` records which
-document each row was reviewed against, and the documents themselves are never
-committed here. The dataset is a starting library rather than an approved
-institutional formulary — see [Product data and clinical
-checks](#product-data-and-clinical-checks) for what to verify before clinical use.
+See the [source register](formula_sources/SOURCES.md#licence-and-attribution) for provenance
+and supporting guidance.
 
 For feedback, open an [issue on GitHub](https://github.com/greywhitebinary/inpatient_feeds_calculator/issues)
 or find Hui-Jun Gail Chew on [LinkedIn](https://www.linkedin.com/in/hui-jun-gail-chew/).
