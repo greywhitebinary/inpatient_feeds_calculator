@@ -1,29 +1,21 @@
 name: ENCalc deployment canary
 
-# WHAT THIS IS FOR
+# Streamlit Community Cloud can hibernate an app after a period without
+# traffic. This workflow visits the deployed app at 6:00am Eastern, clicks
+# Streamlit's wake-up button when necessary, and fails unless the real app
+# interface loads.
 #
-# Streamlit Community Cloud puts an inactive app to sleep. The next visitor
-# then sees a "this app has gone to sleep" page and a "Yes, get this app
-# back up!" button instead of the calculator, and waking it can take a
-# couple of minutes. This job visits the live deployment every morning,
-# wakes it if needed, and fails loudly if it never comes back up -- so the
-# app is already warm before a clinician needs it.
+# This checks the deployed site only. It does not check application
+# correctness; ci.yml and canary.yml cover the source code.
 #
-# This does not check application correctness (ci.yml and canary.yml do
-# that against the source). It only checks that the deployed site opens.
-#
-# NO CHECKOUT ON PURPOSE: this job never touches repository files, so it
-# cannot modify application code even by accident.
+# There is deliberately no checkout. This workflow never needs repository
+# files, so it cannot modify application code even by accident.
 
 "on":
   workflow_dispatch:
   schedule:
-    # GitHub cron is UTC-only and has no timezone concept, so 6am Toronto
-    # is covered by two fixed UTC times, one per DST offset. The guard step
-    # below figures out which one is "really" 6am today and skips the
-    # other -- see its comment for why both are needed every day.
-    - cron: "0 11 * * *" # 6:00am America/Toronto during EST (UTC-5)
-    - cron: "0 10 * * *" # 6:00am America/Toronto during EDT (UTC-4)
+    - cron: "0 6 * * *"
+      timezone: "America/Toronto"
 
 concurrency:
   # Two overlapping runs could both click "wake up" at once. Queue instead.
@@ -36,44 +28,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      # Cron fires twice a day (one per DST offset) because a single UTC
-      # time cannot stay pinned to 6am Toronto year-round. Only one of the
-      # two firings is actually 6am local on any given day; this step lets
-      # that one through and turns the other into a no-op so it never shows
-      # up as a false failure. A manual run always goes through.
-      - name: Only run the real check at ~6am Toronto time
-        id: guard
-        run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            hour=$(TZ="America/Toronto" date +%H)
-            if [ "$hour" != "06" ]; then
-              echo "This UTC firing is $(TZ="America/Toronto" date +%H:%M) in Toronto, not 6am -- skipping (the other daily cron entry covers the current DST offset)."
-              echo "run=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          fi
-          echo "run=true" >> "$GITHUB_OUTPUT"
-
       - name: Set up Node.js
-        if: steps.guard.outputs.run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install Playwright
-        if: steps.guard.outputs.run == 'true'
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium
 
       - name: Write canary script
-        if: steps.guard.outputs.run == 'true'
         run: |
           cat <<'EOF' > canary-check.js
           const { chromium } = require("playwright");
 
           const APP_URL = "https://encalc.streamlit.app";
-          const WAKE_BUTTON_NAME = "Yes, get this app back up!";
           const NAV_TIMEOUT_MS = 60_000;
           const WAKE_BUTTON_TIMEOUT_MS = 15_000;
           const APP_READY_TIMEOUT_MS = 5 * 60_000; // cold starts are slow
@@ -88,19 +58,29 @@ jobs:
                 waitUntil: "domcontentloaded",
               });
 
-              const wakeButton = page.getByRole("button", { name: WAKE_BUTTON_NAME });
+              const wakeButton = page.getByRole("button", {
+                name: /Yes, get this app back up!/i,
+              });
+
               try {
-                await wakeButton.waitFor({ timeout: WAKE_BUTTON_TIMEOUT_MS });
+                await wakeButton.waitFor({
+                  state: "visible",
+                  timeout: WAKE_BUTTON_TIMEOUT_MS,
+                });
+
                 console.log("App is asleep. Clicking the wake-up button.");
                 await wakeButton.click();
               } catch {
-                console.log("No wake-up button seen within the timeout; app may already be awake.");
+                console.log(
+                  "No wake-up button appeared. The app may already be awake."
+                );
               }
 
               console.log("Waiting for the app to finish loading...");
-              await page
-                .getByRole("tab", { name: "Formulary" })
-                .waitFor({ timeout: APP_READY_TIMEOUT_MS });
+              await page.getByRole("tab", { name: "Formulary" }).waitFor({
+                state: "visible",
+                timeout: APP_READY_TIMEOUT_MS,
+              });
 
               console.log("App loaded successfully.");
             } catch (err) {
@@ -118,11 +98,10 @@ jobs:
           EOF
 
       - name: Run canary check
-        if: steps.guard.outputs.run == 'true'
         run: node canary-check.js
 
       - name: Upload failure screenshot
-        if: steps.guard.outputs.run == 'true' && failure()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: canary-failure-screenshot
