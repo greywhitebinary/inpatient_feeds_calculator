@@ -1,9 +1,10 @@
 name: ENCalc deployment canary
 
 # Streamlit Community Cloud can hibernate an app after a period without
-# traffic. This workflow visits the deployed app at 6:00am Eastern, clicks
+# traffic. This workflow visits the deployed app every eight hours, clicks
 # Streamlit's wake-up button when necessary, and fails unless the real app
-# interface loads.
+# interface loads. The 5:45am Eastern visit makes the app ready before the
+# 6:30am hospital workday, while the eight-hour cadence prevents hibernation.
 #
 # This checks the deployed site only. It does not check application
 # correctness; ci.yml and canary.yml cover the source code.
@@ -14,7 +15,7 @@ name: ENCalc deployment canary
 "on":
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "45 5,13,21 * * *"
       timezone: "America/Toronto"
 
 concurrency:
@@ -45,8 +46,8 @@ jobs:
 
           const APP_URL = "https://encalc.streamlit.app";
           const NAV_TIMEOUT_MS = 60_000;
-          const WAKE_BUTTON_TIMEOUT_MS = 15_000;
           const APP_READY_TIMEOUT_MS = 5 * 60_000; // cold starts are slow
+          const POLL_INTERVAL_MS = 2_000;
 
           (async () => {
             const browser = await chromium.launch();
@@ -62,27 +63,32 @@ jobs:
                 name: /Yes, get this app back up!/i,
               });
 
-              try {
-                await wakeButton.waitFor({
-                  state: "visible",
-                  timeout: WAKE_BUTTON_TIMEOUT_MS,
-                });
+              const formularyTab = page.getByRole("tab", { name: "Formulary" });
+              const deadline = Date.now() + APP_READY_TIMEOUT_MS;
+              let wakeRequested = false;
 
-                console.log("App is asleep. Clicking the wake-up button.");
-                await wakeButton.click();
-              } catch {
-                console.log(
-                  "No wake-up button appeared. The app may already be awake."
-                );
+              console.log("Waiting for Streamlit to show the wake-up button or the app...");
+
+              while (Date.now() < deadline) {
+                if (await formularyTab.isVisible()) {
+                  console.log("App loaded successfully.");
+                  return;
+                }
+
+                if (!wakeRequested && await wakeButton.isVisible()) {
+                  console.log("App is asleep. Clicking the wake-up button.");
+                  await wakeButton.click();
+                  wakeRequested = true;
+                }
+
+                await page.waitForTimeout(POLL_INTERVAL_MS);
               }
 
-              console.log("Waiting for the app to finish loading...");
-              await page.getByRole("tab", { name: "Formulary" }).waitFor({
-                state: "visible",
-                timeout: APP_READY_TIMEOUT_MS,
-              });
-
-              console.log("App loaded successfully.");
+              throw new Error(
+                wakeRequested
+                  ? "The wake-up button was clicked, but the app did not finish loading."
+                  : "Neither the wake-up button nor the loaded app appeared."
+              );
             } catch (err) {
               console.error("Canary check failed:", err);
               try {
