@@ -101,6 +101,7 @@ def test_full_and_partial_formula_have_independent_expected_totals(
             "Ca (mmol)": 38.5,
             "P (mmol)": 49,
             "Mg (mmol)": 63,
+            "Fibre (g)": 0,
         }
     )
     assert result.displayed_total == pytest.approx(
@@ -116,6 +117,7 @@ def test_full_and_partial_formula_have_independent_expected_totals(
             "Ca (mmol)": 23.5,
             "P (mmol)": 29,
             "Mg (mmol)": 38,
+            "Fibre (g)": 0,
         }
     )
     assert result.displayed_rows[1:] == result.planned_rows[1:]
@@ -149,6 +151,7 @@ def test_iv_electrolytes_count_but_iv_and_propofol_water_do_not(
             "Ca (mmol)": 1.5,
             "P (mmol)": 0,
             "Mg (mmol)": 2,
+            "Fibre (g)": 0,
         }
     )
     assert rows["Propofol"]["Volume (mL)"] == 200

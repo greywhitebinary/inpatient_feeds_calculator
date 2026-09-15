@@ -72,6 +72,7 @@ def build_intake_rows(
             "Ca (mmol)": mmol_from_delivery(delivery, "calcium"),
             "P (mmol)": mmol_from_delivery(delivery, "phosphorus"),
             "Mg (mmol)": mmol_from_delivery(delivery, "magnesium"),
+            "Fibre (g)": delivery.get("fibre_g", 0),
         },
         {
             # A row of zeros is not information. Modulars appear only when
@@ -89,6 +90,7 @@ def build_intake_rows(
             "Ca (mmol)": mmol_if_disclosed(modular_totals, "calcium"),
             "P (mmol)": mmol_if_disclosed(modular_totals, "phosphorus"),
             "Mg (mmol)": mmol_if_disclosed(modular_totals, "magnesium"),
+            "Fibre (g)": modular_totals.get("fibre_g", 0),
         },
         {
             "Source": "Water flushes",
@@ -103,6 +105,7 @@ def build_intake_rows(
             "Ca (mmol)": 0,
             "P (mmol)": 0,
             "Mg (mmol)": 0,
+            "Fibre (g)": 0,
         },
     ]
     if sources.include_ons:
@@ -121,6 +124,7 @@ def build_intake_rows(
                 "Ca (mmol)": mg_to_mmol("calcium", ons_totals["calcium_mg"]),
                 "P (mmol)": mg_to_mmol("phosphorus", ons_totals["phosphorus_mg"]),
                 "Mg (mmol)": mg_to_mmol("magnesium", ons_totals["magnesium_mg"]),
+                "Fibre (g)": ons_totals.get("fibre_g", 0),
             },
         )
     if iv_fluids["energy_kcal"] > 0 or iv_fluids["volume_ml"] > 0:
@@ -141,6 +145,7 @@ def build_intake_rows(
                 "Ca (mmol)": mg_to_mmol("calcium", iv_fluids["calcium_mg"]),
                 "P (mmol)": 0,
                 "Mg (mmol)": mg_to_mmol("magnesium", iv_fluids["magnesium_mg"]),
+                "Fibre (g)": 0,
             },
         )
     if propofol["kcal"] > 0:
@@ -159,6 +164,7 @@ def build_intake_rows(
                 "Ca (mmol)": 0,
                 "P (mmol)": 0,
                 "Mg (mmol)": 0,
+                "Fibre (g)": 0,
             },
         )
     if not sources.include_modulars:

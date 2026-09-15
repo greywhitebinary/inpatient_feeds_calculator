@@ -90,6 +90,7 @@ DAILY_INTAKE_DECIMALS = {
     "Ca (mmol)": 1,
     "P (mmol)": 1,
     "Mg (mmol)": 1,
+    "Fibre (g)": 0,
 }
 
 

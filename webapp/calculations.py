@@ -720,6 +720,7 @@ INTAKE_KEYS = (
     "Ca (mmol)",
     "P (mmol)",
     "Mg (mmol)",
+    "Fibre (g)",
 )
 
 
