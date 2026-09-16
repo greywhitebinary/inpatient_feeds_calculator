@@ -59,23 +59,40 @@ jobs:
                 waitUntil: "domcontentloaded",
               });
 
-              const wakeButton = page.getByRole("button", {
-                name: /Yes, get this app back up!/i,
-              });
-
-              const formularyTab = page.getByRole("tab", { name: "Formulary" });
+              const appFrame = page.frameLocator("iframe");
+              const wakeButtons = [
+                page.getByRole("button", { name: /Yes, get this app back up!/i }),
+                appFrame.getByRole("button", { name: /Yes, get this app back up!/i }),
+              ];
+              const formularyTabs = [
+                page.getByRole("tab", { name: "Formulary" }),
+                appFrame.getByRole("tab", { name: "Formulary" }),
+              ];
+              const firstVisible = async (locators) => {
+                for (const locator of locators) {
+                  if (await locator.isVisible()) {
+                    return locator;
+                  }
+                }
+                return null;
+              };
               const deadline = Date.now() + APP_READY_TIMEOUT_MS;
               let wakeRequested = false;
 
               console.log("Waiting for Streamlit to show the wake-up button or the app...");
 
               while (Date.now() < deadline) {
-                if (await formularyTab.isVisible()) {
-                  console.log("App loaded successfully.");
+                if (await firstVisible(formularyTabs)) {
+                  console.log(
+                    wakeRequested
+                      ? "App loaded successfully after wake-up."
+                      : "App already awake; no wake-up action was needed."
+                  );
                   return;
                 }
 
-                if (!wakeRequested && await wakeButton.isVisible()) {
+                const wakeButton = await firstVisible(wakeButtons);
+                if (!wakeRequested && wakeButton) {
                   console.log("App is asleep. Clicking the wake-up button.");
                   await wakeButton.click();
                   wakeRequested = true;
