@@ -30,9 +30,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Install Playwright
         run: |
@@ -59,7 +59,10 @@ jobs:
                 waitUntil: "domcontentloaded",
               });
 
-              const appFrame = page.frameLocator("iframe");
+              // Streamlit also adds a separate, hidden status iframe. Target
+              // the deployed app's frame explicitly, rather than asking
+              // Playwright to choose between the two.
+              const appFrame = page.frameLocator('iframe[title="streamlitApp"]');
               const wakeButtons = [
                 page.getByRole("button", { name: /Yes, get this app back up!/i }),
                 appFrame.getByRole("button", { name: /Yes, get this app back up!/i }),
@@ -125,7 +128,7 @@ jobs:
 
       - name: Upload failure screenshot
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: canary-failure-screenshot
           path: canary-failure.png
