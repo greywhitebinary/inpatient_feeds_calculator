@@ -79,8 +79,21 @@ a:hover { color: var(--claret-deep); }
   top: 0.5rem;
 }
 
-.copy  { max-width: var(--copy-width); margin-inline: auto; padding-inline: var(--gutter); }
+/* ONE LEFT EDGE.
+   Every container is the same width and centred, so the masthead, the prose,
+   the screenshots and the footer all start at the same x. Prose is then held
+   to a readable measure by capping the CHILDREN, not by narrowing and
+   re-centring the container — narrowing the container is what pushed the body
+   text in to its own indent while the frame stayed at the outer edge. */
+
+.copy  { max-width: var(--wide-width); margin-inline: auto; padding-inline: var(--gutter); }
 .wide  { max-width: var(--wide-width); margin-inline: auto; padding-inline: var(--gutter); }
+
+.copy > * { max-width: var(--copy-width); }
+
+/* Media is the one thing allowed the full width of that container. */
+.copy > .shot,
+.copy > figure { max-width: none; }
 
 /* ---------- masthead ---------- */
 
@@ -171,15 +184,12 @@ h1 {
 
 /* The daily intake table is 13 columns wide. Beside the hero copy it scales to
    about a third of its natural size and the numbers stop being readable, so it
-   gets its own full-width section below the hero instead. --shot-width is wider
-   than --wide-width for that reason: the image is the one thing on the page
-   that earns more room than the prose. */
-
-:root { --shot-width: 68rem; }
+   gets its own full-width section below the hero instead, on the same left edge
+   as everything else. */
 
 .media { padding-bottom: 3rem; }
 
-.media .shot { max-width: var(--shot-width); margin-inline: auto; padding-inline: var(--gutter); }
+.media .shot { max-width: var(--wide-width); margin-inline: auto; padding-inline: var(--gutter); }
 
 .media figure { margin: 0; }
 
