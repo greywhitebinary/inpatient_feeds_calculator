@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ENCalc — Adult Inpatient Enteral Nutrition Calculator (Canadian formulary)</title>
-<meta name="description" content="A free calculator for adult inpatient tube feeding, built on Canadian product information. Feed rate, free water and flushes, modulars, ONS, propofol and an ADIME chart note.">
+<title>ENCalc | Adult Inpatient Enteral Nutrition Calculator</title>
+<meta name="description" content="ENCalc helps dietitians plan or review adult inpatient tube feeding using Canadian product information. Free, with no account required.">
 
-<link rel="canonical" href="https://greywhitebinary.github.io/inpatient_feeds_calculator/encalc/">
+<link rel="canonical" href="https://feedformflow.ca/encalc/">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="ENCalc — Adult Inpatient Enteral Nutrition Calculator">
-<meta property="og:description" content="A free calculator for adult inpatient tube feeding, built on Canadian product information. Feed rate, free water and flushes, modulars, ONS, propofol and an ADIME chart note.">
-<meta property="og:url" content="https://greywhitebinary.github.io/inpatient_feeds_calculator/encalc/">
-<meta property="og:image" content="https://greywhitebinary.github.io/inpatient_feeds_calculator/encalc/card.png">
+<meta property="og:site_name" content="Feed. Form. Flow.">
+<meta property="og:title" content="ENCalc | Adult Inpatient Enteral Nutrition Calculator">
+<meta property="og:description" content="ENCalc helps dietitians plan or review adult inpatient tube feeding using Canadian product information. Free, with no account required.">
+<meta property="og:url" content="https://feedformflow.ca/encalc/">
+<meta property="og:image" content="https://feedformflow.ca/encalc/card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ENCalc adult inpatient enteral nutrition calculator">
 <meta name="twitter:card" content="summary_large_image">
 
 <script type="application/ld+json">
@@ -24,406 +28,251 @@
   "alternateName": "Adult Inpatient Enteral Nutrition Calculator",
   "applicationCategory": "HealthApplication",
   "operatingSystem": "Any modern web browser",
-  "url": "https://encalc.feedformflow.ca",
+  "url": "https://feedformflow.ca/encalc/",
+  "installUrl": "https://encalc.feedformflow.ca",
   "isAccessibleForFree": true,
   "license": "https://opensource.org/licenses/MIT",
-  "dateModified": "2026-09-10",
   "inLanguage": "en-CA",
   "author": {
     "@type": "Person",
     "name": "Hui Jun Chew",
     "jobTitle": "Dietitian"
   },
-  "description": "A calculator for planning or reviewing adult inpatient enteral nutrition, using Canadian manufacturer product information. Covers assessment goals, formula comparison, feed rate, modulars, oral nutritional supplements, hydration flushes, propofol, a daily intake table and an ADIME chart note."
+  "description": "ENCalc helps dietitians plan a new tube feed or review one already running for an adult inpatient, bringing the feed, modulars, oral nutritional supplements, IV fluids, propofol, water and flushes into one daily view."
 }
 </script>
 
-<style>
-:root {
-  --claret: #A4243A;
-  --claret-deep: #7E1B2C;
-  --ground: #FCFAF9;
-  --band: #F9E8EB;
-  --ink: #292526;
-  --ink-soft: #5E5558;
-  --rule: #E4D6D9;
-  --measure: 34rem;
-
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --claret: #E0708A;
-    --claret-deep: #F0A0B2;
-    --ground: #0E1117;
-    --band: #3A2429;
-    --ink: #F5F5F5;
-    --ink-soft: #C9BFC2;
-    --rule: #4A3238;
-
-    color-scheme: dark;
-  }
-}
-
-*, *::before, *::after { box-sizing: border-box; }
-
-html { -webkit-text-size-adjust: 100%; }
-
-body {
-  margin: 0;
-  background: var(--ground);
-  color: var(--ink);
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-               "Times New Roman", serif;
-  font-size: 1.0625rem;
-  line-height: 1.65;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-img { max-width: 100%; height: auto; }
-
-a { color: var(--claret); text-underline-offset: 0.15em; }
-a:hover { color: var(--claret-deep); }
-
-.wrap {
-  max-width: var(--measure);
-  margin-inline: auto;
-  padding-inline: 1.5rem;
-}
-
-/* ---------- masthead ---------- */
-
-.masthead {
-  border-bottom: 1px solid var(--rule);
-}
-
-.masthead .wrap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem 1.25rem;
-  padding-block: 1rem;
-}
-
-.wordmark {
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--ink);
-  text-decoration: none;
-  margin-right: auto;
-}
-
-.masthead nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.875rem;
-}
-
-.masthead nav a { text-decoration: none; }
-.masthead nav a:hover { text-decoration: underline; }
-.masthead nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
-
-/* ---------- hero ---------- */
-
-.hero .wrap { padding-block: 3.5rem 3rem; }
-
-h1 {
-  font-size: clamp(2.5rem, 9vw, 3.75rem);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-  font-weight: 600;
-  margin: 0;
-  color: var(--claret);
-}
-
-.standfirst {
-  font-size: clamp(1.125rem, 4vw, 1.375rem);
-  line-height: 1.35;
-  color: var(--ink);
-  margin: 0.75rem 0 0;
-  max-width: 28ch;
-}
-
-.byline {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.9375rem;
-  color: var(--ink-soft);
-  margin: 1.75rem 0 0;
-}
-
-.cta {
-  display: inline-block;
-  margin-top: 2rem;
-  padding: 0.85rem 1.6rem;
-  background: var(--claret);
-  color: var(--ground);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  text-decoration: none;
-  border-radius: 2px;
-}
-
-.cta:hover { background: var(--claret-deep); color: var(--ground); }
-.cta:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-
-.cta-note {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.8125rem;
-  color: var(--ink-soft);
-  margin: 0.75rem 0 0;
-}
-
-/* ---------- sections ---------- */
-
-section .wrap { padding-block: 3rem; }
-
-.band { background: var(--band); }
-
-h2 {
-  font-size: 1.625rem;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  font-weight: 600;
-  margin: 0 0 1rem;
-  color: var(--claret);
-}
-
-h3 {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  margin: 2rem 0 0.5rem;
-}
-
-p { margin: 0 0 1.15rem; }
-p:last-child { margin-bottom: 0; }
-
-.lead { font-size: 1.1875rem; }
-
-ul { margin: 0 0 1.15rem; padding-left: 1.15rem; }
-li { margin-bottom: 0.6rem; }
-li:last-child { margin-bottom: 0; }
-
-strong { font-weight: 600; }
-
-.note {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: var(--ink-soft);
-}
-
-.caution {
-  border-left: 3px solid var(--claret);
-  padding: 0.15rem 0 0.15rem 1rem;
-  margin: 1.5rem 0 0;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.9375rem;
-  line-height: 1.55;
-}
-
-figure { margin: 2rem 0 0; }
-
-figure img {
-  display: block;
-  width: 100%;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-}
-
-figcaption {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.8125rem;
-  color: var(--ink-soft);
-  margin-top: 0.5rem;
-}
-
-/* ---------- footer ---------- */
-
-footer {
-  border-top: 1px solid var(--rule);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--ink-soft);
-}
-
-footer .wrap { padding-block: 2.5rem 3.5rem; }
-
-footer p { margin: 0 0 0.9rem; }
-footer .scope { color: var(--ink); max-width: 46ch; }
-
-@media (min-width: 46rem) {
-  :root { --measure: 40rem; }
-  .hero .wrap { padding-block: 5rem 4rem; }
-}
-</style>
+<link rel="stylesheet" href="../site.css">
 </head>
 <body>
 
+<a class="skip" href="#main">Skip to main content</a>
+
 <header class="masthead">
-  <div class="wrap">
+  <div class="wide">
     <a class="wordmark" href="../">Feed. Form. Flow.</a>
-    <nav>
+    <nav aria-label="Main">
       <a href="./" aria-current="page">ENCalc</a>
-      <a href="../btfcalc/">BTF-Calc</a>
+      <a href="../btfcalc/">BTFCalc</a>
       <a href="https://feedformflow.substack.com">Writing</a>
     </nav>
   </div>
 </header>
 
-<main>
+<main id="main">
 
   <div class="hero">
-    <div class="wrap">
+    <div class="copy">
       <h1>ENCalc</h1>
-      <p class="standfirst">Adult inpatient enteral nutrition calculator, on a Canadian formulary.</p>
+      <p class="standfirst">Plan a new tube feed or review one already running for an adult inpatient.</p>
 
-      <a class="cta" href="https://encalc.feedformflow.ca">Open the calculator →</a>
-      <p class="cta-note">Free. No account, nothing to install.</p>
+      <p class="intro">ENCalc brings the feed, modulars, oral nutritional
+        supplements, IV fluids, propofol, water and flushes into one daily
+        view. It uses Canadian manufacturer product information and a
+        formulary you can edit for your site.</p>
 
-      <p class="byline">Built by Hui Jun Chew, Dietitian</p>
+      <div class="actions">
+        <a class="cta" href="https://encalc.feedformflow.ca">Open ENCalc →</a>
+      </div>
+
+      <p class="note">Free to use. No account or installation required.</p>
+
+      <p class="note">If the calculator has been quiet for a while, Streamlit
+        may ask you to wake it. The first load can take a minute.</p>
+
+      <p class="byline">Built by Hui Jun Chew, Dietitian.</p>
+    </div>
+  </div>
+
+  <div class="media">
+    <div class="shot">
+      <figure>
+        <img src="screenshot-daily-intake.png" width="1640" height="434"
+             alt="ENCalc daily intake table showing volume, energy, protein, carbohydrate, fat, water and electrolytes for an enteral formula, modulars and water flushes, with a total row. Phosphorus and magnesium show an em dash for the modular because the manufacturer did not disclose them.">
+        <figcaption>The daily intake table brings the feed and other nutrition
+          sources together.</figcaption>
+      </figure>
     </div>
   </div>
 
   <section class="band">
-    <div class="wrap">
-      <h2>What it does</h2>
-      <p class="lead">ENCalc helps you plan a new tube feed, or review one already
-        running, for an adult inpatient. You enter assessment goals and a feeding
-        regimen, and it reports the energy, protein, water and electrolytes that
-        the order delivers, alongside modulars, oral nutritional supplements, IV
-        fluids and propofol.</p>
+    <div class="copy">
+      <h2>Plan a new feed or review one already running</h2>
 
-      <p>A feed that is already running can be entered without an assessment.
-        Nothing is calculated backwards from a goal, so the page reports what the
-        order delivers and leaves the goal columns out until goals are entered.</p>
+      <p>ENCalc can start with assessment goals, but it does not require them.
+        If a feed is already running, enter the order directly and review what
+        it provides.</p>
 
-      <p>Suggested rates come from the goals, products and other inputs you
-        select. You choose the final rate, the modular order and the hydration
-        plan. It supports clinical judgement rather than substituting for it.</p>
+      <ul>
+        <li>Build My Formulary from the included products, edit values to match
+          local labels, or import a local formulary workbook.</li>
+        <li>Set up a continuous, cyclic or intermittent feeding schedule.</li>
+        <li>Review energy, protein, water and electrolytes alongside modulars,
+          oral nutritional supplements, IV fluids and propofol.</li>
+        <li>Set a hydration flush schedule and see where every millilitre comes
+          from.</li>
+        <li>Review the daily intake and EN regimen check before using the
+          editable chart-note draft.</li>
+        <li>Download a case-record workbook and reopen it later.</li>
+      </ul>
 
-      <!-- SCREENSHOT SLOT 1 — the daily intake table.
-           <figure>
-             <img src="screenshot-daily-intake.png" alt="...">
-             <figcaption>...</figcaption>
-           </figure> -->
+      <div class="actions">
+        <a class="cta" href="https://encalc.feedformflow.ca">Open ENCalc →</a>
+      </div>
     </div>
   </section>
 
   <section>
-    <div class="wrap">
-      <h2>What it calculates</h2>
+    <div class="copy">
+      <h2>How it works</h2>
 
-      <h3>Assessment</h3>
-      <ul>
-        <li>Energy from five methods shown side by side: a
-          <strong>weight-based range</strong> in kcal/kg,
-          <strong>Mifflin–St Jeor</strong>, <strong>Harris–Benedict</strong>,
-          <strong>Penn State 2003b</strong> for ventilated adults, and
-          <strong>Modified Penn State 2010</strong> for ventilated patients aged
-          60 or over with a BMI of 30 or over.</li>
-        <li>A choice of weight basis: current weight, Hamwi ideal body weight in
-          SI units, the Devine medication-dosing reference weight, adjusted body
-          weight with an editable factor, or a dry weight you enter yourself.</li>
-        <li>The equations and their worked ranges are shown, so you can see what
-          each input changed before committing to a goal.</li>
-      </ul>
+      <ol class="steps">
+        <li>
+          <span class="num">1</span>
+          <h3>My Formulary</h3>
+          <p>Add the feeds and modulars used at your site. Product values remain
+            editable because labels and local formularies differ.</p>
+        </li>
+        <li>
+          <span class="num">2</span>
+          <h3>Assessment</h3>
+          <p>Enter the measurements and clinical information you have. Review the
+            equations and worked ranges, then choose the energy, protein and
+            water goals you want to use.</p>
+        </li>
+        <li>
+          <span class="num">3</span>
+          <h3>Enteral nutrition</h3>
+          <p>Choose a formula and delivery schedule, compare the suggested and
+            selected rates, and review the full regimen. Use EN + Propofol when
+            propofol energy needs to be included.</p>
+        </li>
+        <li>
+          <span class="num">4</span>
+          <h3>Review and record</h3>
+          <p>Check the daily totals and regimen review. Edit the chart-note
+            draft, copy it when ready, or download a case-record workbook to
+            reopen later.</p>
+        </li>
+      </ol>
 
-      <h3>The feed</h3>
-      <ul>
-        <li>Formula comparison across the included Canadian formulary, at a
-          volume you choose.</li>
-        <li>Feed rate for a continuous or cyclic schedule, or for intermittent
-          feeds given either at a rate for a set time or as a set volume.</li>
-        <li>Free water from the formula itself, plus a hydration flush schedule,
-          with a ledger showing where every millilitre came from.</li>
-        <li>Modulars and oral nutritional supplements counted into the same
-          daily totals.</li>
-        <li>Propofol energy taken off the target first, entered as a single rate
-          or as rates that change through the day, so the feed is sized to the
-          remainder.</li>
-      </ul>
+      <details>
+        <summary>Calculation methods and plan details</summary>
+        <div class="details-body">
 
-      <h3>The record</h3>
-      <ul>
-        <li>A daily intake table and an EN regimen check.</li>
-        <li>An editable ADIME chart-note draft you can copy out.</li>
-        <li>A case-record workbook you can download and reopen later to restore
-          the assessment, plan inputs and formulary snapshot.</li>
-      </ul>
+          <h3>Assessment</h3>
+          <ul>
+            <li>Weight-based energy ranges, Mifflin–St Jeor, Harris–Benedict,
+              Penn State 2003b and Modified Penn State 2010 are shown side by
+              side when relevant.</li>
+            <li>Available weight bases include current weight, Hamwi ideal body
+              weight in SI units, the Devine medication-dosing reference weight,
+              adjusted body weight with an editable factor, and a dry weight
+              entered by the clinician.</li>
+            <li>The equations and worked ranges remain visible before the
+              clinician selects the goals to use.</li>
+          </ul>
 
-      <!-- SCREENSHOT SLOT 2 — the assessment tab with equations expanded. -->
-      <!-- SCREENSHOT SLOT 3 — the ADIME chart-note draft. -->
+          <h3>Enteral plan</h3>
+          <ul>
+            <li>Compare formulas from My Formulary at a selected volume.</li>
+            <li>Calculate continuous, cyclic and intermittent feeding
+              schedules.</li>
+            <li>Review formula free water, hydration flushes and a ledger
+              showing where each volume came from.</li>
+            <li>Include modulars and oral nutritional supplements in the daily
+              totals.</li>
+            <li>Account for propofol using one rate or rates that change through
+              the day.</li>
+          </ul>
+
+          <h3>Record</h3>
+          <ul>
+            <li>Review a daily intake table and EN regimen check.</li>
+            <li>Edit and copy an ADIME chart-note draft.</li>
+            <li>Download a case-record workbook containing the assessment, plan
+              inputs and formulary snapshot.</li>
+          </ul>
+
+        </div>
+      </details>
     </div>
   </section>
 
   <section class="band">
-    <div class="wrap">
+    <div class="copy">
       <h2>Product data</h2>
-      <p>The included formulary covers <strong>33 enteral formulas</strong>,
-        <strong>7 modulars</strong> and <strong>20 oral nutritional supplement
-        products</strong>, with values taken from manufacturers' Canadian product
-        information. Every row records the document and page it was read from and
-        the date it was checked.</p>
 
-      <p>Where a manufacturer has not disclosed a value, the tool shows an em
-        dash rather than a zero, because an undisclosed figure and a declared
-        zero are different facts. Product values stay editable, since local
-        labels and institutional formulary choices differ.</p>
+      <p>ENCalc currently includes 33 enteral formulas, 7 modulars and 20 oral
+        nutritional supplements. Values come from manufacturers’ Canadian product
+        information. Each product record includes the source document, page and
+        date checked.</p>
 
-      <p class="caution"><strong>Verify every value against your current local
-        product label and institutional formulary before clinical use.</strong>
-        This tool is not a substitute for the label.</p>
+      <p>An em dash means that the manufacturer did not disclose the value.
+        ENCalc does not treat an undisclosed value as zero. Product values remain
+        editable because labels and institutional formularies differ.</p>
+
+      <div class="caution">
+        <p><strong>Verify product values against current local labels and your
+          institutional formulary before clinical use.</strong></p>
+      </div>
     </div>
   </section>
 
   <section>
-    <div class="wrap">
+    <div class="copy">
       <h2>Records and privacy</h2>
-      <p>ENCalc has no accounts, no shared workspace and no patient-record
-        database. The hosted app processes your inputs in the active session so
-        it can calculate and render the page, and does not retain them as case
-        records. There is no interface for the site owner to browse patient
-        records.</p>
 
-      <p>Case-record workbooks are saved to a location you choose, so their
-        storage and transfer follow your local privacy policy. If policy requires
-        that inputs never leave the clinician's device, the calculator can be run
-        locally instead.</p>
+      <p>ENCalc has no account system, shared workspace or patient-record
+        database. It uses the information entered during the active Streamlit
+        session to calculate and display the results. It does not retain those
+        inputs as saved case records.</p>
 
-      <p class="note">The full statement is in the
-        <a href="https://github.com/greywhitebinary/inpatient_feeds_calculator#records-and-privacy">project
-        README</a>.</p>
+      <p>Downloaded case-record workbooks are saved wherever the user chooses.
+        Use a non-identifying record label unless local policy permits otherwise,
+        and follow institutional policy when storing or transferring a
+        workbook.</p>
+
+      <p>If information must never leave the clinician’s device, ENCalc can be
+        run locally instead.</p>
+
+      <p><a href="https://github.com/greywhitebinary/inpatient_feeds_calculator#records-and-privacy">Read
+        the full records and privacy statement.</a></p>
     </div>
   </section>
 
-  <section class="band">
-    <div class="wrap">
+  <section class="band final">
+    <div class="copy">
+      <h2>Try ENCalc</h2>
+
+      <p>Open the included example record to see how the calculator works
+        without entering patient information.</p>
+
+      <div class="actions">
+        <a class="cta" href="https://encalc.feedformflow.ca">Open ENCalc →</a>
+      </div>
+
+      <p class="note">Free to use. No account or installation required.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="copy">
       <h2>A related tool</h2>
-      <p><a href="../btfcalc/">BTF-Calc</a> estimates the energy, protein, fluid
-        and micronutrients in a home-blended tube feed, using the 2026 Canadian
-        Nutrient File as its food reference data. It shares this one's
-        presentation and its approach to showing the working.</p>
+      <p><a href="../btfcalc/">BTFCalc</a> estimates the energy, protein, fluid
+        and micronutrients in a home-blended tube feed using the 2026 Canadian
+        Nutrient File. It shares ENCalc’s approach to showing the working.</p>
     </div>
   </section>
 
 </main>
 
 <footer>
-  <div class="wrap">
+  <div class="wide">
     <p class="scope">ENCalc is for dietitians and teams supporting adult
       inpatient enteral nutrition. It supports, but does not replace, clinical
       judgement.</p>
-    <p>Product data verified to 2026-09-10.</p>
+    <p>Product data last reviewed 10 September 2026.</p>
     <p><a href="https://github.com/greywhitebinary/inpatient_feeds_calculator">Source
       code on GitHub</a> · MIT licence · Product names identify the products used
       in calculations; inclusion does not imply manufacturer endorsement.</p>

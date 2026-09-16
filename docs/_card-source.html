@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- Source for the 1200x630 social cards. Each .card is screenshotted by a
+     headless browser and saved as <tool>/card.png. Not published as a page.
+
+     To regenerate after changing the wording:
+       python3 -m http.server 8777        (from docs/)
+       open /_card-source.html, screenshot #card-encalc and #card-btfcalc -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Social card sources</title>
+<style>
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #ddd;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 Helvetica, Arial, sans-serif;
+  }
+  .card {
+    width: 1200px;
+    height: 630px;
+    background: #FCFAF9;
+    color: #23201F;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 88px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+  }
+  .card .bar { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; background: #A4243A; }
+  .card h1 {
+    font-size: 116px; font-weight: 700; letter-spacing: -0.03em;
+    line-height: 1; margin: 0; color: #A4243A;
+  }
+  .card p.sub {
+    font-size: 40px; font-weight: 500; line-height: 1.25;
+    margin: 28px 0 0; max-width: 20ch;
+  }
+  .card p.meta { font-size: 27px; font-weight: 400; color: #57504F; margin: 24px 0 0; }
+  .card .wordmark {
+    position: absolute; left: 88px; bottom: 56px;
+    font-size: 25px; font-weight: 600; color: #A4243A;
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="card-encalc">
+  <div class="bar"></div>
+  <h1>ENCalc</h1>
+  <p class="sub">Adult inpatient enteral nutrition calculator</p>
+  <p class="meta">Canadian product information</p>
+  <div class="wordmark">Feed. Form. Flow.</div>
+</div>
+
+<div class="card" id="card-btfcalc">
+  <div class="bar"></div>
+  <h1>BTFCalc</h1>
+  <p class="sub">Blenderized tube feeding calculator</p>
+  <p class="meta">Canadian Nutrient File</p>
+  <div class="wordmark">Feed. Form. Flow.</div>
+</div>
+
+</body>
+</html>
