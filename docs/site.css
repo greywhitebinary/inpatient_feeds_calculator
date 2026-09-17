@@ -1,18 +1,40 @@
 /* Feed. Form. Flow. — one stylesheet for all three pages.
-   Palette is the shared enteral-tool palette from .streamlit/config.toml,
-   so the site and the two calculators look like one thing. */
+   Blue and yellow lead the public site. The calculators' claret remains as a
+   smaller shared accent for clinical cautions and identity. */
 
 :root {
-  --claret: #A4243A;
-  --claret-deep: #7E1B2C;
-  --ground: #FCFAF9;
-  --band: #F9E8EB;
-  --ink: #23201F;
-  --ink-soft: #57504F;
-  --rule: #E4D6D9;
+  --blue: #245B78;
+  --blue-deep: #17445D;
+  /* Strong pale tints are for selected or active states, not page bands. */
+  --blue-selected: #E7F1F5;
+  /* Background washes can cover large areas without competing with text. */
+  --blue-background: #F3F8FA;
 
-  --copy-width: 42rem;
-  --wide-width: 72rem;
+  --yellow: #D9A62E;
+  --yellow-deep: #7A5A00;
+  --yellow-selected: #FFF3C4;
+  --yellow-background: #FFF9E8;
+  --yellow-hover: #FFF3C4;
+
+  --claret: #A4243A;
+  --claret-selected: #F9E8EB;
+
+  --ground: #FCFAF9;
+  --ink: #292526;
+  --ink-soft: #5E5558;
+  --rule: #CBDDE5;
+
+  --button-text: #FFFFFF;
+  --on-yellow: #292526;
+  --final-bg: #245B78;
+  --final-text: #FFFFFF;
+
+  /* The page IS the reading column. Masthead, prose and footer all sit in
+     --page-width, so there is no empty field to the right of the text. Only
+     screenshots break out, to --media-width, because a 13-column table is
+     unreadable at reading width. */
+  --page-width: 41rem;
+  --media-width: 72rem;
   --gutter: 1.5rem;
 
   color-scheme: light;
@@ -20,13 +42,29 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --claret: #F0A6B6;
-    --claret-deep: #F7C4CF;
+    --blue: #76B8DA;
+    --blue-deep: #9ACCE5;
+    --blue-selected: #203B49;
+    --blue-background: #152A35;
+
+    --yellow: #F0C75E;
+    --yellow-deep: #F5D77E;
+    --yellow-selected: #493D1D;
+    --yellow-background: #332C17;
+    --yellow-hover: #F5D77E;
+
+    --claret: #E0708A;
+    --claret-selected: #3A2429;
+
     --ground: #0E1117;
-    --band: #2E1C21;
     --ink: #F5F5F5;
-    --ink-soft: #CFC5C7;
-    --rule: #4A3238;
+    --ink-soft: #C9BFC2;
+    --rule: #334956;
+
+    --button-text: #0E1117;
+    --on-yellow: #0E1117;
+    --final-bg: #203B49;
+    --final-text: #F5F5F5;
 
     color-scheme: dark;
   }
@@ -57,17 +95,17 @@ body {
 
 img { max-width: 100%; height: auto; }
 
-a { color: var(--claret); text-underline-offset: 0.15em; }
-a:hover { color: var(--claret-deep); }
+a { color: var(--blue); text-underline-offset: 0.15em; }
+a:hover { color: var(--blue-deep); }
 
-:focus-visible { outline: 3px solid var(--claret); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
 .skip {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--claret);
-  color: #FCFAF9;
+  background: var(--blue);
+  color: var(--button-text);
   padding: 0.75rem 1.25rem;
   font-weight: 600;
   text-decoration: none;
@@ -80,20 +118,12 @@ a:hover { color: var(--claret-deep); }
 }
 
 /* ONE LEFT EDGE.
-   Every container is the same width and centred, so the masthead, the prose,
-   the screenshots and the footer all start at the same x. Prose is then held
-   to a readable measure by capping the CHILDREN, not by narrowing and
-   re-centring the container — narrowing the container is what pushed the body
-   text in to its own indent while the frame stayed at the outer edge. */
+   Masthead, prose and footer share this container, so every line of text on
+   every page starts at the same x and the column is centred in the viewport.
+   Nothing caps the children: the container itself is the reading measure. */
 
-.copy  { max-width: var(--wide-width); margin-inline: auto; padding-inline: var(--gutter); }
-.wide  { max-width: var(--wide-width); margin-inline: auto; padding-inline: var(--gutter); }
-
-.copy > * { max-width: var(--copy-width); }
-
-/* Media is the one thing allowed the full width of that container. */
-.copy > .shot,
-.copy > figure { max-width: none; }
+.copy,
+.wide { max-width: var(--page-width); margin-inline: auto; padding-inline: var(--gutter); }
 
 /* ---------- masthead ---------- */
 
@@ -110,7 +140,7 @@ a:hover { color: var(--claret-deep); }
 .wordmark {
   font-weight: 700;
   font-size: 1.0625rem;
-  color: var(--ink);
+  color: var(--blue);
   text-decoration: none;
   margin-right: auto;
 }
@@ -118,9 +148,11 @@ a:hover { color: var(--claret-deep); }
 .masthead nav { display: flex; flex-wrap: wrap; gap: 1.15rem; font-size: 0.9375rem; }
 .masthead nav a { text-decoration: none; }
 .masthead nav a:hover { text-decoration: underline; }
-.masthead nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+.masthead nav a[aria-current="page"] { color: var(--blue-deep); font-weight: 600; }
 
 /* ---------- hero ---------- */
+
+.hero { background: var(--yellow-background); }
 
 .hero .copy { padding-block: 3.25rem 2.25rem; }
 
@@ -130,7 +162,7 @@ h1 {
   line-height: 1;
   letter-spacing: -0.03em;
   margin: 0;
-  color: var(--claret);
+  color: var(--blue);
 }
 
 .standfirst {
@@ -141,7 +173,7 @@ h1 {
   max-width: 26ch;
 }
 
-.hero p.intro { margin: 1.15rem 0 0; max-width: 46ch; }
+.hero p.intro { margin: 1.15rem 0 0; }
 
 .actions {
   display: flex;
@@ -156,26 +188,21 @@ h1 {
   align-items: center;
   min-height: 44px;
   padding: 0.75rem 1.5rem;
-  background: var(--claret);
-  color: #FCFAF9;
+  background: var(--blue);
+  color: var(--button-text);
   font-size: 1.0625rem;
   font-weight: 600;
   text-decoration: none;
   border-radius: 3px;
 }
 
-.cta:hover { background: var(--claret-deep); color: #FCFAF9; }
-
-@media (prefers-color-scheme: dark) {
-  .cta, .cta:hover { color: #1A1114; }
-}
+.cta:hover { background: var(--blue-deep); color: var(--button-text); }
 
 .note {
   font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--ink-soft);
   margin: 1rem 0 0;
-  max-width: 48ch;
 }
 
 .byline { margin: 1.75rem 0 0; font-size: 0.9375rem; color: var(--ink-soft); }
@@ -187,9 +214,15 @@ h1 {
    gets its own full-width section below the hero instead, on the same left edge
    as everything else. */
 
-.media { padding-bottom: 3rem; }
+.media {
+  padding-bottom: 3rem;
+  background: var(--yellow-background);
+  border-bottom: 1px solid var(--rule);
+}
 
-.media .shot { max-width: var(--wide-width); margin-inline: auto; padding-inline: var(--gutter); }
+/* The breakout. Centred on the same axis as the text column, so it widens
+   symmetrically rather than pulling the page off balance. */
+.media .shot { max-width: var(--media-width); margin-inline: auto; padding-inline: var(--gutter); }
 
 .media figure { margin: 0; }
 
@@ -212,7 +245,9 @@ figcaption {
 
 section .copy, section .wide { padding-block: 2.75rem; }
 
-.band { background: var(--band); border-block: 1px solid var(--rule); }
+.band { background: var(--blue-background); border-block: 1px solid var(--rule); }
+
+.yellow-band { background: var(--yellow-background); }
 
 h2 {
   font-size: clamp(1.625rem, 5vw, 2rem);
@@ -220,7 +255,7 @@ h2 {
   line-height: 1.2;
   letter-spacing: -0.015em;
   margin: 0 0 1rem;
-  color: var(--claret);
+  color: var(--blue);
 }
 
 h3 { font-size: 1.125rem; font-weight: 650; margin: 0 0 0.4rem; color: var(--ink); }
@@ -244,7 +279,7 @@ strong { font-weight: 650; }
   display: block;
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--claret);
+  color: var(--yellow-deep);
   margin-bottom: 0.2rem;
 }
 
@@ -262,13 +297,13 @@ summary {
   cursor: pointer;
   padding: 1rem 0;
   font-weight: 600;
-  color: var(--claret);
+  color: var(--blue);
   min-height: 44px;
   display: flex;
   align-items: center;
 }
 
-summary:hover { color: var(--claret-deep); }
+summary:hover { color: var(--blue-deep); }
 
 details[open] summary { border-bottom: 1px solid var(--rule); }
 
@@ -290,6 +325,27 @@ details[open] summary { border-bottom: 1px solid var(--rule); }
 
 .final .copy { padding-block: 3rem; }
 .final h2 { margin-bottom: 0.75rem; }
+
+.final {
+  background: var(--final-bg);
+  color: var(--final-text);
+}
+
+.final h2 { color: var(--final-text); }
+
+.final .note { color: var(--final-text); }
+
+.final .cta {
+  background: var(--yellow);
+  color: var(--on-yellow);
+}
+
+.final .cta:hover {
+  background: var(--yellow-hover);
+  color: var(--on-yellow);
+}
+
+.final :focus-visible { outline-color: var(--yellow); }
 
 /* ---------- footer ---------- */
 
