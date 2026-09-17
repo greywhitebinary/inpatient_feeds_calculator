@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BTFCalc | Blenderized Tube Feeding Calculator</title>
-<meta name="description" content="BTFCalc estimates the energy, protein, fluid and micronutrients in a home-blended tube feed using the Canadian Nutrient File. Free, with no account required.">
+<meta name="description" content="BTFCalc helps dietitians enter a home-blended tube feed using its measured final volume and review it alongside the rest of the day's intake. Free, with no account required.">
 
 <link rel="canonical" href="https://feedformflow.ca/btfcalc/">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
@@ -12,7 +12,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Feed. Form. Flow.">
 <meta property="og:title" content="BTFCalc | Blenderized Tube Feeding Calculator">
-<meta property="og:description" content="BTFCalc estimates the energy, protein, fluid and micronutrients in a home-blended tube feed using the Canadian Nutrient File. Free, with no account required.">
+<meta property="og:description" content="BTFCalc helps dietitians enter a home-blended tube feed using its measured final volume and review it alongside the rest of the day's intake. Free, with no account required.">
 <meta property="og:url" content="https://feedformflow.ca/btfcalc/">
 <meta property="og:image" content="https://feedformflow.ca/btfcalc/card.png">
 <meta property="og:image:width" content="1200">
@@ -38,7 +38,7 @@
     "name": "Hui Jun Chew",
     "jobTitle": "Dietitian"
   },
-  "description": "BTFCalc estimates the energy, protein, fluid and micronutrients in a home-blended tube feed, then shows how changes to the blend or the daily intake affect the total. It uses the Canadian Nutrient File as its food reference data."
+  "description": "BTFCalc helps dietitians enter a home-blended tube feed using its measured final volume and review its energy, protein, fluid and micronutrients alongside the rest of the day's intake."
 }
 </script>
 
@@ -64,12 +64,14 @@
   <div class="hero">
     <div class="copy">
       <h1>BTFCalc</h1>
-      <p class="standfirst">Estimate what a home-blended tube feed actually provides.</p>
+      <p class="standfirst">Estimate what a home-blended tube feed provides and
+        review the full day around it.</p>
 
-      <p class="intro">BTFCalc calculates the energy, protein, fluid and
-        micronutrients in a blend, then shows how changes to the blend or to the
-        rest of the day affect the total. It uses the Canadian Nutrient File as
-        its food reference data.</p>
+      <p class="intro">Enter the ingredients and measured final volume of a
+        blend to calculate its energy, protein, fluid and micronutrients. Add
+        commercial formula, modulars, water flushes and food by mouth to see the
+        daily totals in one place. BTFCalc uses the Canadian Nutrient File and
+        Canadian product information.</p>
 
       <div class="actions">
         <a class="cta" href="https://btfcalc.feedformflow.ca">Open BTFCalc →</a>
@@ -92,37 +94,29 @@
     <div class="shot">
       <figure>
         <img src="screenshot-landing.png" width="1280" height="608"
-             alt="BTFCalc as it opens: buttons for a 3-minute demo and Load example record, a patient or record label field, and three tabs reading Nutrition targets, Feed recipes and Daily intake record. The Nutrition targets tab is selected, showing an optional patient weight field.">
-        <figcaption>The calculator as it opens. You work left to right across
-          the three tabs, and the patient weight is optional.</figcaption>
+             alt="The blank BTFCalc opening screen, with an optional patient weight field and tabs for Nutrition targets, Feed recipes and Daily intake record.">
+        <figcaption>BTFCalc opens with three tabs: enter optional targets, add
+          feed recipes, then record the day.</figcaption>
       </figure>
     </div>
   </div>
 
   <section class="band">
     <div class="copy">
-      <h2>Characterise a blend, then record a day around it</h2>
+      <h2>Enter the blend, then review the full day</h2>
 
-      <p>Ingredient weights cannot reliably predict blended volume, so BTFCalc
-        asks for the measured final volume and works from that.</p>
+      <p>BTFCalc uses the measured final volume because ingredient weights alone
+        cannot reliably predict blended volume.</p>
 
       <ul>
         <li>Enter the ingredients and the measured final volume to calculate
           kcal/mL, protein g/mL and the free-water fraction.</li>
-        <li>Record a whole day in one chronological list: blends, commercial
-          formulas, modulars, water flushes and food by mouth.</li>
-        <li>Enter modular powders in grams and liquids in millilitres, and say
-          whether each is given by tube or by mouth. Water used to mix a powder
-          is recorded separately, because the calculator does not assume a
-          dilution volume.</li>
-        <li>Compare the blend against 51 adult Canadian tube-feeding formulas at
-          a daily volume you choose.</li>
-        <li>Search the Canadian Nutrient File by all your words in any order,
-          with typo tolerance. It never chooses a food for you.</li>
-        <li>Read a nutrition label from a photo into a form you check against
-          the label in your hand.</li>
-        <li>Save the day to a spreadsheet you can reopen or edit in Excel, and
-          copy a chart note beside it.</li>
+        <li>Add blends, commercial formulas, modulars, water flushes and food by
+          mouth to one chronological record.</li>
+        <li>Review the daily totals by source and route. Nutrient coverage shows
+          where information is missing.</li>
+        <li>Copy the chart note or save the record as a workbook that you can
+          reopen or edit in Excel.</li>
       </ul>
 
       <div class="actions">
@@ -130,18 +124,6 @@
       </div>
     </div>
   </section>
-
-  <div class="media">
-    <div class="shot">
-      <figure>
-        <img src="screenshot-daily-intake-record.png" width="2514" height="1792"
-             alt="The Daily intake record tab: the day's intake summarised in one line, a per-source breakdown of energy, macros and minerals split into Tube Feed, Food and Drink and Total, and a water ledger showing where every millilitre came from.">
-        <figcaption>The daily intake record separates what went down the tube
-          from what was taken by mouth, and accounts for every millilitre of
-          water.</figcaption>
-      </figure>
-    </div>
-  </div>
 
   <section>
     <div class="copy">
@@ -157,50 +139,52 @@
         <li>
           <span class="num">2</span>
           <h3>Feed recipes</h3>
-          <p>Build the blend from its ingredients and enter the measured final
-            volume. The kcal/mL and protein g/mL update as you go.</p>
+          <p>Enter the ingredients and measured final volume of a blend, or add
+            a commercial formula. The calculated concentration updates as you
+            go.</p>
         </li>
         <li>
           <span class="num">3</span>
           <h3>Daily intake record</h3>
-          <p>Add blends, commercial formulas, modulars, water flushes and food
-            by mouth to one chronological list for the day.</p>
-        </li>
-        <li>
-          <span class="num">4</span>
-          <h3>Review and record</h3>
-          <p>Check the per-source breakdown and the water ledger, copy the chart
-            note, or download the workbook to reopen later.</p>
+          <p>Record what was given by tube or by mouth. Review the totals,
+            nutrient coverage and water ledger, then copy the chart note or
+            download the workbook.</p>
         </li>
       </ol>
+
+      <details>
+        <summary>Other things BTFCalc can do</summary>
+        <div class="details-body">
+          <ul>
+            <li>Compare a blend against 51 adult Canadian tube-feeding formulas
+              at a daily volume you choose.</li>
+            <li>Search the Canadian Nutrient File using your words in any order,
+              with some tolerance for spelling mistakes. BTFCalc does not choose
+              a food for you.</li>
+            <li>Record modular powders in grams and liquids in millilitres, with
+              the route for each. Water used to mix a powder is entered
+              separately.</li>
+            <li>When the label-photo feature is available, read a nutrition
+              label into a form that you check against the label in your hand.</li>
+          </ul>
+        </div>
+      </details>
     </div>
   </section>
-
-  <div class="media">
-    <div class="shot">
-      <figure>
-        <img src="screenshot-feed-recipes.png" width="2514" height="1796"
-             alt="The Feed recipes tab: a blend's ingredient list with per-ingredient amounts and counts-as-fluid toggles, its measured final volume, and the live kcal/mL and protein g/mL above them.">
-        <figcaption>A blend's ingredients, its measured final volume, and the
-          resulting concentration.</figcaption>
-      </figure>
-    </div>
-  </div>
 
   <section class="band yellow-band">
     <div class="copy">
       <h2>Scope and data</h2>
 
-      <p>Nutrient tracking follows the Canadian Nutrition Facts panel and uses
-        Canadian reference data, so BTFCalc is for Canadian use at present.
-        Supporting another country would need a reviewed data pack and
-        validation of its nutrient and reporting conventions.</p>
+      <p>BTFCalc uses Canadian reference data and follows the Canadian Nutrition
+        Facts panel, so it is currently intended for Canadian use. Supporting
+        another country would require a reviewed data pack and validation of
+        that country's nutrient and reporting conventions.</p>
 
-      <p>A zero can mean “never measured” rather than “none present”. The
-        report’s <em>Coverage</em> column shows how many of your sources supplied
-        a value for each nutrient, and rows where nothing did are hidden rather
-        than shown as a confident zero. A nutrient that is not printed on a label
-        comes back blank, never as zero.</p>
+      <p>Missing information is not the same as zero. The report’s
+        <em>Coverage</em> column shows how many sources supplied a value for each
+        nutrient. Rows without any source values are hidden, and a nutrient that
+        is not printed on a label remains blank.</p>
 
       <div class="caution">
         <p><strong>The calculator cannot measure viscosity, tube flow or
