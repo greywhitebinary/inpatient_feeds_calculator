@@ -36,6 +36,9 @@
   --page-width: 41rem;
   --media-width: 72rem;
   --gutter: 1.5rem;
+  /* Left rail. Applied only once the viewport is wide enough to spare it, so
+     narrow screens keep the full width for content. */
+  --rail: 4rem;
 
   color-scheme: light;
 }
@@ -117,13 +120,23 @@ a:hover { color: var(--blue-deep); }
   top: 0.5rem;
 }
 
-/* ONE LEFT EDGE.
+/* ONE LEFT EDGE, ANCHORED LEFT.
    Masthead, prose and footer share this container, so every line of text on
-   every page starts at the same x and the column is centred in the viewport.
-   Nothing caps the children: the container itself is the reading measure. */
+   every page starts at the same x. The column is anchored to the left of the
+   viewport rather than centred in it, sitting on a fixed rail once there is
+   room for one. Nothing caps the children: the container is the measure. */
 
 .copy,
-.wide { max-width: var(--page-width); margin-inline: auto; padding-inline: var(--gutter); }
+.wide {
+  max-width: var(--page-width);
+  margin-inline: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+@media (min-width: 50rem) {
+  .copy,
+  .wide { margin-inline-start: var(--rail); }
+}
 
 /* ---------- masthead ---------- */
 
@@ -220,9 +233,17 @@ h1 {
   border-bottom: 1px solid var(--rule);
 }
 
-/* The breakout. Centred on the same axis as the text column, so it widens
-   symmetrically rather than pulling the page off balance. */
-.media .shot { max-width: var(--media-width); margin-inline: auto; padding-inline: var(--gutter); }
+/* The breakout. Starts on the same left edge as the text and extends right,
+   so the shared edge survives and only the right side widens. */
+.media .shot {
+  max-width: var(--media-width);
+  margin-inline: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+@media (min-width: 50rem) {
+  .media .shot { margin-inline-start: var(--rail); }
+}
 
 .media figure { margin: 0; }
 
