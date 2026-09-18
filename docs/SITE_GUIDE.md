@@ -203,6 +203,11 @@ replaced only when the product interface has materially changed.
 Each page links to its calculator with one button in the introduction and one
 final call to action. Do not repeat the same button in the intervening feature
 section.
+
+The product pages state their scope, limitations, records and privacy behaviour
+directly. Do not add a generic "read the full statement" link to a repository
+when it only repeats or mixes information already presented more clearly on the
+page.
 Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
