@@ -1,0 +1,57 @@
+name: Feed Form Flow website
+
+"on":
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/update_writing.py"
+      - "scripts/test_update_writing.py"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+  schedule:
+    # Refresh Substack daily without committing generated content.
+    - cron: "23 13 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Check feed handling
+        run: python -m unittest discover -s scripts -p test_update_writing.py
+      - name: Refresh the two latest Substack posts
+        # Failure stops publication, preserving the last successfully published site.
+        run: python scripts/update_writing.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4
