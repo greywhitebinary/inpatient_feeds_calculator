@@ -179,13 +179,13 @@ clinical or usability reason requires a change. Do not solve a visual problem
 by rewriting these pages.
 
 The product pages use the same centred `1184px` maximum frame as the homepage.
-Their title sits in a smaller, flat blue panel and does not rotate or move on
-hover. The existing introduction and action sit in a pale yellow surface below
-it, which keeps the title and explanatory copy distinct without recreating the
-homepage's layered hero. The title panel, introduction panel and calculator
-screenshot share one left edge. They do not use a decorative spine; once the
-product section headings moved above their content, a separate line no longer
-had a structural role.
+Their title sits in a smaller, flat blue panel with a restrained mustard lower
+edge and does not rotate or move on hover. The existing introduction and action
+sit in a pale yellow surface below it, which keeps the title and explanatory
+copy distinct without recreating the homepage's layered hero. The title panel,
+introduction panel and calculator screenshot share one left edge. They do not
+use a decorative spine; once the product section headings moved above their
+content, a separate line no longer had a structural role.
 
 Detailed section headings sit above their content in a readable column of about
 `66ch`. They do not use a side rail because the descriptive product headings
@@ -204,6 +204,13 @@ Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
 to choose the appearance.
+
+Mustard also marks the product title's lower edge, the final action button and
+the footer boundary. The masthead has no divider, matching the homepage, while
+coloured section bands, screenshot borders and expandable details use neutral
+rules so the full-width panels do not look outlined. Figure captions use the
+figure width because they are brief, and workflow numbers share a line with
+their step headings.
 
 The homepage is the visual system's expressive lead rather than a layout
 template for the product pages. The product pages share its frame, colours,
