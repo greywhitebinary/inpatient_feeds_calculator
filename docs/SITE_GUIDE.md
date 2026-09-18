@@ -69,7 +69,7 @@ effects.
 ## Current coherence and theme behaviour
 
 ENCalc and BTFCalc are visually coherent with each other because they share the
-same stylesheet, masthead, wide frame, section-title rail, section bands and
+same stylesheet, masthead, wide frame, reading measure, section bands and
 interaction patterns. The homepage belongs to the same family through its
 typography, palette, frame and structural rhythm, but it is deliberately more
 expressive.
@@ -164,7 +164,8 @@ The tool cards sit side by side on wide screens and stack on narrow screens.
 ENCalc uses a pale blue surface with a blue top rule; BTFCalc uses a pale yellow
 surface with a mustard top rule. Both tool names use claret, and both primary
 buttons use mustard. Cards have small rounded corners and a strong rectangular
-shape. They do not move on hover.
+shape. They do not move on hover. A single quiet line above the cards states
+that both tools are free to use and require no account or installation.
 
 The footer uses a mustard top rule. Its closing phrase is "Working and writing
 about foods, healthcare and technology".
@@ -177,22 +178,25 @@ clinical or usability reason requires a change. Do not solve a visual problem
 by rewriting these pages.
 
 The product pages use the same centred `1184px` maximum frame as the homepage.
-Their title sits in a smaller, flat blue panel with a strong mustard left edge.
-It does not rotate or move on hover. The existing introduction and action sit
-in a pale yellow surface below it, which keeps the title and explanatory copy
-distinct without recreating the homepage's layered hero. The title panel,
-introduction panel and calculator screenshot share one left edge, and each has
-its own mustard edge rather than forming one continuous spine.
+Their title sits in a smaller, flat blue panel and does not rotate or move on
+hover. The existing introduction and action sit in a pale yellow surface below
+it, which keeps the title and explanatory copy distinct without recreating the
+homepage's layered hero. The title panel, introduction panel and calculator
+screenshot share one left edge. Each group has a separate mustard spine in the
+gutter, with visible space between the spine and the rounded surface. The spine
+is structural rather than part of the box border.
 
-Detailed sections use a `180px` unnumbered title rail and a readable content
-column of about `66ch`. The calculator screenshot may extend across the
-available frame. At narrow widths, the rail and content stack so that the full
-width remains usable.
+Detailed section headings sit above their content in a readable column of about
+`66ch`. They do not use a side rail because the descriptive product headings
+are too long for the one-word category treatment used on the homepage. Product
+sections are deliberately unnumbered because the workflow sections contain
+their own numbered steps. The calculator screenshot may extend across the
+available frame.
 
 The product pages use pale blue and pale yellow section bands, a blue primary
 call to action, mustard for the final call-to-action button and claret for
-section numbers and clinical cautions. Their screenshots show the current tools
-and should be replaced only when the product interface has materially changed.
+workflow step numbers and clinical cautions. Their screenshots show the current
+tools and should be replaced only when the product interface has materially changed.
 Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
