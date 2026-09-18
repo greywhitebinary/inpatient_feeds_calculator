@@ -5,13 +5,8 @@ name: Feed Form Flow website
     branches: [main]
     paths:
       - "docs/**"
-      - "scripts/update_writing.py"
-      - "scripts/test_update_writing.py"
       - ".github/workflows/site.yml"
   workflow_dispatch:
-  schedule:
-    # Refresh Substack daily without committing generated content.
-    - cron: "23 13 * * *"
 
 permissions:
   contents: read
@@ -28,15 +23,7 @@ jobs:
       contents: read
       pages: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-      - name: Check feed handling
-        run: python -m unittest discover -s scripts -p test_update_writing.py
-      - name: Refresh the two latest Substack posts
-        # Failure stops publication, preserving the last successfully published site.
-        run: python scripts/update_writing.py
+      - uses: actions/checkout@v7
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
