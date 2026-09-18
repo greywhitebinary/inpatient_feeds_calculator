@@ -208,6 +208,12 @@ The product pages state their scope, limitations, records and privacy behaviour
 directly. Do not add a generic "read the full statement" link to a repository
 when it only repeats or mixes information already presented more clearly on the
 page.
+
+Both product pages call the corresponding product-information section "Data and
+limitations." This describes the material accurately without implying that the
+section contains each tool's full clinical scope. Their related-tool sections
+briefly describe the other calculator without adding a generic claim about a
+shared approach.
 Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
