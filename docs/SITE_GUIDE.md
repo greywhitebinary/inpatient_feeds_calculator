@@ -212,9 +212,10 @@ Mustard also marks the product title's lower edge and the footer boundary. The
 masthead has no divider, matching the homepage. The pale blue and pale yellow
 section bands use mustard horizontal rules, while the dark final action panel
 has no border because its colour already defines the boundary. Screenshot
-borders and expandable details remain neutral. Figure captions use the figure
-width because they are brief, and workflow numbers share a line with their step
-headings.
+borders remain neutral. Expandable detail sections use mustard top and bottom
+rules, including the internal divider when opened. Figure captions use the
+figure width because they are brief, and workflow numbers share a line with
+their step headings.
 
 The homepage is the visual system's expressive lead rather than a layout
 template for the product pages. The product pages share its frame, colours,

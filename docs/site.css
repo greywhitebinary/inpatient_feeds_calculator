@@ -362,8 +362,8 @@ strong { font-weight: 700; }
 
 details {
   margin-top: 2rem;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+  border-top: 1px solid var(--yellow);
+  border-bottom: 1px solid var(--yellow);
 }
 
 summary {
@@ -377,7 +377,7 @@ summary {
 }
 
 summary:hover { color: var(--blue-deep); }
-details[open] summary { border-bottom: 1px solid var(--rule); }
+details[open] summary { border-bottom: 1px solid var(--yellow); }
 .details-body { padding-block: 1.5rem; }
 .details-body h3 { margin-top: 1.75rem; }
 .details-body h3:first-child { margin-top: 0; }
