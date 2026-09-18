@@ -214,6 +214,12 @@ limitations." This describes the material accurately without implying that the
 section contains each tool's full clinical scope. Their related-tool sections
 briefly describe the other calculator without adding a generic claim about a
 shared approach.
+
+Product copy uses direct verbs, concrete inputs and named outputs. Keep the tone
+clinical and readable, and avoid repeating the same mechanism in the hero,
+feature summary and workflow unless the repetition helps a reader act. The two
+pages should sound like parts of one product family even when one calculator
+needs more technical detail.
 Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
@@ -246,7 +252,8 @@ product-page links remain underlined.
 Header links use the same plain treatment across the site. On a product page,
 the current product uses heavier type without changing colour or adding an
 underline. This distinguishes location from hover and keeps claret out of the
-navigation.
+navigation. Product-page headers switch only between ENCalc and BTFCalc. The
+wordmark returns to the homepage, where the Substack link appears in context.
 
 The theme control is kept behind a small three-dot button in the header so it
 does not compete with navigation or the page title. Opening it reveals compact
