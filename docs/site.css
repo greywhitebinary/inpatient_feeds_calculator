@@ -1,86 +1,72 @@
 /* Shared by the ENCalc and BTFCalc product explanation pages. The editorial
-   homepage uses home.css. Read SITE_GUIDE.md before changing this system.
-   Blue and yellow lead the public site; the calculators' claret remains a
-   smaller shared accent for clinical cautions and identity. */
+   homepage uses home.css. Read SITE_GUIDE.md before changing this system. */
 
 :root {
   --blue: #245B78;
   --blue-deep: #17445D;
-  /* Strong pale tints are for selected or active states, not page bands. */
-  --blue-selected: #E7F1F5;
-  /* Background washes can cover large areas without competing with text. */
+  --hero-blue: #245B78;
   --blue-background: #F3F8FA;
-
   --yellow: #D9A62E;
-  --yellow-deep: #7A5A00;
-  --yellow-selected: #FFF3C4;
   --yellow-background: #FFF9E8;
-  --yellow-hover: #FFF3C4;
-
+  --yellow-hover: #F0C75E;
   --claret: #A4243A;
-  --claret-selected: #F9E8EB;
-
-  --ground: #FCFAF9;
+  --ground: #FAFAFA;
   --ink: #292526;
   --ink-soft: #5E5558;
   --rule: #CBDDE5;
-
-  --button-text: #FFFFFF;
+  --on-blue: #FFFFFF;
   --on-yellow: #292526;
-  --final-bg: #245B78;
-  --final-text: #FFFFFF;
+  --cta-bg: #245B78;
+  --cta-hover: #17445D;
+  --cta-text: #FFFFFF;
+  --radius: 10px;
+  --frame: 1184px;
+  --gutter: 64px;
+  --section-rail: 120px;
+  --section-gap: 32px;
 
-  /* The page IS the reading column. Masthead, prose and footer all sit in
-     --page-width, so there is no empty field to the right of the text. Only
-     screenshots break out, to --media-width, because a 13-column table is
-     unreadable at reading width. */
-  --page-width: 41rem;
-  --media-width: 72rem;
-  --gutter: 1.5rem;
-  /* Left rail. Applied only once the viewport is wide enough to spare it, so
-     narrow screens keep the full width for content. */
-  --rail: 4rem;
+  --theme-border: var(--rule);
+  --theme-ground: var(--ground);
+  --theme-text: var(--blue);
+  --theme-hover: #E7F1F5;
+  --theme-active: var(--blue);
+  --theme-active-text: #FFFFFF;
+  --theme-focus: var(--blue);
 
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --blue: #76B8DA;
-    --blue-deep: #9ACCE5;
-    --blue-selected: #203B49;
-    --blue-background: #152A35;
+:root[data-theme="dark"] {
+  --blue: #76B8DA;
+  --blue-deep: #9ACCE5;
+  --hero-blue: #17445D;
+  --blue-background: #152A35;
+  --yellow: #F0C75E;
+  --yellow-background: #332C17;
+  --yellow-hover: #F5D77E;
+  --claret: #E0708A;
+  --ground: #0E1117;
+  --ink: #F5F5F5;
+  --ink-soft: #C9BFC2;
+  --rule: #334956;
+  --on-blue: #FFFFFF;
+  --on-yellow: #0E1117;
+  --cta-bg: #245B78;
+  --cta-hover: #17445D;
+  --cta-text: #FFFFFF;
 
-    --yellow: #F0C75E;
-    --yellow-deep: #F5D77E;
-    --yellow-selected: #493D1D;
-    --yellow-background: #332C17;
-    --yellow-hover: #F5D77E;
+  --theme-hover: #203B49;
+  --theme-active: #76B8DA;
+  --theme-active-text: #0E1117;
 
-    --claret: #E0708A;
-    --claret-selected: #3A2429;
-
-    --ground: #0E1117;
-    --ink: #F5F5F5;
-    --ink-soft: #C9BFC2;
-    --rule: #334956;
-
-    --button-text: #0E1117;
-    --on-yellow: #0E1117;
-    --final-bg: #203B49;
-    --final-text: #F5F5F5;
-
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
-/* One family for the whole document, set on html so nothing — not even an
-   unstyled element or the moment before body's rules apply — falls back to
-   the browser's default serif. */
 html {
   -webkit-text-size-adjust: 100%;
+  background: var(--ground);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
                Helvetica, Arial, sans-serif;
 }
@@ -92,51 +78,45 @@ body {
   font-family: inherit;
   font-size: 1.0625rem;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.65;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 img { max-width: 100%; height: auto; }
 
-a { color: var(--blue); text-underline-offset: 0.15em; }
-a:hover { color: var(--blue-deep); }
+a {
+  color: var(--blue);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
 
-:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+a:hover {
+  color: var(--blue-deep);
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 
 .skip {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--blue);
-  color: var(--button-text);
+  z-index: 20;
   padding: 0.75rem 1.25rem;
-  font-weight: 600;
+  background: var(--hero-blue);
+  color: var(--on-blue);
+  font-weight: 650;
   text-decoration: none;
-  z-index: 10;
 }
 
-.skip:focus {
-  left: 0.5rem;
-  top: 0.5rem;
-}
-
-/* ONE LEFT EDGE, ANCHORED LEFT.
-   Masthead, prose and footer share this container, so every line of text on
-   every page starts at the same x. The column is anchored to the left of the
-   viewport rather than centred in it, sitting on a fixed rail once there is
-   room for one. Nothing caps the children: the container is the measure. */
+.skip:focus { left: 0.5rem; top: 0.5rem; }
 
 .copy,
-.wide {
-  max-width: var(--page-width);
-  margin-inline: 0 auto;
-  padding-inline: var(--gutter);
-}
-
-@media (min-width: 50rem) {
-  .copy,
-  .wide { margin-inline-start: var(--rail); }
+.wide,
+.media .shot {
+  width: min(calc(100% - (2 * var(--gutter))), var(--frame));
+  margin-inline: auto;
 }
 
 /* ---------- masthead ---------- */
@@ -145,190 +125,267 @@ a:hover { color: var(--blue-deep); }
 
 .masthead .wide {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 1.25rem;
-  padding-block: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  min-height: 76px;
 }
 
 .wordmark {
-  font-weight: 700;
-  font-size: 1.0625rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--blue);
+  font-size: 1rem;
+  font-weight: 700;
   text-decoration: none;
-  margin-right: auto;
+  white-space: nowrap;
 }
 
-.masthead nav { display: flex; flex-wrap: wrap; gap: 1.15rem; font-size: 0.9375rem; }
-.masthead nav a { text-decoration: none; }
+.product-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem 1.5rem;
+}
+
+.masthead nav {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  font-size: 0.875rem;
+}
+
+.masthead nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
 .masthead nav a:hover { text-decoration: underline; }
-.masthead nav a[aria-current="page"] { color: var(--blue-deep); font-weight: 600; }
+.masthead nav a[aria-current="page"] {
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
 
-/* ---------- hero ---------- */
+/* ---------- product introduction ---------- */
 
-.hero { background: var(--yellow-background); }
+.hero { padding: 2.25rem 0 4.25rem; }
 
-.hero .copy { padding-block: 3.25rem 2.25rem; }
+.product-title-surface {
+  width: min(74%, 54rem);
+  padding: 2.15rem 2.5rem 2.35rem;
+  background: var(--hero-blue);
+  border-bottom: 8px solid var(--yellow);
+  border-radius: var(--radius);
+  color: var(--on-blue);
+}
 
 h1 {
-  font-size: clamp(2.75rem, 11vw, 4.5rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.03em;
   margin: 0;
-  color: var(--blue);
+  color: var(--on-blue);
+  font-size: clamp(2.75rem, 5.2vw, 3.75rem);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.045em;
 }
 
 .standfirst {
-  font-size: clamp(1.25rem, 4.5vw, 1.5rem);
-  font-weight: 500;
-  line-height: 1.3;
+  max-width: 34ch;
   margin: 1rem 0 0;
-  max-width: 26ch;
+  color: var(--on-blue);
+  font-size: clamp(1.125rem, 2.25vw, 1.375rem);
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
-.hero p.intro { margin: 1.15rem 0 0; }
+.product-introduction {
+  width: min(calc(100% - 2rem), 48rem);
+  margin: 1.75rem 0 0 2rem;
+  padding: 1.4rem 1.5rem;
+  background: var(--yellow-background);
+  border-radius: var(--radius);
+}
+
+.product-introduction .intro { max-width: 66ch; }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem 1.5rem;
-  margin-top: 1.75rem;
+  margin-top: 1.5rem;
 }
 
 .cta {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0.75rem 1.5rem;
-  background: var(--blue);
-  color: var(--button-text);
-  font-size: 1.0625rem;
-  font-weight: 600;
+  min-height: 46px;
+  padding: 0.7rem 1.2rem;
+  border-radius: 6px;
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  font-size: 1rem;
+  font-weight: 650;
   text-decoration: none;
-  border-radius: 3px;
 }
 
-.cta:hover { background: var(--blue-deep); color: var(--button-text); }
+.cta:hover {
+  background: var(--cta-hover);
+  color: var(--cta-text);
+  text-decoration: none;
+}
 
 .note {
+  margin: 0.9rem 0 0;
+  color: var(--ink-soft);
   font-size: 0.9375rem;
   line-height: 1.55;
+}
+
+.byline {
+  margin: 1.4rem 0 0;
   color: var(--ink-soft);
-  margin: 1rem 0 0;
+  font-size: 0.9375rem;
 }
 
-.byline { margin: 1.75rem 0 0; font-size: 0.9375rem; color: var(--ink-soft); }
+/* ---------- calculator image ---------- */
 
-/* ---------- media ---------- */
+.media { padding-bottom: 4.5rem; }
 
-/* The daily intake table is 13 columns wide. Beside the hero copy it scales to
-   about a third of its natural size and the numbers stop being readable, so it
-   gets its own full-width section below the hero instead, on the same left edge
-   as everything else. */
-
-.media {
-  padding-bottom: 3rem;
-  background: var(--yellow-background);
-  border-bottom: 1px solid var(--rule);
+.media figure {
+  width: calc(100% - var(--section-rail) - var(--section-gap));
+  margin: 0 0 0 calc(var(--section-rail) + var(--section-gap));
 }
-
-/* The breakout. Starts on the same left edge as the text and extends right,
-   so the shared edge survives and only the right side widens. */
-.media .shot {
-  max-width: var(--media-width);
-  margin-inline: 0 auto;
-  padding-inline: var(--gutter);
-}
-
-@media (min-width: 50rem) {
-  .media .shot { margin-inline-start: var(--rail); }
-}
-
-.media figure { margin: 0; }
 
 .media img {
   display: block;
   width: 100%;
-  height: auto;
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: var(--radius);
   background: #FCFAF9;
 }
 
 figcaption {
-  font-size: 0.9375rem;
-  color: var(--ink-soft);
+  max-width: 66ch;
   margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.55;
 }
 
-/* ---------- sections ---------- */
+/* ---------- numbered sections ---------- */
 
-section .copy, section .wide { padding-block: 2.75rem; }
+section { scroll-margin-top: 1.5rem; }
 
-.band { background: var(--blue-background); border-block: 1px solid var(--rule); }
+section .copy {
+  display: grid;
+  grid-template-columns: var(--section-rail) minmax(0, 1fr);
+  gap: 0 var(--section-gap);
+  padding-block: 4.5rem;
+}
+
+section .copy > h2 {
+  grid-column: 1;
+  grid-row: 1 / span 30;
+  align-self: start;
+}
+
+section .copy > :not(h2) {
+  grid-column: 2;
+  width: min(100%, 66ch);
+}
+
+.band {
+  background: var(--blue-background);
+  border-block: 1px solid var(--rule);
+}
 
 .yellow-band { background: var(--yellow-background); }
 
 h2 {
-  font-size: clamp(1.625rem, 5vw, 2rem);
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-  margin: 0 0 1rem;
+  margin: 0;
   color: var(--blue);
+  font-size: clamp(1.35rem, 2.2vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
 }
 
-h3 { font-size: 1.125rem; font-weight: 650; margin: 0 0 0.4rem; color: var(--ink); }
+h2::before {
+  content: attr(data-number);
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--claret);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+h3 {
+  margin: 0 0 0.4rem;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
 
 p { margin: 0 0 1.1rem; }
 p:last-child { margin-bottom: 0; }
 
-ul { margin: 0 0 1.1rem; padding-left: 1.2rem; }
+ul { margin: 0 0 1.1rem; padding-left: 1.25rem; }
 li { margin-bottom: 0.55rem; }
 li:last-child { margin-bottom: 0; }
 
-strong { font-weight: 650; }
+strong { font-weight: 700; }
 
 /* ---------- steps ---------- */
 
-.steps { list-style: none; margin: 1.5rem 0 0; padding: 0; display: grid; gap: 1.75rem; }
+.steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 2.5rem;
+  max-width: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
 
 .steps li { margin: 0; }
 
 .steps .num {
   display: block;
-  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  color: var(--claret);
+  font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--yellow-deep);
-  margin-bottom: 0.2rem;
 }
 
 .steps p { margin: 0; color: var(--ink-soft); }
 
-/* ---------- details ---------- */
+/* ---------- expandable details ---------- */
 
 details {
+  margin-top: 2rem;
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-  margin-top: 2rem;
 }
 
 summary {
-  cursor: pointer;
-  padding: 1rem 0;
-  font-weight: 600;
-  color: var(--blue);
-  min-height: 44px;
   display: flex;
   align-items: center;
+  min-height: 48px;
+  padding: 0.8rem 0;
+  color: var(--blue);
+  font-weight: 650;
+  cursor: pointer;
 }
 
 summary:hover { color: var(--blue-deep); }
-
 details[open] summary { border-bottom: 1px solid var(--rule); }
-
 .details-body { padding-block: 1.5rem; }
 .details-body h3 { margin-top: 1.75rem; }
 .details-body h3:first-child { margin-top: 0; }
@@ -336,26 +393,23 @@ details[open] summary { border-bottom: 1px solid var(--rule); }
 /* ---------- caution ---------- */
 
 .caution {
-  border-left: 4px solid var(--claret);
+  margin-top: 1.5rem;
   padding: 0.75rem 0 0.75rem 1rem;
-  margin: 1.5rem 0 0;
+  border-left: 4px solid var(--claret);
 }
 
 .caution p { margin: 0; }
 
-/* ---------- final cta ---------- */
-
-.final .copy { padding-block: 3rem; }
-.final h2 { margin-bottom: 0.75rem; }
+/* ---------- final action ---------- */
 
 .final {
-  background: var(--final-bg);
-  color: var(--final-text);
+  background: var(--hero-blue);
+  color: var(--on-blue);
 }
 
-.final h2 { color: var(--final-text); }
-
-.final .note { color: var(--final-text); }
+.final h2 { color: var(--on-blue); }
+.final h2::before { color: var(--yellow); }
+.final .note { color: var(--on-blue); }
 
 .final .cta {
   background: var(--yellow);
@@ -372,20 +426,66 @@ details[open] summary { border-bottom: 1px solid var(--rule); }
 /* ---------- footer ---------- */
 
 footer {
-  border-top: 1px solid var(--rule);
-  font-size: 0.9375rem;
-  line-height: 1.6;
+  border-top: 1px solid var(--yellow);
   color: var(--ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
-footer .wide { padding-block: 2.25rem 3rem; }
-footer p { margin: 0 0 0.85rem; max-width: 62ch; }
+footer .wide {
+  padding-block: 2.25rem 3rem;
+  padding-left: calc(var(--section-rail) + var(--section-gap));
+}
+
+footer p { max-width: 66ch; margin: 0 0 0.85rem; }
 footer p:last-child { margin-bottom: 0; }
 footer .scope { color: var(--ink); }
 
-/* ---------- wider viewports ---------- */
+/* ---------- responsive layout ---------- */
 
-@media (min-width: 50rem) {
-  .hero .copy { padding-block: 4.5rem 2.5rem; }
-  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 2.5rem; }
+@media (max-width: 900px) {
+  :root {
+    --gutter: 40px;
+    --section-rail: 90px;
+    --section-gap: 24px;
+  }
+
+  .masthead .wide { flex-wrap: wrap; padding-block: 0.75rem; }
+  .product-header-actions { flex-wrap: wrap; }
+  .product-title-surface { width: min(86%, 54rem); }
+}
+
+@media (max-width: 700px) {
+  section .copy { grid-template-columns: 1fr; gap: 1.4rem; padding-block: 3.25rem; }
+
+  section .copy > h2,
+  section .copy > :not(h2) {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  h2::before { display: inline; margin-right: 0.75rem; }
+
+  .media figure {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  footer .wide { padding-left: 0; }
+}
+
+@media (max-width: 600px) {
+  :root { --gutter: 20px; }
+
+  body { font-size: 1rem; }
+  .masthead .wide { align-items: flex-start; }
+  .product-header-actions { width: 100%; justify-content: space-between; }
+  .masthead nav { gap: 1rem; font-size: 0.8125rem; }
+
+  .hero { padding: 1.25rem 0 3.25rem; }
+  .product-title-surface { width: 100%; padding: 1.75rem 1.5rem 2rem; }
+  .product-introduction { width: calc(100% - 1rem); margin: 1.25rem 0 0 1rem; padding: 1.15rem; }
+  .media { padding-bottom: 3.25rem; }
+  .steps { grid-template-columns: 1fr; gap: 1.6rem; }
 }

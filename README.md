@@ -160,9 +160,9 @@ through four `A` records, and `www` points to `greywhitebinary.github.io`.
 ENCalc and BTFCalc retain their separate subdomain forwarding. The website
 guide records the current DNS values and the records that must be preserved.
 
-The product pages currently follow the device's light or dark preference. The
-homepage currently uses light mode, and the planned shared System / Light /
-Dark control has not yet been implemented.
+All three static pages include a shared System / Light / Dark control. The
+choice persists across the pages and later visits; System follows the device
+preference.
 
 ### Shared with BTF-Calc
 

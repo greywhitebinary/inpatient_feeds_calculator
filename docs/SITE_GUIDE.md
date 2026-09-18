@@ -17,10 +17,12 @@ update the implementation and this guide together.
 | `feedformflow.ca/encalc/` | A detailed explanation of ENCalc for people deciding whether and how to use it | `docs/encalc/index.html`, `docs/site.css` |
 | `feedformflow.ca/btfcalc/` | A detailed explanation of BTFCalc for people deciding whether and how to use it | `docs/btfcalc/index.html`, `docs/site.css` |
 
-The landing pages are plain HTML and CSS with no site generator or client-side
-framework. `docs/favicon.svg` supplies the shared icon. The two `card.png`
-files are social-sharing images; `docs/_card-source.html` is their editable
-source and is intentionally excluded from search indexing.
+The landing pages use plain HTML, CSS and a small amount of vanilla JavaScript,
+with no site generator or client-side framework. `docs/theme.js` and
+`docs/theme.css` supply the shared theme control. `docs/favicon.svg` supplies
+the shared icon. The two `card.png` files are social-sharing images;
+`docs/_card-source.html` is their editable source and is intentionally excluded
+from search indexing.
 
 The hosted Streamlit calculators at `encalc.feedformflow.ca` and
 `btfcalc.feedformflow.ca` are separate applications. Their interfaces show the
@@ -64,36 +66,26 @@ Fun should come from proportion, colour placement and one or two controlled
 geometric moves. It should not depend on novelty copy, icons or ornamental
 effects.
 
-## Current coherence and known gap
+## Current coherence and theme behaviour
 
 ENCalc and BTFCalc are visually coherent with each other because they share the
-same stylesheet, masthead, reading column, section bands and interaction
-patterns. The homepage belongs to the same family through its typography and
-palette, but it is deliberately wider and more expressive.
+same stylesheet, masthead, wide frame, numbered section rail, section bands and
+interaction patterns. The homepage belongs to the same family through its
+typography, palette, frame and numbered rhythm, but it is deliberately more
+expressive.
 
-The largest unfinished inconsistency is theme behaviour. The product pages use
-`prefers-color-scheme` and follow the device's light or dark preference. The
-homepage currently forces light mode. None of the three pages has a manual
-theme control.
-
-Light mode is the current reference for comparing the three landing-page
-designs. A browser using a dark device preference will render the product pages
-in dark mode while leaving the homepage light; screenshots made in that state
-show the implementation gap rather than the intended visual comparison. Label
-dark-mode captures explicitly and do not use them as the primary reference for
-the landing-page identity.
-
-The intended improvement is a shared **System / Light / Dark** control that:
+All three pages include the shared **System / Light / Dark** control. It:
 
 - appears on all three pages;
 - persists the visitor's choice across pages and later visits;
 - defaults to the device setting when no choice has been saved;
 - applies a designed dark palette to the homepage rather than mechanically
-  inverting its colours;
+  inverting its colours; and
 - retains readable contrast and visible focus in every mode.
 
-Until that work is implemented and tested, do not describe the static site as
-having switchable dark mode.
+Light mode remains the reference for comparing the three landing-page designs.
+Label dark-mode captures explicitly so that differences caused by the selected
+theme are not mistaken for differences between page designs.
 
 ## Colour system
 
@@ -107,7 +99,7 @@ that variety does not become noise.
 | Mustard | `#D9A62E` | Structural accent, hero backing plane, section spines, buttons, rules and the BTFCalc card rule |
 | Claret | `#A4243A` | Section numbers, tool names, clinical cautions and limited identity accents |
 | Homepage paper | `#FAFAFA` | Neutral homepage ground |
-| Product-page ground | `#FCFAF9` | Slightly warm reading ground for product explanations |
+| Page ground | `#FAFAFA` | Neutral ground shared by the three static pages |
 | Ink | `#292526` | Main text |
 | Soft ink | `#5E5558` | Supporting text and metadata |
 | Pale blue | `#F3F8FA` | Light ENCalc card and quiet blue backgrounds |
@@ -124,11 +116,10 @@ choice. A mustard foreground made the page read like retail branding, so that
 arrangement should not be restored casually. The mustard final period in the
 hero title is intentional.
 
-`docs/site.css` contains a separate dark palette for the product pages. Its
-lighter blue, warmer mustard and softened claret preserve the same hierarchy on
-a dark ground. Future homepage dark-mode work should begin with those
-relationships, but it may need different surface values because the homepage
-uses layered cards and a large hero.
+`docs/site.css` and `docs/home.css` contain related dark palettes. Their lighter
+blue, warmer mustard and softened claret preserve the same hierarchy on a dark
+ground. The homepage retains its layered hero in dark mode, while the product
+pages retain their quieter flat title panel.
 
 ## Typography
 
@@ -138,8 +129,8 @@ feel direct. Hierarchy comes from size, weight, line height and colour.
 
 The homepage uses a large, tightly spaced hero title, medium-weight section
 headings and restrained body sizes. The product pages use a readable body size
-and a narrow measure for long explanations. Section numbers `01`, `02` and
-`03` must remain the same size and weight.
+and a narrow measure for long explanations. Section numbers must remain the
+same size and weight within each page.
 
 Avoid shrinking the whole page to create more margin. The current homepage
 width and type sizes were evaluated together. If the outer margins change,
@@ -184,25 +175,30 @@ screenshots are deliberate and should be preserved unless a specific factual,
 clinical or usability reason requires a change. Do not solve a visual problem
 by rewriting these pages.
 
-The text, masthead and footer share a `41rem` reading column. On wider screens,
-that column is anchored to a `4rem` left rail. Screenshots may extend to
-`72rem`, but they begin on the same left edge so the page retains a strong
-alignment. On narrow screens, the rail disappears and the normal gutter
-protects the content.
+The product pages use the same centred `1184px` maximum frame as the homepage.
+Their title sits in a smaller, flat blue panel with a restrained mustard lower
+edge. It does not rotate or move on hover. The existing introduction and action
+sit in a pale yellow surface below it, which keeps the title and explanatory
+copy distinct without recreating the homepage's layered hero.
+
+Detailed sections use a `120px` numbered left rail and a readable content
+column of about `66ch`. The calculator screenshot begins on the content-column
+edge and may extend across the available frame. At narrow widths, the rail and
+content stack so that the full width remains usable.
 
 The product pages use pale blue and pale yellow section bands, a blue primary
 call to action, mustard for the final call-to-action button and claret for
-clinical cautions. Their screenshots show the current tools and should be
-replaced only when the product interface has materially changed. Calculator
-screenshots document the Streamlit product; they do not determine the landing
-page's layout or component styling. Capture the calculator in an intentional,
-identified theme rather than allowing an unnoticed device setting to choose
-the appearance.
+section numbers and clinical cautions. Their screenshots show the current tools
+and should be replaced only when the product interface has materially changed.
+Calculator screenshots document the Streamlit product; they do not determine
+the landing page's layout or component styling. Capture the calculator in an
+intentional, identified theme rather than allowing an unnoticed device setting
+to choose the appearance.
 
-The current homepage mockup is not a replacement visual system for these
-pages. The product pages should gain shared identity details carefully while
-remaining readable explanations rather than becoming oversized promotional
-pages.
+The homepage is the visual system's expressive lead rather than a layout
+template for the product pages. The product pages share its frame, colours,
+corners and numbered rhythm while remaining readable explanations rather than
+oversized promotional pages.
 
 ## Links, controls and motion
 
@@ -213,6 +209,13 @@ or claret outline on hover.
 Product-page calls to action currently retain a simple right arrow because the
 arrow belongs to the action label rather than decorating every link. Ordinary
 product-page links remain underlined.
+
+The theme control is kept behind a small three-dot button in the header so it
+does not compete with navigation or the page title. Opening it reveals compact
+System, Light and Dark choices with a half-circle, sun and moon symbol. Its
+selected state must be exposed through `aria-pressed`, the menu must close after
+a choice, an outside click or Escape, and the preference stored by
+`docs/theme.js` must continue to apply across all three pages.
 
 Interactive targets should remain at least `44px` high where practical. Focus
 must be visible, keyboard order must follow document order, and skip links must
@@ -251,10 +254,11 @@ decisions were tested and which direction became current:
   orientation screenshots.
 
 The sequence matters because the middle commits are explorations rather than
-four simultaneous rules. The current product layout follows `646c82d` and
-later screenshot updates. The current homepage design was implemented in
-`11c6880` and then simplified in `b270f2d` when the RSS dependency and featured
-articles were removed.
+four simultaneous rules. The present product layout retains their readable
+content measure and screenshot emphasis, then places that content in the wider
+frame and numbered rhythm shared with the finished homepage. The current
+homepage design was implemented in `11c6880` and then simplified in `b270f2d`
+when the RSS dependency and featured articles were removed.
 
 ## Publishing and domain configuration
 
@@ -314,9 +318,8 @@ After editing:
 1. Preview the site through a local web server rather than opening the HTML as
    a file.
 2. Check the homepage and both product pages at narrow and wide widths.
-3. Check light and dark product-page rendering separately and label comparison
-   screenshots with the mode used. Once the shared theme control exists, check
-   all three pages in System, Light and Dark.
+3. Check all three pages in System, Light and Dark, and label comparison
+   screenshots with the mode used.
 4. Confirm that keyboard focus, skip links, hover states and `44px` controls
    still work.
 5. Check internal links, image paths, canonical metadata and JSON-LD.

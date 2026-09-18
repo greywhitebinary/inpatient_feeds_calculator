@@ -42,6 +42,8 @@
 }
 </script>
 
+<script src="../theme.js"></script>
+<link rel="stylesheet" href="../theme.css">
 <link rel="stylesheet" href="../site.css">
 </head>
 <body>
@@ -51,21 +53,33 @@
 <header class="masthead">
   <div class="wide">
     <a class="wordmark" href="../">Feed. Form. Flow.</a>
-    <nav aria-label="Main">
-      <a href="./" aria-current="page">ENCalc</a>
-      <a href="../btfcalc/">BTFCalc</a>
-      <a href="https://feedformflow.substack.com">Writing</a>
-    </nav>
+    <div class="product-header-actions">
+      <nav aria-label="Main">
+        <a href="./" aria-current="page">ENCalc</a>
+        <a href="../btfcalc/">BTFCalc</a>
+        <a href="https://feedformflow.substack.com">Writing</a>
+      </nav>
+      <div class="fff-theme-menu">
+        <button class="fff-theme-trigger" type="button" aria-expanded="false" aria-controls="fff-theme-options" aria-label="Choose colour theme"><span aria-hidden="true">•••</span></button>
+        <div class="fff-theme-control" id="fff-theme-options" role="group" aria-label="Colour theme" hidden>
+          <button type="button" data-theme-choice="system" aria-pressed="false"><span class="fff-theme-icon" aria-hidden="true">◐</span><span>System</span></button>
+          <button type="button" data-theme-choice="light" aria-pressed="false"><span class="fff-theme-icon" aria-hidden="true">☀</span><span>Light</span></button>
+          <button type="button" data-theme-choice="dark" aria-pressed="false"><span class="fff-theme-icon" aria-hidden="true">☾</span><span>Dark</span></button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
 <main id="main">
 
   <div class="hero">
-    <div class="copy">
-      <h1>ENCalc</h1>
-      <p class="standfirst">Plan a new tube feed or review one already running for an adult inpatient.</p>
-
+    <div class="hero-frame wide">
+      <div class="product-title-surface">
+        <h1>ENCalc</h1>
+        <p class="standfirst">Plan a new tube feed or review one already running for an adult inpatient.</p>
+      </div>
+      <div class="product-introduction">
       <p class="intro">ENCalc brings the feed, modulars, oral nutritional
         supplements, IV fluids, propofol, water and flushes into one daily
         view. It uses Canadian manufacturer product information and a
@@ -81,6 +95,7 @@
         may ask you to wake it. The first load can take a minute.</p>
 
       <p class="byline">Built by Hui Jun Chew, Dietitian.</p>
+      </div>
     </div>
   </div>
 
@@ -98,7 +113,7 @@
 
   <section class="band">
     <div class="copy">
-      <h2>Plan a new feed or review one already running</h2>
+      <h2 data-number="01">Plan a new feed or review one already running</h2>
 
       <p>ENCalc can start with assessment goals, but it does not require them.
         If a feed is already running, enter the order directly and review what
@@ -125,7 +140,7 @@
 
   <section>
     <div class="copy">
-      <h2>How it works</h2>
+      <h2 data-number="02">How it works</h2>
 
       <ol class="steps">
         <li>
@@ -205,7 +220,7 @@
 
   <section class="band yellow-band">
     <div class="copy">
-      <h2>Product data</h2>
+      <h2 data-number="03">Product data</h2>
 
       <p>ENCalc currently includes 33 enteral formulas, 7 modulars and 20 oral
         nutritional supplements. Values come from manufacturers’ Canadian product
@@ -225,7 +240,7 @@
 
   <section>
     <div class="copy">
-      <h2>Records and privacy</h2>
+      <h2 data-number="04">Records and privacy</h2>
 
       <p>ENCalc has no account system, shared workspace or patient-record
         database. It uses the information entered during the active Streamlit
@@ -247,7 +262,7 @@
 
   <section class="band final">
     <div class="copy">
-      <h2>Try ENCalc</h2>
+      <h2 data-number="05">Try ENCalc</h2>
 
       <p>Open the included example record to see how the calculator works
         without entering patient information.</p>
@@ -262,7 +277,7 @@
 
   <section>
     <div class="copy">
-      <h2>A related tool</h2>
+      <h2 data-number="06">A related tool</h2>
       <p><a href="../btfcalc/">BTFCalc</a> estimates the energy, protein, fluid
         and micronutrients in a home-blended tube feed using the 2026 Canadian
         Nutrient File. It shares ENCalc’s approach to showing the working.</p>
