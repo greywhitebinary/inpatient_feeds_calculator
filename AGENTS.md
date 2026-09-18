@@ -13,6 +13,25 @@ handoff or status document. Product-data changes also require
 [the data conventions](formula_sources/DATA_CONVENTIONS.md); use the README's
 [documentation map](README.md#documentation-map) to find supporting evidence.
 
+## Read before changing the public website
+
+Read [the Feed. Form. Flow. website guide](docs/SITE_GUIDE.md) before changing
+anything in `docs/index.html`, `docs/home.css`, `docs/encalc/`,
+`docs/btfcalc/`, `docs/site.css` or the Pages workflow. It records the intended
+visual identity, the different roles of the editorial homepage and product
+pages, copy guardrails, visual history, theme status, deployment and DNS.
+
+Preserve the existing ENCalc and BTFCalc copy and screenshots unless the
+current task supplies a specific reason to change them. Do not use the homepage
+mockup as the product-page layout. Do not reintroduce RSS or automatic Substack
+article updates without an explicit decision about their reliability and
+maintenance.
+
+Update the website guide when a settled design, content, domain or deployment
+decision changes. The user's current request still determines the scope of
+work; the guide supplies context rather than independent permission to redesign
+the pages.
+
 ## Cost-aware delegation
 
 When a task can be divided into independent, bounded subtasks, delegate routine

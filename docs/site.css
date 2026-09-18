@@ -1,5 +1,6 @@
-/* Feed. Form. Flow. — one stylesheet for all three pages.
-   Blue and yellow lead the public site. The calculators' claret remains as a
+/* Shared by the ENCalc and BTFCalc product explanation pages. The editorial
+   homepage uses home.css. Read SITE_GUIDE.md before changing this system.
+   Blue and yellow lead the public site; the calculators' claret remains a
    smaller shared accent for clinical cautions and identity. */
 
 :root {

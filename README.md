@@ -124,6 +124,7 @@ README supplies setup, testing, and deployment information.
 | Inspect earlier checks, decisions, and data questions | [Dated verification backlog](formula_sources/VERIFICATION_BACKLOG.md), [ONS verification](formula_sources/ONS_VERIFICATION.md), and [micronutrient verification](formula_sources/MICRONUTRIENT_VERIFICATION.md) |
 | Inspect the recorded flavour comparisons | [Abbott survey](formula_sources/ONS_FLAVOUR_SURVEY.md) and [Nestlé survey](formula_sources/ONS_FLAVOUR_SURVEY_NESTLE.md) |
 | Understand original design reasoning | [Historical working notes](configurable_rd_calculation_workspace_v2.md) |
+| Change the public landing pages, visual system, copy, deployment or domain | [Feed. Form. Flow. website guide](docs/SITE_GUIDE.md) |
 | Identify the public datasets and their intended use | [Working data README](formulary_working/README.md) |
 
 The dated records preserve evidence and may describe states superseded by later
@@ -143,6 +144,8 @@ Keep patient records and other private local material outside this repository.
 The static website lives in `docs/`. The homepage uses `home.css`, while the
 ENCalc and BTFCalc explanation pages retain their shared `site.css`.
 To preview all three pages locally, run `python3 -m http.server --directory docs`.
+Read the [website guide](docs/SITE_GUIDE.md) before changing their design,
+copy, navigation, screenshots or deployment.
 
 The Writing section links directly to Substack. It does not fetch or duplicate
 individual posts, which keeps publication independent of Substack's RSS
@@ -151,11 +154,15 @@ availability.
 The `Feed Form Flow website` workflow publishes `docs/` after website changes
 reach `main`, or when it is run manually from `main`.
 
-Publication requires selecting **GitHub Actions** as the repository's Pages
-source and configuring `feedformflow.ca` and its DNS for GitHub Pages. The
-domain currently redirects to Substack; adding these files does not change
-that redirect or the calculator subdomains. Do not change domain settings
-until the website is ready to launch.
+The site is published with GitHub Pages at `https://feedformflow.ca`, with
+GitHub Actions selected as the Pages source. The root domain points to GitHub
+through four `A` records, and `www` points to `greywhitebinary.github.io`.
+ENCalc and BTFCalc retain their separate subdomain forwarding. The website
+guide records the current DNS values and the records that must be preserved.
+
+The product pages currently follow the device's light or dark preference. The
+homepage currently uses light mode, and the planned shared System / Light /
+Dark control has not yet been implemented.
 
 ### Shared with BTF-Calc
 

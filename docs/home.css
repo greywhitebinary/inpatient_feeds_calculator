@@ -1,4 +1,5 @@
-/* Homepage only. Product pages retain site.css. */
+/* Editorial homepage only. Product explanation pages use site.css.
+   Read SITE_GUIDE.md before changing the visual system or page structure. */
 html { background: #FAFAFA; }
 body { margin: 0; }
 #fff-turned-surface {

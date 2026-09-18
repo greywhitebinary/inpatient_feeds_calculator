@@ -4,8 +4,9 @@ This is the maintained guide to the calculator's workflow decisions, code,
 completed repairs, and remaining issues. Start here for application changes.
 Use [README](../README.md) for setup and test commands, and
 [data conventions](../formula_sources/DATA_CONVENTIONS.md) when changing product
-data. Dated design and verification records remain linked from the README;
-they supply history and evidence rather than another current task list.
+data. Use the [website guide](SITE_GUIDE.md) for the public homepage and product
+explanation pages. Dated design and verification records remain linked from the
+README; they supply history and evidence rather than another current task list.
 
 This guide records project context, not a new request to change the application.
 The user's current request determines the task. It does not prescribe care.
