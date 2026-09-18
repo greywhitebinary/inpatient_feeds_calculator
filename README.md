@@ -138,6 +138,30 @@ components, saved-record handling and source data are documented in the
 [calculation and maintenance guide](docs/CALCULATION_FLOW.md#application-file-map).
 Keep patient records and other private local material outside this repository.
 
+### Feed. Form. Flow. website
+
+The static website lives in `docs/`. The homepage uses `home.css`, while the
+ENCalc and BTFCalc explanation pages retain their shared `site.css`.
+To preview all three pages locally, run `python3 -m http.server --directory docs`.
+
+`scripts/update_writing.py` fetches the two latest published Substack articles
+and updates only the marked Writing region in `docs/index.html`. It retains
+the approved summaries for the existing two posts and uses Substack's summaries
+for new posts. Dates are displayed in Vancouver time. The checked-in articles
+remain readable without JavaScript or a live feed connection.
+
+The `Feed Form Flow website` workflow refreshes the articles and publishes
+`docs/` after website changes reach `main`, on manual runs from `main`, and
+daily at 13:23 UTC. A feed failure stops deployment, leaving the previously
+published website intact. Generated article changes are not committed back.
+The refresh needs no additional Python dependencies or third-party RSS proxy.
+
+Publication requires selecting **GitHub Actions** as the repository's Pages
+source and configuring `feedformflow.ca` and its DNS for GitHub Pages. The
+domain currently redirects to Substack; adding these files does not change
+that redirect or the calculator subdomains. Do not change domain settings
+until the website is ready to launch.
+
 ### Shared with BTF-Calc
 
 ENCalc and the [Blenderized Tube Feeding Calculator](https://btfcalc.feedformflow.ca)

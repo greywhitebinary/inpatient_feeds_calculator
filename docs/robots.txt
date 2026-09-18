@@ -1,0 +1,8 @@
+# Feed. Form. Flow. — https://feedformflow.ca
+# Everything here is public documentation of two free clinical calculators.
+
+User-agent: *
+Allow: /
+
+# Not a page: the source used to render the social card images.
+Disallow: /_card-source.html
