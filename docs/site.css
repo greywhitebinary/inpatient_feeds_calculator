@@ -288,7 +288,7 @@ section .copy > * {
 
 .band {
   background: var(--blue-background);
-  border-block: 1px solid var(--rule);
+  border-block: 1px solid var(--yellow);
 }
 
 .yellow-band { background: var(--yellow-background); }
@@ -395,6 +395,7 @@ details[open] summary { border-bottom: 1px solid var(--rule); }
 /* ---------- final action ---------- */
 
 .final {
+  border-block: 0;
   background: var(--hero-blue);
   color: var(--on-blue);
 }
