@@ -16,9 +16,9 @@
   --rule: #CBDDE5;
   --on-blue: #FFFFFF;
   --on-yellow: #292526;
-  --cta-bg: #245B78;
-  --cta-hover: #17445D;
-  --cta-text: #FFFFFF;
+  --cta-bg: var(--yellow);
+  --cta-hover: var(--yellow-hover);
+  --cta-text: var(--on-yellow);
   --radius: 10px;
   --frame: 1184px;
   --gutter: 64px;
@@ -49,9 +49,9 @@
   --rule: #334956;
   --on-blue: #FFFFFF;
   --on-yellow: #0E1117;
-  --cta-bg: #245B78;
-  --cta-hover: #17445D;
-  --cta-text: #FFFFFF;
+  --cta-bg: var(--yellow);
+  --cta-hover: var(--yellow-hover);
+  --cta-text: var(--on-yellow);
 
   --theme-hover: #203B49;
   --theme-active: #76B8DA;

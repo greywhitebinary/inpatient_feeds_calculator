@@ -196,21 +196,23 @@ available frame. The first detailed heading on each page is intentionally
 short—"Plan or review a feed" and "Enter a blend and review the day"—because
 the following paragraph preserves the fuller explanation.
 
-The product pages use pale blue and pale yellow section bands, a blue primary
-call to action, mustard for the final call-to-action button and claret for
-workflow step numbers and clinical cautions. Their screenshots show the current
-tools and should be replaced only when the product interface has materially changed.
+The product pages use pale blue and pale yellow section bands, mustard for every
+calculator call-to-action button and claret for workflow step numbers and
+clinical cautions. Their screenshots show the current tools and should be
+replaced only when the product interface has materially changed.
+Each page links to its calculator with one button in the introduction and one
+final call to action. Do not repeat the same button in the intervening feature
+section.
 Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
 to choose the appearance.
 
-Mustard also marks the product title's lower edge, the final action button and
-the footer boundary. The masthead has no divider, matching the homepage, while
-coloured section bands, screenshot borders and expandable details use neutral
-rules so the full-width panels do not look outlined. Figure captions use the
-figure width because they are brief, and workflow numbers share a line with
-their step headings.
+Mustard also marks the product title's lower edge and the footer boundary. The
+masthead has no divider, matching the homepage, while coloured section bands,
+screenshot borders and expandable details use neutral rules so the full-width
+panels do not look outlined. Figure captions use the figure width because they
+are brief, and workflow numbers share a line with their step headings.
 
 The homepage is the visual system's expressive lead rather than a layout
 template for the product pages. The product pages share its frame, colours,
