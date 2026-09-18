@@ -164,8 +164,9 @@ The tool cards sit side by side on wide screens and stack on narrow screens.
 ENCalc uses a pale blue surface with a blue top rule; BTFCalc uses a pale yellow
 surface with a mustard top rule. Both tool names use claret, and both primary
 buttons use mustard. Cards have small rounded corners and a strong rectangular
-shape. They do not move on hover. A single quiet line above the cards states
-that both tools are free to use and require no account or installation.
+shape. They do not move on hover. A single quiet line below the cards states
+that both tools are free to use and require no account or installation. Its
+position mirrors the same note below the primary action on each product page.
 
 The footer uses a mustard top rule. Its closing phrase is "Working and writing
 about foods, healthcare and technology".
@@ -191,7 +192,9 @@ Detailed section headings sit above their content in a readable column of about
 are too long for the one-word category treatment used on the homepage. Product
 sections are deliberately unnumbered because the workflow sections contain
 their own numbered steps. The calculator screenshot may extend across the
-available frame.
+available frame. The first detailed heading on each page is intentionally
+short—"Plan or review a feed" and "Enter a blend and review the day"—because
+the following paragraph preserves the fuller explanation.
 
 The product pages use pale blue and pale yellow section bands, a blue primary
 call to action, mustard for the final call-to-action button and claret for
