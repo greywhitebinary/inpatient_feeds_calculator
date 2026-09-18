@@ -22,7 +22,7 @@
   --radius: 10px;
   --frame: 1184px;
   --gutter: 64px;
-  --section-rail: 120px;
+  --section-rail: 180px;
   --section-gap: 32px;
 
   --theme-border: var(--rule);
@@ -167,8 +167,6 @@ a:hover {
 .masthead nav a[aria-current="page"] {
   color: var(--blue);
   font-weight: 700;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
 }
 
 /* ---------- product introduction ---------- */
@@ -179,7 +177,7 @@ a:hover {
   width: min(74%, 54rem);
   padding: 2.15rem 2.5rem 2.35rem;
   background: var(--hero-blue);
-  border-bottom: 8px solid var(--yellow);
+  border-left: 8px solid var(--yellow);
   border-radius: var(--radius);
   color: var(--on-blue);
 }
@@ -204,9 +202,10 @@ h1 {
 }
 
 .product-introduction {
-  width: min(calc(100% - 2rem), 48rem);
-  margin: 1.75rem 0 0 2rem;
+  width: min(100%, 48rem);
+  margin: 1.75rem 0 0;
   padding: 1.4rem 1.5rem;
+  border-left: 8px solid var(--yellow);
   background: var(--yellow-background);
   border-radius: var(--radius);
 }
@@ -258,14 +257,15 @@ h1 {
 .media { padding-bottom: 4.5rem; }
 
 .media figure {
-  width: calc(100% - var(--section-rail) - var(--section-gap));
-  margin: 0 0 0 calc(var(--section-rail) + var(--section-gap));
+  width: 100%;
+  margin: 0;
 }
 
 .media img {
   display: block;
   width: 100%;
   border: 1px solid var(--rule);
+  border-left: 8px solid var(--yellow);
   border-radius: var(--radius);
   background: #FCFAF9;
 }
@@ -278,7 +278,7 @@ figcaption {
   line-height: 1.55;
 }
 
-/* ---------- numbered sections ---------- */
+/* ---------- product sections ---------- */
 
 section { scroll-margin-top: 1.5rem; }
 
@@ -314,16 +314,6 @@ h2 {
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.025em;
-}
-
-h2::before {
-  content: attr(data-number);
-  display: block;
-  margin-bottom: 0.45rem;
-  color: var(--claret);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0;
 }
 
 h3 {
@@ -408,7 +398,6 @@ details[open] summary { border-bottom: 1px solid var(--rule); }
 }
 
 .final h2 { color: var(--on-blue); }
-.final h2::before { color: var(--yellow); }
 .final .note { color: var(--on-blue); }
 
 .final .cta {
@@ -446,7 +435,7 @@ footer .scope { color: var(--ink); }
 @media (max-width: 900px) {
   :root {
     --gutter: 40px;
-    --section-rail: 90px;
+    --section-rail: 140px;
     --section-gap: 24px;
   }
 
@@ -464,8 +453,6 @@ footer .scope { color: var(--ink); }
     grid-row: auto;
     width: 100%;
   }
-
-  h2::before { display: inline; margin-right: 0.75rem; }
 
   .media figure {
     width: 100%;
@@ -485,7 +472,7 @@ footer .scope { color: var(--ink); }
 
   .hero { padding: 1.25rem 0 3.25rem; }
   .product-title-surface { width: 100%; padding: 1.75rem 1.5rem 2rem; }
-  .product-introduction { width: calc(100% - 1rem); margin: 1.25rem 0 0 1rem; padding: 1.15rem; }
+  .product-introduction { width: 100%; margin-top: 1.25rem; padding: 1.15rem; }
   .media { padding-bottom: 3.25rem; }
   .steps { grid-template-columns: 1fr; gap: 1.6rem; }
 }

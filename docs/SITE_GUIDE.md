@@ -69,9 +69,9 @@ effects.
 ## Current coherence and theme behaviour
 
 ENCalc and BTFCalc are visually coherent with each other because they share the
-same stylesheet, masthead, wide frame, numbered section rail, section bands and
+same stylesheet, masthead, wide frame, section-title rail, section bands and
 interaction patterns. The homepage belongs to the same family through its
-typography, palette, frame and numbered rhythm, but it is deliberately more
+typography, palette, frame and structural rhythm, but it is deliberately more
 expressive.
 
 All three pages include the shared **System / Light / Dark** control. It:
@@ -129,8 +129,9 @@ feel direct. Hierarchy comes from size, weight, line height and colour.
 
 The homepage uses a large, tightly spaced hero title, medium-weight section
 headings and restrained body sizes. The product pages use a readable body size
-and a narrow measure for long explanations. Section numbers must remain the
-same size and weight within each page.
+and a narrow measure for long explanations. The homepage section numbers must
+remain the same size and weight. Product-page sections are deliberately
+unnumbered because the workflow sections contain their own numbered steps.
 
 Avoid shrinking the whole page to create more margin. The current homepage
 width and type sizes were evaluated together. If the outer margins change,
@@ -176,15 +177,17 @@ clinical or usability reason requires a change. Do not solve a visual problem
 by rewriting these pages.
 
 The product pages use the same centred `1184px` maximum frame as the homepage.
-Their title sits in a smaller, flat blue panel with a restrained mustard lower
-edge. It does not rotate or move on hover. The existing introduction and action
-sit in a pale yellow surface below it, which keeps the title and explanatory
-copy distinct without recreating the homepage's layered hero.
+Their title sits in a smaller, flat blue panel with a strong mustard left edge.
+It does not rotate or move on hover. The existing introduction and action sit
+in a pale yellow surface below it, which keeps the title and explanatory copy
+distinct without recreating the homepage's layered hero. The title panel,
+introduction panel and calculator screenshot share one left edge, and each has
+its own mustard edge rather than forming one continuous spine.
 
-Detailed sections use a `120px` numbered left rail and a readable content
-column of about `66ch`. The calculator screenshot begins on the content-column
-edge and may extend across the available frame. At narrow widths, the rail and
-content stack so that the full width remains usable.
+Detailed sections use a `180px` unnumbered title rail and a readable content
+column of about `66ch`. The calculator screenshot may extend across the
+available frame. At narrow widths, the rail and content stack so that the full
+width remains usable.
 
 The product pages use pale blue and pale yellow section bands, a blue primary
 call to action, mustard for the final call-to-action button and claret for
@@ -197,7 +200,7 @@ to choose the appearance.
 
 The homepage is the visual system's expressive lead rather than a layout
 template for the product pages. The product pages share its frame, colours,
-corners and numbered rhythm while remaining readable explanations rather than
+corners and structural rhythm while remaining readable explanations rather than
 oversized promotional pages.
 
 ## Links, controls and motion
@@ -209,6 +212,11 @@ or claret outline on hover.
 Product-page calls to action currently retain a simple right arrow because the
 arrow belongs to the action label rather than decorating every link. Ordinary
 product-page links remain underlined.
+
+Header links use the same plain treatment across the site. On a product page,
+the current product uses heavier type without changing colour or adding an
+underline. This distinguishes location from hover and keeps claret out of the
+navigation.
 
 The theme control is kept behind a small three-dot button in the header so it
 does not compete with navigation or the page title. Opening it reveals compact
@@ -256,7 +264,7 @@ decisions were tested and which direction became current:
 The sequence matters because the middle commits are explorations rather than
 four simultaneous rules. The present product layout retains their readable
 content measure and screenshot emphasis, then places that content in the wider
-frame and numbered rhythm shared with the finished homepage. The current
+frame and structural rhythm shared with the finished homepage. The current
 homepage design was implemented in `11c6880` and then simplified in `b270f2d`
 when the RSS dependency and featured articles were removed.
 
