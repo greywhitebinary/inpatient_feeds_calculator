@@ -22,8 +22,6 @@
   --radius: 10px;
   --frame: 1184px;
   --gutter: 64px;
-  --spine-offset: 16px;
-  --spine-width: 4px;
 
   --theme-border: var(--rule);
   --theme-ground: var(--ground);
@@ -174,9 +172,7 @@ a:hover {
 .hero { padding: 2.25rem 0 4.25rem; }
 
 .product-title-surface {
-  position: relative;
-  width: min(calc(74% - var(--spine-offset)), 54rem);
-  margin-left: var(--spine-offset);
+  width: min(74%, 54rem);
   padding: 2.15rem 2.5rem 2.35rem;
   background: var(--hero-blue);
   border-radius: var(--radius);
@@ -203,25 +199,11 @@ h1 {
 }
 
 .product-introduction {
-  position: relative;
-  width: min(calc(100% - var(--spine-offset)), 48rem);
-  margin: 1.75rem 0 0 var(--spine-offset);
+  width: min(100%, 48rem);
+  margin: 1.75rem 0 0;
   padding: 1.4rem 1.5rem;
   background: var(--yellow-background);
   border-radius: var(--radius);
-}
-
-.product-title-surface::before,
-.product-introduction::before,
-.media figure::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(-1 * var(--spine-offset));
-  width: var(--spine-width);
-  border-radius: 2px;
-  background: var(--yellow);
 }
 
 .product-introduction .intro { max-width: 66ch; }
@@ -271,9 +253,8 @@ h1 {
 .media { padding-bottom: 4.5rem; }
 
 .media figure {
-  position: relative;
-  width: calc(100% - var(--spine-offset));
-  margin: 0 0 0 var(--spine-offset);
+  width: 100%;
+  margin: 0;
 }
 
 .media img {
@@ -450,7 +431,7 @@ footer .scope { color: var(--ink); }
 }
 
 @media (max-width: 600px) {
-  :root { --gutter: 20px; --spine-offset: 12px; --spine-width: 3px; }
+  :root { --gutter: 20px; }
 
   body { font-size: 1rem; }
   .masthead .wide { align-items: flex-start; }
@@ -458,8 +439,8 @@ footer .scope { color: var(--ink); }
   .masthead nav { gap: 1rem; font-size: 0.8125rem; }
 
   .hero { padding: 1.25rem 0 3.25rem; }
-  .product-title-surface { width: calc(100% - var(--spine-offset)); padding: 1.75rem 1.5rem 2rem; }
-  .product-introduction { width: calc(100% - var(--spine-offset)); margin-top: 1.25rem; padding: 1.15rem; }
+  .product-title-surface { width: 100%; padding: 1.75rem 1.5rem 2rem; }
+  .product-introduction { width: 100%; margin-top: 1.25rem; padding: 1.15rem; }
   .media { padding-bottom: 3.25rem; }
   .steps { grid-template-columns: 1fr; gap: 1.6rem; }
 }

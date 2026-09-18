@@ -183,9 +183,9 @@ Their title sits in a smaller, flat blue panel and does not rotate or move on
 hover. The existing introduction and action sit in a pale yellow surface below
 it, which keeps the title and explanatory copy distinct without recreating the
 homepage's layered hero. The title panel, introduction panel and calculator
-screenshot share one left edge. Each group has a separate mustard spine in the
-gutter, with visible space between the spine and the rounded surface. The spine
-is structural rather than part of the box border.
+screenshot share one left edge. They do not use a decorative spine; once the
+product section headings moved above their content, a separate line no longer
+had a structural role.
 
 Detailed section headings sit above their content in a readable column of about
 `66ch`. They do not use a side rail because the descriptive product headings
