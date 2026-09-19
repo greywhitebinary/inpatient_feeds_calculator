@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Feed. Form. Flow.">
+  <style>
+    .fff-panel { fill: #245B78; }
+    .fff-gold { fill: #D9A62E; }
+    .fff-mark { fill: #FAFAFA; }
+    .fff-wave { stroke: #FAFAFA; }
+    @media (prefers-color-scheme: dark) {
+      .fff-panel { fill: #17445D; }
+      .fff-gold { fill: #F0C75E; }
+      .fff-mark { fill: #FFFFFF; }
+      .fff-wave { stroke: #FFFFFF; }
+    }
+  </style>
+  <g transform="rotate(0.4 32 32) translate(3 2)">
+    <rect class="fff-gold" x="4" y="4" width="56" height="56" rx="9"/>
+  </g>
+  <g transform="rotate(-1.5 32 32)">
+    <rect class="fff-panel" x="4" y="4" width="56" height="56" rx="9"/>
+    <path class="fff-wave" d="M16 30c5-9 11-9 16 0s11 9 16 0" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <circle class="fff-mark" cx="20" cy="44" r="4.5"/>
+    <circle class="fff-mark" cx="32" cy="44" r="4.5"/>
+    <circle class="fff-gold" cx="44" cy="44" r="4.5"/>
+  </g>
+</svg>
