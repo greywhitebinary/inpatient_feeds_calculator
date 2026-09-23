@@ -10,6 +10,7 @@ from streamlit.testing.v1 import AppTest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from apptest_state import session_state_dict
 from case_io import export_case_record_workbook
 from constants import PLAN_GOALS
 from data import load_master_formulas, load_master_modulars
@@ -58,7 +59,7 @@ def test_cleared_goals_survive_rerun_and_save_reopen(editor):
     app.number_input(key="assessment_age").set_value(68).run(timeout=30)
     assert_blank_goals(app)
     payload = export_case_record_workbook(
-        app.session_state.filtered_state,
+        session_state_dict(app),
         app.session_state["my_formulas"],
         app.session_state["my_modulars"],
         app.session_state["my_ons"],

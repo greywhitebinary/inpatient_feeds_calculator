@@ -9,6 +9,7 @@ from streamlit.testing.v1 import AppTest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from apptest_state import session_state_dict
 from case_io import export_case_record_workbook
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
@@ -64,7 +65,7 @@ def visible_results(app):
 def save_replace_and_reopen(app):
     before = visible_results(app)
     payload = export_case_record_workbook(
-        app.session_state.filtered_state,
+        session_state_dict(app),
         app.session_state["my_formulas"],
         app.session_state["my_modulars"],
         app.session_state["my_ons"],
