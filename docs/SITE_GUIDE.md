@@ -20,7 +20,7 @@ update the implementation and this guide together.
 The landing pages use plain HTML, CSS and a small amount of vanilla JavaScript,
 with no site generator or client-side framework. `docs/theme.js` and
 `docs/theme.css` supply the shared theme control. `docs/favicon.svg` supplies
-the shared icon. The two `card.png` files are social-sharing images;
+the shared icon (see Favicon below). The two `card.png` files are social-sharing images;
 `docs/_card-source.html` is their editable source and is intentionally excluded
 from search indexing.
 
@@ -89,6 +89,10 @@ theme are not mistaken for differences between page designs.
 
 ## Colour system
 
+The Feed. Form. Flow. visual identity guide is the source of truth for colour
+across the website, both calculators, the Substack and the favicon. This
+section records how the website applies it; change the two together.
+
 Blue and mustard lead the website. Claret connects the site to the calculators
 and supplies a smaller accent. The colours should retain consistent jobs so
 that variety does not become noise.
@@ -99,7 +103,7 @@ that variety does not become noise.
 | Mustard | `#D9A62E` | Structural accent, hero backing plane, section spines, buttons, rules and the BTFCalc card rule |
 | Claret | `#A4243A` | Section numbers, tool names, clinical cautions and limited identity accents |
 | Homepage paper | `#FAFAFA` | Neutral homepage ground |
-| Page ground | `#FAFAFA` | Neutral ground shared by the three static pages |
+| Page ground | `#FAFAFA` | Neutral ground shared by the three static pages and, since 28 September 2026, both calculators |
 | Ink | `#292526` | Main text |
 | Soft ink | `#5E5558` | Supporting text and metadata |
 | Pale blue | `#F3F8FA` | Light ENCalc card and quiet blue backgrounds |
@@ -109,7 +113,8 @@ Mustard works best as a surface, rule or button. It should not be used for body
 text on the light ground because the contrast is weak. Claret should not be
 used for general Writing headings; it belongs to controlled accents and the
 tool identity. When a card has a coloured top rule, the rule should match the
-card's colour family.
+card's colour family. Claret never sits directly on blue: the two are almost
+the same darkness (1.07:1), so mustard or paper goes between them.
 
 The blue foreground hero with a mustard backing plane is the settled homepage
 choice. A mustard foreground made the page read like retail branding, so that
@@ -119,7 +124,26 @@ hero title is intentional.
 `docs/site.css` and `docs/home.css` contain related dark palettes. Their lighter
 blue, warmer mustard and softened claret preserve the same hierarchy on a dark
 ground. The homepage retains its layered hero in dark mode, while the product
-pages retain their quieter flat title panel.
+pages retain their quieter flat title panel. The dark ground `#0E1117` and the
+softened claret `#E0708A` are the same values the calculators use in dark mode.
+
+## Favicon
+
+`docs/favicon.svg` is the Feed. Form. Flow. mark: a slightly rotated blue square
+with a white wave and three dots for the three full stops, the last one
+mustard, over an offset mustard layer and an offset claret layer. Blue is in
+front, mustard in the middle and claret at the back, which extends the
+homepage hero's blue-over-mustard arrangement by one layer. Mustard is the only
+light colour of the three, so it keeps blue and claret apart.
+
+The SVG carries its own dark-mode colours. On a dark tab bar only what fails
+there changes: the blue lifts to `#407694` (3.25:1 against the bar, white marks
+4.96:1 on it) and claret lifts to `#E0708A`. Mustard stays as it is.
+
+Both calculators use the same mark with claret in front as their browser-tab
+icon (`feedformflow-tool-icon.svg` in each app), so the website's tab is blue
+and a calculator's tab is claret. A change to the mark means updating all three
+files.
 
 ## Typography
 
@@ -162,7 +186,8 @@ touch the line.
 
 The tool cards sit side by side on wide screens and stack on narrow screens.
 ENCalc uses a pale blue surface with a blue top rule; BTFCalc uses a pale yellow
-surface with a mustard top rule. Both tool names use claret, and both primary
+surface with a mustard top rule. The alternation is page rhythm rather than
+tool identity, so a third tool's card takes the next colour in the sequence. Both tool names use claret, and both primary
 buttons use mustard. Cards have small rounded corners and a strong rectangular
 shape. They do not move on hover. A single quiet line below the cards states
 that both tools are free to use and require no account or installation. Its
@@ -223,7 +248,9 @@ needs more technical detail.
 Calculator screenshots document the Streamlit product; they do not determine
 the landing page's layout or component styling. Capture the calculator in an
 intentional, identified theme rather than allowing an unnoticed device setting
-to choose the appearance.
+to choose the appearance. Each screenshot has a light capture and a `-dark`
+capture at the same size and framing; `site.css` shows the one that matches
+the page's theme, so retake both whenever the interface changes.
 
 Mustard also marks the product title's lower edge and the footer boundary. The
 masthead has no divider, matching the homepage. The pale blue and pale yellow

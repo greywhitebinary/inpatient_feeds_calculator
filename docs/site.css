@@ -263,8 +263,20 @@ h1 {
   width: 100%;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: #FCFAF9;
+  background: #FAFAFA;
 }
+
+/* Each calculator screenshot has a light and a dark capture, so a dark page
+   does not carry a bright white block. The site's theme control sets
+   data-theme on <html>, so the swap follows the visitor's System, Light or
+   Dark choice rather than only the device setting. */
+.media img.shot-dark {
+  display: none;
+  background: #0E1117;
+}
+
+:root[data-theme="dark"] .media img.shot-light { display: none; }
+:root[data-theme="dark"] .media img.shot-dark { display: block; }
 
 figcaption {
   width: 100%;

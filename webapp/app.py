@@ -8,10 +8,17 @@ storage; clinicians can voluntarily download and later upload a local case file.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import streamlit as st
 
-st.set_page_config(page_title="Adult Inpatient EN Calculator", layout="wide")
+# The Feed. Form. Flow. mark with claret in front, shared with BTF-Calc
+# (2026-09-28). An SVG path keeps its own dark-mode colours.
+st.set_page_config(
+    page_title="Adult Inpatient EN Calculator",
+    page_icon=Path(__file__).resolve().parent / "assets" / "feedformflow-tool-icon.svg",
+    layout="wide",
+)
 
 from assessment_ui import show_assessment
 from case_record_ui import render_case_record_actions, render_footer

@@ -2,7 +2,9 @@
 [theme]
 primaryColor = "#A4243A"
 linkColor = "#A4243A"
-backgroundColor = "#FCFAF9"
+# #FAFAFA is the one page ground shared with BTF-Calc and feedformflow.ca
+# (2026-09-28; it was #FCFAF9). See the Feed. Form. Flow. visual identity guide.
+backgroundColor = "#FAFAFA"
 secondaryBackgroundColor = "#F9E8EB"
 textColor = "#292526"
 font = "sans serif"

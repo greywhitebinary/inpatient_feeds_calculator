@@ -1,3 +1,42 @@
+/* Claret for the active colour scheme (2026-09-28). Streamlit 1.62 does
+   not publish its theme as CSS custom properties, so every
+   var(--primary-color, #A4243A) in this file fell back to the daylight
+   claret, including in dark mode, where it measures 2.60:1 on #0E1117.
+   Defining the variable here lifts the selected tab, input borders, links
+   and scrollbars to #E0708A (6.2:1) in dark mode. It follows the OS
+   setting, so it can disagree with a theme picked by hand in Streamlit's
+   settings menu, the same limitation as the alert accents below. The twin
+   rule is in BTF-Calc's styles.css. */
+:root {
+    --primary-color: #A4243A;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary-color: #E0708A;
+    }
+    /* Selected-option chips take the lifted claret as their fill in dark
+       mode; white text on it is 3.06:1, so the text goes dark (6.2:1). */
+    [data-testid="stMultiSelectTagsContainer"] span {
+        color: #0E1117 !important;
+    }
+}
+
+/* The page note under the title (2026-09-28). Streamlit fades a caption
+   with opacity 0.6, which also faded the "Feed. Form. Flow." link to
+   3.1:1 in light mode and 2.9:1 in dark, below the 4.5:1 text minimum.
+   Lifting the opacity on the caption container itself and muting the text
+   with the soft-ink colour instead keeps the note quieter than body text
+   (6.9:1 light, 11:1 dark) while the link returns to full claret. */
+[class*="st-key-pagenote"] [data-testid="stCaptionContainer"] {
+    opacity: 1 !important;
+    color: #5E5558 !important;
+}
+@media (prefers-color-scheme: dark) {
+    [class*="st-key-pagenote"] [data-testid="stCaptionContainer"] {
+        color: #C9BFC2 !important;
+    }
+}
+
 /* Shared clinical-workspace treatment derived from the approved wireframes. */
 /* Match BTF-Calc's readable 20 px base scale, then set each heading tier
    explicitly so the EN page title does not dominate the clinical workspace. */
@@ -341,8 +380,18 @@ html {
     }
 }
 
+/* The one status highlight in either calculator, recorded in the Feed.
+   Form. Flow. visual identity guide. It marks a shortfall against the
+   clinician's own protein goal, which the modulars below can close. No
+   threshold is involved: any shortfall gets it. A shortfall is something
+   to act on, not an error, so it takes the mustard tint rather than
+   claret. The tint is translucent, so it composites over either theme's
+   ground and the text keeps the theme's own colour. */
 .protein-shortfall {
-    color: var(--primary-color, #A4243A);
+    padding: 0.05rem 0.35rem;
+    border-radius: 3px;
+    background: rgba(217, 166, 46, 0.4);
+    color: inherit;
 }
 
 [class*="st-key-reference_row_"] {
@@ -533,6 +582,53 @@ html {
     background: var(--primary-color, #A4243A);
     border: 2px solid transparent;
     border-radius: 999px;
+}
+
+/* Right-edge fade on tables that scroll sideways (author, 2026-09-28).
+   The column order is clinical and does not change; the fade only signals
+   that there is more to the right. On a Mac the scrollbar stays hidden
+   until you scroll, so without it a clipped column looks like the end of
+   the table.
+
+   The fade follows the table's own horizontal scroll position: it shows
+   while there is more to the right and is gone at the right-hand end. A
+   table that fits has no scroll range, so its timeline is inactive and no
+   fade is drawn. Browsers without scroll-driven animations (Firefox at the
+   time of writing) show no fade and are otherwise unaffected. The twin rule
+   lives in the other calculator's styles.css; keep the two in step. */
+@property --table-edge-fade {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+
+@keyframes table-edge-fade {
+    0%,
+    90% {
+        --table-edge-fade: 3rem;
+    }
+    100% {
+        --table-edge-fade: 0px;
+    }
+}
+
+/* Two mask layers: the fading one over the table, and a solid strip over
+   the bottom padding and scrollbar so the scrollbar itself never fades. */
+@supports (animation-timeline: scroll()) {
+    .report-table-wrap {
+        mask-image:
+            linear-gradient(to right, #000 calc(100% - var(--table-edge-fade)), transparent),
+            linear-gradient(#000, #000);
+        mask-size:
+            100% calc(100% - 1.2rem),
+            100% 1.2rem;
+        mask-position:
+            top left,
+            bottom left;
+        mask-repeat: no-repeat;
+        animation: table-edge-fade linear both;
+        animation-timeline: scroll(self inline);
+    }
 }
 
 .report-table {
